@@ -130,9 +130,13 @@
 
         if (data.status === 'success') {
           result.innerHTML = `
-            <p class="text-green-600">Upload Successful</p>
-            <p>CID: <a href="https://dweb.link/ipfs/${data.cid}" target="_blank" class="text-blue-600 hover:underline">${data.cid}</a></p>
-            <p class="text-xs">Size: ${formatBytes(data.size)}</p>
+            <p class="text-green-600 font-medium">Upload Successful</p>
+            <p class="text-xs mt-2">CID: <span class="font-mono">${data.cid}</span></p>
+            <div class="mt-3 space-y-1 text-left">
+              <p><a href="https://ipfs.io/ipfs/${data.cid}" target="_blank" class="text-blue-600 hover:underline">ipfs.io</a></p>
+              <p><a href="https://dweb.link/ipfs/${data.cid}" target="_blank" class="text-blue-600 hover:underline">dweb.link</a></p>
+            </div>
+            <p class="text-xs mt-2">Size: ${formatBytes(data.size)}</p>
           `;
         } else {
           result.innerHTML = `<span class="text-red-500">Error: ${data.error}</span>`;
