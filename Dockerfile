@@ -14,4 +14,4 @@ RUN npm install --only=production
 COPY . .
 EXPOSE 3232 5001 8080
 
-CMD ipfs init && ipfs daemon & sleep 5 && node app.js
+CMD ipfs init && ipfs daemon && ipfs swarm connect /dnsaddr/dweb.link & sleep 5 && node app.js
