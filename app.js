@@ -130,7 +130,7 @@ app.get('/status', async (req, res) => {
       totalOut: bwResponse.data.TotalOut,
       rateIn: bwResponse.data.RateIn,
       rateOut: bwResponse.data.RateOut,
-      interval: '5m'
+      interval: '1h'
     };
 
     // Format repository stats
