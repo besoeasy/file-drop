@@ -3,57 +3,30 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>IPFS Uploader</title>
+  <title>IPFS File Drop</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    /* Custom styles inspired by Apple's smooth animations */
+    /* Apple-inspired animations and custom styles */
     .apple-btn-hover {
       transition: all 0.3s ease-in-out;
     }
     .apple-btn-hover:hover {
       transform: translateY(-1px);
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+    .sidebar {
+      transition: width 0.3s ease-in-out;
+    }
+    .sidebar:hover {
+      width: 20rem;
     }
   </style>
 </head>
-<body class="bg-gray-50 font-sans antialiased min-h-screen flex flex-col items-center justify-center p-6">
-  <!-- Main Upload Card -->
-  <div class="bg-white rounded-2xl shadow-lg p-8 w-full max-w-md">
-    <h1 class="text-2xl font-bold text-gray-900 mb-6 text-center">Upload to IPFS</h1>
-    
-    <div class="space-y-4">
-      <!-- File Input -->
-      <label for="fileInput" 
-             class="block w-full bg-gray-100 rounded-xl p-4 text-gray-600 text-center cursor-pointer hover:bg-gray-200 transition-colors">
-        <span id="fileLabel">Choose File</span>
-      </label>
-      <input type="file" id="fileInput" class="hidden" onchange="updateFileLabel()" />
-      
-      <!-- Upload Button -->
-      <button 
-        onclick="uploadFile()" 
-        id="uploadBtn"
-        class="w-full bg-blue-600 text-white py-3 rounded-xl font-medium apple-btn-hover disabled:bg-gray-400 disabled:cursor-not-allowed">
-        Upload
-      </button>
-    </div>
-
-    <!-- Progress and Result -->
-    <div id="progress" class="mt-4 text-gray-600 text-sm text-center hidden">
-      <svg class="animate-spin h-5 w-5 mx-auto mb-2 text-blue-600" viewBox="0 0 24 24">
-        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-      </svg>
-      Uploading...
-    </div>
-    <div id="result" class="mt-4 text-sm text-gray-700 text-center"></div>
-  </div>
-
-  <!-- Status Panel -->
-  <div class="fixed top-6 right-6 w-80 bg-white rounded-2xl shadow-lg p-6">
-    <h2 class="text-lg font-semibold text-gray-900 mb-4">Node Status</h2>
-    
-    <div class="space-y-3 text-sm">
+<body class="bg-gray-50 font-sans antialiased min-h-screen flex flex-col">
+  <!-- Sidebar: Status Panel -->
+  <div class="fixed top-0 left-0 h-full w-64 bg-white shadow-lg p-6 sidebar overflow-hidden">
+    <h2 class="text-xl font-semibold text-gray-900 mb-6">Node Status</h2>
+    <div class="space-y-4 text-sm">
       <!-- Node Info -->
       <div>
         <p class="text-gray-500 font-medium">Node ID</p>
@@ -80,11 +53,58 @@
       </div>
 
       <!-- Timestamp -->
-      <div>
+      <div class="mt-4">
         <p id="timestamp" class="text-gray-400 text-xs">Last updated: Loading...</p>
       </div>
     </div>
   </div>
+
+  <!-- Main Content -->
+  <div class="flex-1 flex flex-col items-center justify-center p-8 ml-64">
+    <!-- Upload Section -->
+    <div class="bg-white rounded-2xl shadow-lg p-8 w-full max-w-lg">
+      <h1 class="text-3xl font-bold text-gray-900 mb-6 text-center">IPFS File Drop</h1>
+      
+      <div class="space-y-6">
+        <!-- File Input -->
+        <label for="fileInput" 
+               class="block w-full bg-gray-100 rounded-xl p-6 text-gray-600 text-center cursor-pointer hover:bg-gray-200 transition-colors border-2 border-dashed border-gray-300">
+          <span id="fileLabel" class="text-lg">Drop or Choose File</span>
+        </label>
+        <input type="file" id="fileInput" class="hidden" onchange="updateFileLabel()" />
+        
+        <!-- Upload Button -->
+        <button 
+          onclick="uploadFile()" 
+          id="uploadBtn"
+          class="w-full bg-blue-600 text-white py-3 rounded-xl font-medium apple-btn-hover disabled:bg-gray-400 disabled:cursor-not-allowed">
+          Upload
+        </button>
+      </div>
+
+      <!-- Progress -->
+      <div id="progress" class="mt-6 text-gray-600 text-sm text-center hidden">
+        <svg class="animate-spin h-6 w-6 mx-auto mb-2 text-blue-600" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        Uploading to IPFS...
+      </div>
+
+      <!-- Result -->
+      <div id="result" class="mt-6 text-sm text-gray-700"></div>
+    </div>
+  </div>
+
+  <!-- Footer with GitHub Link -->
+  <footer class="fixed bottom-4 left-0 right-0 text-center">
+    <p class="text-gray-500 text-xl">
+      Open source on 
+      <a href="https://github.com/besoeasy/file-drop" target="_blank" class="text-blue-600 hover:underline uppercase">
+        GitHub
+      </a>
+    </p>
+  </footer>
 
   <script>
     function formatBytes(bytes) {
@@ -97,7 +117,7 @@
     function updateFileLabel() {
       const fileInput = document.getElementById('fileInput');
       const fileLabel = document.getElementById('fileLabel');
-      fileLabel.textContent = fileInput.files.length ? fileInput.files[0].name : 'Choose File';
+      fileLabel.textContent = fileInput.files.length ? fileInput.files[0].name : 'Drop or Choose File';
     }
 
     async function uploadFile() {
@@ -130,21 +150,31 @@
 
         if (data.status === 'success') {
           result.innerHTML = `
-            <p class="text-green-600 font-medium">Upload Successful</p>
-            <p class="text-xs mt-2">CID: <span class="font-mono">${data.cid}</span></p>
-            <div class="mt-3 space-y-1 text-left">
-              <p><a href="https://ipfs.io/ipfs/${data.cid}" target="_blank" class="text-blue-600 hover:underline">ipfs.io</a></p>
-              <p><a href="https://dweb.link/ipfs/${data.cid}" target="_blank" class="text-blue-600 hover:underline">dweb.link</a></p>
+            <div class="bg-green-50 p-4 rounded-xl">
+              <p class="text-green-700 font-medium">Upload Successful</p>
+              <p class="text-xs mt-2">CID: <span class="font-mono text-gray-800">${data.cid}</span></p>
+              <div class="mt-3 grid grid-cols-1 gap-2">
+                <a href="https://ipfs.io/ipfs/${data.cid}" target="_blank" class="text-blue-600 hover:underline text-left">ipfs.io</a>
+                <a href="https://dweb.link/ipfs/${data.cid}" target="_blank" class="text-blue-600 hover:underline text-left">dweb.link</a>
+              </div>
+              <p class="text-xs mt-2 text-gray-600">Size: ${formatBytes(data.size)}</p>
             </div>
-            <p class="text-xs mt-2">Size: ${formatBytes(data.size)}</p>
           `;
         } else {
-          result.innerHTML = `<span class="text-red-500">Error: ${data.error}</span>`;
+          result.innerHTML = `
+            <div class="bg-red-50 p-4 rounded-xl">
+              <span class="text-red-600 font-medium">Error: ${data.error}</span>
+            </div>
+          `;
         }
       } catch (error) {
         progress.classList.add('hidden');
         uploadBtn.disabled = false;
-        result.innerHTML = '<span class="text-red-500">Upload failed. Please try again.</span>';
+        result.innerHTML = `
+          <div class="bg-red-50 p-4 rounded-xl">
+            <span class="text-red-600 font-medium">Upload failed. Please try again.</span>
+          </div>
+        `;
       }
     }
 
@@ -154,24 +184,15 @@
         const data = await response.json();
 
         if (data.status === 'success') {
-          // Node Info
           document.getElementById('nodeId').textContent = data.node.id.slice(0, 12) + '...';
-
-          // Bandwidth
           document.getElementById('bandwidth').textContent = 
             `In: ${formatBytes(data.bandwidth.totalIn)} | Out: ${formatBytes(data.bandwidth.totalOut)}`;
-
-          // Repository
           document.getElementById('repoSize').textContent = 
             `Size: ${formatBytes(data.repository.size)} / ${formatBytes(data.repository.storageMax)}`;
           document.getElementById('repoObjects').textContent = 
             `Objects: ${data.repository.numObjects}`;
-
-          // Version
           document.getElementById('version').textContent = 
             `${data.node.agentVersion}`;
-
-          // Timestamp
           document.getElementById('timestamp').textContent = 
             `Last updated: ${new Date(data.timestamp).toLocaleTimeString()}`;
         }
