@@ -30,5 +30,4 @@ docker run -d --restart unless-stopped -p 3232:3232 --name file-drop ghcr.io/bes
 
 ## Usage
 
-1. Launch the container using the command above.
-2. Access the application via `http://localhost:3232` in your browser (or your machine’s IP if remote).
+Access the application via `http://localhost:3232` in your browser (or your machine’s IP if remote).
