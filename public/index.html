@@ -8,8 +8,6 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Vue.js CDN -->
     <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
-    <!-- Lucide Icons CDN -->
-    <script src="https://unpkg.com/lucide-static@latest/dist/lucide.min.js"></script>
     <style>
       /* Custom animations */
       @keyframes fadeIn {
@@ -31,63 +29,40 @@
       }
     </style>
   </head>
-  <body
-    class="min-h-screen bg-gradient-to-br from-purple-100 via-blue-100 to-teal-100 flex items-center justify-center p-4"
-  >
+  <body class="min-h-screen bg-white flex items-center justify-center p-4">
     <div
       id="app"
       class="w-full max-w-4xl glassmorphism rounded-3xl shadow-2xl overflow-hidden transform transition-all duration-500 hover:scale-105"
     >
       <!-- Header -->
-      <header
-        class="bg-gradient-to-r from-purple-600 to-blue-600 p-6 text-white text-center"
-      >
-        <h1
-          class="text-3xl font-bold flex items-center justify-center gap-2 uppercase"
-        >
-          File Drop
-        </h1>
+      <header class="bg-black p-6 text-white text-center">
+        <h1 class="text-3xl font-bold uppercase">File Drop</h1>
       </header>
 
       <div class="flex flex-col md:flex-row">
         <!-- Sidebar: Status Panel -->
         <aside class="w-full md:w-80 bg-gray-50 p-6 border-r border-gray-200">
-          <h2
-            class="text-xl font-semibold text-gray-800 mb-6 flex items-center gap-2"
-          >
-            <i data-lucide="server" class="w-6 h-6 text-purple-600"></i>
-            Node Status
-          </h2>
+          <h2 class="text-xl font-semibold text-black mb-6">Node Status</h2>
           <div class="space-y-4 text-sm">
             <div>
-              <p class="text-gray-500 font-medium flex items-center gap-2">
-                <i data-lucide="user" class="w-4 h-4"></i> Node ID
-              </p>
-              <p class="text-gray-700 truncate">{{ status.nodeId }}</p>
+              <p class="text-gray-500 font-medium">Node ID</p>
+              <p class="text-black truncate">{{ status.nodeId }}</p>
             </div>
             <div>
-              <p class="text-gray-500 font-medium flex items-center gap-2">
-                <i data-lucide="activity" class="w-4 h-4"></i> Bandwidth (1h)
-              </p>
-              <p class="text-gray-700">{{ status.bandwidth }}</p>
+              <p class="text-gray-500 font-medium">Bandwidth (1h)</p>
+              <p class="text-black">{{ status.bandwidth }}</p>
             </div>
             <div>
-              <p class="text-gray-500 font-medium flex items-center gap-2">
-                <i data-lucide="database" class="w-4 h-4"></i> Repository Size
-              </p>
-              <p class="text-gray-700">{{ status.repoSize }}</p>
+              <p class="text-gray-500 font-medium">Repository Size</p>
+              <p class="text-black">{{ status.repoSize }}</p>
             </div>
             <div>
-              <p class="text-gray-500 font-medium flex items-center gap-2">
-                <i data-lucide="box" class="w-4 h-4"></i> Objects
-              </p>
-              <p class="text-gray-700">{{ status.repoObjects }}</p>
+              <p class="text-gray-500 font-medium">Objects</p>
+              <p class="text-black">{{ status.repoObjects }}</p>
             </div>
             <div>
-              <p class="text-gray-500 font-medium flex items-center gap-2">
-                <i data-lucide="code" class="w-4 h-4"></i> Version
-              </p>
-              <p class="text-gray-700">{{ status.version }}</p>
+              <p class="text-gray-500 font-medium">Version</p>
+              <p class="text-black">{{ status.version }}</p>
             </div>
             <p class="text-gray-400 text-xs mt-4 animate-pulse">
               Last updated: {{ status.timestamp }}
@@ -101,15 +76,11 @@
             <!-- File Drop Zone -->
             <label
               for="fileInput"
-              class="block w-full bg-gray-100 rounded-2xl p-8 text-gray-600 text-center cursor-pointer border-2 border-dashed border-purple-400 transition-all duration-300 hover:bg-purple-50 hover:scale-105 hover:border-purple-600 group"
+              class="block w-full bg-gray-100 rounded-2xl p-8 text-black text-center cursor-pointer border-2 border-dashed border-black transition-all duration-300 hover:bg-gray-200 hover:scale-105"
               @dragover.prevent
               @drop.prevent="handleDrop($event)"
             >
               <div class="flex flex-col items-center gap-2">
-                <i
-                  data-lucide="upload"
-                  class="w-12 h-12 text-purple-500 group-hover:animate-bounce"
-                ></i>
                 <span class="text-lg font-medium">{{ fileLabel }}</span>
               </div>
             </label>
@@ -124,63 +95,50 @@
             <button
               @click="uploadFile"
               :disabled="uploading || !file"
-              class="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white py-3 rounded-xl font-medium transition-all duration-300 hover:from-purple-700 hover:to-blue-700 hover:shadow-lg hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              class="w-full bg-black text-white py-3 rounded-xl font-medium transition-all duration-300 hover:bg-gray-800 hover:shadow-lg hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <i data-lucide="send" class="w-5 h-5"></i>
-              Upload to IPFS
+              <strong>Upload to IPFS</strong>
             </button>
 
             <!-- Progress -->
             <div v-if="uploading" class="text-center">
-              <i
-                data-lucide="loader-2"
-                class="w-8 h-8 text-blue-600 animate-spin mx-auto"
-              ></i>
-              <p class="text-gray-600 mt-2">Uploading to IPFS...</p>
+              <p class="text-black mt-2"><strong>Uploading to IPFS...</strong></p>
             </div>
 
             <!-- Result -->
             <div v-if="result" class="mt-6 animate-fade-in">
               <div
                 :class="[
-              'p-4 rounded-xl',
-              result.success ? 'bg-green-50' : 'bg-red-50'
-            ]"
+                  'p-4 rounded-xl',
+                  result.success ? 'bg-gray-100' : 'bg-gray-200'
+                ]"
               >
                 <p
                   :class="[
-                'font-medium flex items-center gap-2',
-                result.success ? 'text-green-700' : 'text-red-600'
-              ]"
+                    'font-medium',
+                    result.success ? 'text-black' : 'text-black'
+                  ]"
                 >
-                  <i
-                    :data-lucide="result.success ? 'check-circle' : 'alert-circle'"
-                    class="w-5 h-5"
-                  ></i>
-                  {{ result.message }}
+                  <strong>{{ result.message }}</strong>
                 </p>
                 <template v-if="result.success">
                   <p class="text-xs mt-2">
                     CID:
-                    <span class="font-mono text-gray-800"
-                      >{{ result.cid }}</span
-                    >
+                    <span class="font-mono text-black">{{ result.cid }}</span>
                   </p>
                   <div class="mt-3 grid grid-cols-1 gap-2">
                     <a
                       :href="`https://ipfs.io/ipfs/${result.cid}`"
                       target="_blank"
-                      class="text-blue-600 hover:underline flex items-center gap-1"
+                      class="text-black hover:underline"
                     >
-                      <i data-lucide="external-link" class="w-4 h-4"></i>
                       ipfs.io
                     </a>
                     <a
                       :href="`https://dweb.link/ipfs/${result.cid}`"
                       target="_blank"
-                      class="text-blue-600 hover:underline flex items-center gap-1"
+                      class="text-black hover:underline"
                     >
-                      <i data-lucide="external-link" class="w-4 h-4"></i>
                       dweb.link
                     </a>
                   </div>
@@ -194,14 +152,14 @@
         </main>
       </div>
 
-       <footer class="bg-gray-100 p-4 text-center">
-        <p class="text-gray-600">
+      <footer class="bg-gray-100 p-4 text-center">
+        <p class="text-black">
           <a
             href="https://github.com/besoeasy/file-drop"
             target="_blank"
-            class="text-blue-600 hover:underline uppercase flex items-center justify-center gap-1"
+            class="text-black hover:underline uppercase"
           >
-            <i data-lucide="github" class="w-5 h-5"></i> GitHub
+            <strong>GitHub</strong>
           </a>
         </p>
       </footer>
@@ -318,7 +276,6 @@
         mounted() {
           this.fetchStatus();
           setInterval(this.fetchStatus, 10000);
-          lucide.createIcons(); // Initialize Lucide icons
         },
       }).mount("#app");
     </script>
