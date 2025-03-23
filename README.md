@@ -6,6 +6,7 @@
 
 File Drop is a lightweight, peer-to-peer (P2P) application that allows users to share images and videos directly between devices without relying on centralized servers. Built with privacy and simplicity in mind, it leverages Docker for easy deployment and P2P protocols for efficient, secure file transfers.
 
+![File Drop](https://github.com/user-attachments/assets/8d427693-8ee4-4c5f-a67c-6c2991c13f27)
 
 ## Features
 
