@@ -42,11 +42,15 @@
       <div class="flex flex-col md:flex-row">
         <!-- Sidebar: Status Panel -->
         <aside class="w-full md:w-80 bg-gray-50 p-6 border-r border-gray-200">
-          <h2 class="text-xl font-semibold text-black mb-6">Node Status</h2>
+          <h2 class="text-xl font-semibold text-black mb-6">Relay Status</h2>
           <div class="space-y-4 text-sm">
             <div>
-              <p class="text-gray-500 font-medium">Node ID</p>
+              <p class="text-gray-500 font-medium">Relay ID</p>
               <p class="text-black truncate">{{ status.nodeId }}</p>
+            </div>
+            <div>
+              <p class="text-gray-500 font-medium">Connected To</p>
+              <p class="text-black truncate">{{ status.peerscount }} Nodes</p>
             </div>
             <div>
               <p class="text-gray-500 font-medium">Bandwidth (1h)</p>
@@ -64,7 +68,7 @@
               <p class="text-gray-500 font-medium">Version</p>
               <p class="text-black">{{ status.version }}</p>
             </div>
-            <p class="text-gray-400 text-xs mt-4 animate-pulse">
+            <p class="text-gray-700 text-xs mt-4 animate-pulse">
               Last updated: {{ status.timestamp }}
             </p>
           </div>
@@ -102,7 +106,9 @@
 
             <!-- Progress -->
             <div v-if="uploading" class="text-center">
-              <p class="text-black mt-2"><strong>Uploading to IPFS...</strong></p>
+              <p class="text-black mt-2">
+                <strong>Uploading to IPFS...</strong>
+              </p>
             </div>
 
             <!-- Result -->
@@ -249,8 +255,7 @@
 
               if (data.status === "success") {
                 this.status = {
-                  nodeId: data.node.id.slice(0, 12) + "...",
-                  bandwidth: `In: ${this.formatBytes(
+                  nodeId: data.node.id.slice(0, 6) + "..." + data.node.id.slice(-6),                  bandwidth: `In: ${this.formatBytes(
                     data.bandwidth.totalIn
                   )} | Out: ${this.formatBytes(data.bandwidth.totalOut)}`,
                   repoSize: `${this.formatBytes(
@@ -259,6 +264,7 @@
                   repoObjects: `${data.repository.numObjects}`,
                   version: data.node.agentVersion,
                   timestamp: new Date(data.timestamp).toLocaleTimeString(),
+                  peerscount: data.peers.count,
                 };
               }
             } catch (error) {
