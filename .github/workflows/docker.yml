@@ -30,6 +30,7 @@ jobs:
           # If this is the first commit, always build
           if [ $(git rev-list --count HEAD) -eq 1 ]; then
             echo "version_changed=true" >> $GITHUB_OUTPUT
+            echo "version=$(jq -r .version package.json)" >> $GITHUB_OUTPUT
             exit 0
           fi
           
@@ -40,8 +41,10 @@ jobs:
           # If package.json didn't exist before or version changed, set flag
           if [ "$previous_version" = "null" ] || [ "$current_version" != "$previous_version" ]; then
             echo "version_changed=true" >> $GITHUB_OUTPUT
+            echo "version=$current_version" >> $GITHUB_OUTPUT
           else
             echo "version_changed=false" >> $GITHUB_OUTPUT
+            echo "version=$current_version" >> $GITHUB_OUTPUT
           fi
 
       - name: Install cosign
@@ -68,6 +71,9 @@ jobs:
         uses: docker/metadata-action@v5.0.0
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=main
+            type=raw,value=${{ steps.version-check.outputs.version }}
 
       - name: Build and push Docker image
         if: steps.version-check.outputs.version_changed == 'true'
