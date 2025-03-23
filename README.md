@@ -18,12 +18,6 @@ File Drop is not built for permanent storage. Think of it as a way to share file
 
 ## Installation
 
-File Drop is distributed as a Docker container. Follow these steps to get it running:
-
-### Prerequisites
-- [Docker](https://docs.docker.com/get-docker/) installed on your system.
-
-### Quick Start
 Run the following command to start File Drop:
 ```bash
 docker run -d --restart unless-stopped -p 3232:3232 --name file-drop ghcr.io/besoeasy/file-drop:main
