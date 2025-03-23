@@ -1,214 +1,326 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>IPFS File Drop</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <style>
-    /* Apple-inspired animations and custom styles */
-    .apple-btn-hover {
-      transition: all 0.3s ease-in-out;
-    }
-    .apple-btn-hover:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    }
-    .sidebar {
-      transition: width 0.3s ease-in-out;
-    }
-    .sidebar:hover {
-      width: 20rem;
-    }
-  </style>
-</head>
-<body class="bg-gray-50 font-sans antialiased min-h-screen flex flex-col">
-  <!-- Sidebar: Status Panel -->
-  <div class="fixed top-0 left-0 h-full w-64 bg-white shadow-lg p-6 sidebar overflow-hidden">
-    <h2 class="text-xl font-semibold text-gray-900 mb-6">Node Status</h2>
-    <div class="space-y-4 text-sm">
-      <!-- Node Info -->
-      <div>
-        <p class="text-gray-500 font-medium">Node ID</p>
-        <p id="nodeId" class="text-gray-700 truncate">Loading...</p>
-      </div>
-
-      <!-- Bandwidth -->
-      <div>
-        <p class="text-gray-500 font-medium">Bandwidth (1h)</p>
-        <p id="bandwidth" class="text-gray-700">Loading...</p>
-      </div>
-
-      <!-- Repository -->
-      <div>
-        <p class="text-gray-500 font-medium">Repository</p>
-        <p id="repoSize" class="text-gray-700">Loading...</p>
-        <p id="repoObjects" class="text-gray-600 text-xs">Objects: Loading...</p>
-      </div>
-
-      <!-- Version -->
-      <div>
-        <p class="text-gray-500 font-medium">Version</p>
-        <p id="version" class="text-gray-700">Loading...</p>
-      </div>
-
-      <!-- Timestamp -->
-      <div class="mt-4">
-        <p id="timestamp" class="text-gray-400 text-xs">Last updated: Loading...</p>
-      </div>
-    </div>
-  </div>
-
-  <!-- Main Content -->
-  <div class="flex-1 flex flex-col items-center justify-center p-8 ml-64">
-    <!-- Upload Section -->
-    <div class="bg-white rounded-2xl shadow-lg p-8 w-full max-w-lg">
-      <h1 class="text-3xl font-bold text-gray-900 mb-6 text-center">IPFS File Drop</h1>
-      
-      <div class="space-y-6">
-        <!-- File Input -->
-        <label for="fileInput" 
-               class="block w-full bg-gray-100 rounded-xl p-6 text-gray-600 text-center cursor-pointer hover:bg-gray-200 transition-colors border-2 border-dashed border-gray-300">
-          <span id="fileLabel" class="text-lg">Drop or Choose File</span>
-        </label>
-        <input type="file" id="fileInput" class="hidden" onchange="updateFileLabel()" />
-        
-        <!-- Upload Button -->
-        <button 
-          onclick="uploadFile()" 
-          id="uploadBtn"
-          class="w-full bg-blue-600 text-white py-3 rounded-xl font-medium apple-btn-hover disabled:bg-gray-400 disabled:cursor-not-allowed">
-          Upload
-        </button>
-      </div>
-
-      <!-- Progress -->
-      <div id="progress" class="mt-6 text-gray-600 text-sm text-center hidden">
-        <svg class="animate-spin h-6 w-6 mx-auto mb-2 text-blue-600" viewBox="0 0 24 24">
-          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-        </svg>
-        Uploading to IPFS...
-      </div>
-
-      <!-- Result -->
-      <div id="result" class="mt-6 text-sm text-gray-700"></div>
-    </div>
-  </div>
-
-  <!-- Footer with GitHub Link -->
-  <footer class="fixed bottom-4 left-0 right-0 text-center">
-    <p class="text-gray-500 text-xl">
-      Open source on 
-      <a href="https://github.com/besoeasy/file-drop" target="_blank" class="text-blue-600 hover:underline uppercase">
-        GitHub
-      </a>
-    </p>
-  </footer>
-
-  <script>
-    function formatBytes(bytes) {
-      const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
-      if (bytes === 0) return '0 Bytes';
-      const i = Math.floor(Math.log(bytes) / Math.log(1024));
-      return (bytes / Math.pow(1024, i)).toFixed(2) + ' ' + sizes[i];
-    }
-
-    function updateFileLabel() {
-      const fileInput = document.getElementById('fileInput');
-      const fileLabel = document.getElementById('fileLabel');
-      fileLabel.textContent = fileInput.files.length ? fileInput.files[0].name : 'Drop or Choose File';
-    }
-
-    async function uploadFile() {
-      const fileInput = document.getElementById('fileInput');
-      const progress = document.getElementById('progress');
-      const result = document.getElementById('result');
-      const uploadBtn = document.getElementById('uploadBtn');
-      
-      if (!fileInput.files.length) {
-        result.innerHTML = '<span class="text-red-500">Please select a file</span>';
-        return;
-      }
-
-      uploadBtn.disabled = true;
-      progress.classList.remove('hidden');
-      result.innerHTML = '';
-
-      const formData = new FormData();
-      formData.append('file', fileInput.files[0]);
-
-      try {
-        const response = await fetch('/upload', {
-          method: 'POST',
-          body: formData,
-        });
-        const data = await response.json();
-
-        progress.classList.add('hidden');
-        uploadBtn.disabled = false;
-
-        if (data.status === 'success') {
-          result.innerHTML = `
-            <div class="bg-green-50 p-4 rounded-xl">
-              <p class="text-green-700 font-medium">Upload Successful</p>
-              <p class="text-xs mt-2">CID: <span class="font-mono text-gray-800">${data.cid}</span></p>
-              <div class="mt-3 grid grid-cols-1 gap-2">
-                <a href="https://ipfs.io/ipfs/${data.cid}" target="_blank" class="text-blue-600 hover:underline text-left">ipfs.io</a>
-                <a href="https://dweb.link/ipfs/${data.cid}" target="_blank" class="text-blue-600 hover:underline text-left">dweb.link</a>
-              </div>
-              <p class="text-xs mt-2 text-gray-600">Size: ${formatBytes(data.size)}</p>
-            </div>
-          `;
-        } else {
-          result.innerHTML = `
-            <div class="bg-red-50 p-4 rounded-xl">
-              <span class="text-red-600 font-medium">Error: ${data.error}</span>
-            </div>
-          `;
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>IPFS File Drop</title>
+    <!-- TailwindCSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Vue.js CDN -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+    <!-- Lucide Icons CDN -->
+    <script src="https://unpkg.com/lucide-static@latest/dist/lucide.min.js"></script>
+    <style>
+      /* Custom animations */
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
         }
-      } catch (error) {
-        progress.classList.add('hidden');
-        uploadBtn.disabled = false;
-        result.innerHTML = `
-          <div class="bg-red-50 p-4 rounded-xl">
-            <span class="text-red-600 font-medium">Upload failed. Please try again.</span>
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      .animate-fade-in {
+        animation: fadeIn 0.5s ease-out;
+      }
+      .glassmorphism {
+        background: rgba(255, 255, 255, 0.9);
+        backdrop-filter: blur(10px);
+      }
+    </style>
+  </head>
+  <body
+    class="min-h-screen bg-gradient-to-br from-purple-100 via-blue-100 to-teal-100 flex items-center justify-center p-4"
+  >
+    <div
+      id="app"
+      class="w-full max-w-4xl glassmorphism rounded-3xl shadow-2xl overflow-hidden transform transition-all duration-500 hover:scale-105"
+    >
+      <!-- Header -->
+      <header
+        class="bg-gradient-to-r from-purple-600 to-blue-600 p-6 text-white text-center"
+      >
+        <h1
+          class="text-3xl font-bold flex items-center justify-center gap-2 uppercase"
+        >
+          File Drop
+        </h1>
+      </header>
+
+      <div class="flex flex-col md:flex-row">
+        <!-- Sidebar: Status Panel -->
+        <aside class="w-full md:w-80 bg-gray-50 p-6 border-r border-gray-200">
+          <h2
+            class="text-xl font-semibold text-gray-800 mb-6 flex items-center gap-2"
+          >
+            <i data-lucide="server" class="w-6 h-6 text-purple-600"></i>
+            Node Status
+          </h2>
+          <div class="space-y-4 text-sm">
+            <div>
+              <p class="text-gray-500 font-medium flex items-center gap-2">
+                <i data-lucide="user" class="w-4 h-4"></i> Node ID
+              </p>
+              <p class="text-gray-700 truncate">{{ status.nodeId }}</p>
+            </div>
+            <div>
+              <p class="text-gray-500 font-medium flex items-center gap-2">
+                <i data-lucide="activity" class="w-4 h-4"></i> Bandwidth (1h)
+              </p>
+              <p class="text-gray-700">{{ status.bandwidth }}</p>
+            </div>
+            <div>
+              <p class="text-gray-500 font-medium flex items-center gap-2">
+                <i data-lucide="database" class="w-4 h-4"></i> Repository Size
+              </p>
+              <p class="text-gray-700">{{ status.repoSize }}</p>
+            </div>
+            <div>
+              <p class="text-gray-500 font-medium flex items-center gap-2">
+                <i data-lucide="box" class="w-4 h-4"></i> Objects
+              </p>
+              <p class="text-gray-700">{{ status.repoObjects }}</p>
+            </div>
+            <div>
+              <p class="text-gray-500 font-medium flex items-center gap-2">
+                <i data-lucide="code" class="w-4 h-4"></i> Version
+              </p>
+              <p class="text-gray-700">{{ status.version }}</p>
+            </div>
+            <p class="text-gray-400 text-xs mt-4 animate-pulse">
+              Last updated: {{ status.timestamp }}
+            </p>
           </div>
-        `;
-      }
-    }
+        </aside>
 
-    async function fetchStatus() {
-      try {
-        const response = await fetch('/status');
-        const data = await response.json();
+        <!-- Main Content -->
+        <main class="flex-1 p-8">
+          <div class="space-y-6">
+            <!-- File Drop Zone -->
+            <label
+              for="fileInput"
+              class="block w-full bg-gray-100 rounded-2xl p-8 text-gray-600 text-center cursor-pointer border-2 border-dashed border-purple-400 transition-all duration-300 hover:bg-purple-50 hover:scale-105 hover:border-purple-600 group"
+              @dragover.prevent
+              @drop.prevent="handleDrop($event)"
+            >
+              <div class="flex flex-col items-center gap-2">
+                <i
+                  data-lucide="upload"
+                  class="w-12 h-12 text-purple-500 group-hover:animate-bounce"
+                ></i>
+                <span class="text-lg font-medium">{{ fileLabel }}</span>
+              </div>
+            </label>
+            <input
+              type="file"
+              id="fileInput"
+              class="hidden"
+              @change="updateFileLabel"
+            />
 
-        if (data.status === 'success') {
-          document.getElementById('nodeId').textContent = data.node.id.slice(0, 12) + '...';
-          document.getElementById('bandwidth').textContent = 
-            `In: ${formatBytes(data.bandwidth.totalIn)} | Out: ${formatBytes(data.bandwidth.totalOut)}`;
-          document.getElementById('repoSize').textContent = 
-            `Size: ${formatBytes(data.repository.size)} / ${formatBytes(data.repository.storageMax)}`;
-          document.getElementById('repoObjects').textContent = 
-            `Objects: ${data.repository.numObjects}`;
-          document.getElementById('version').textContent = 
-            `${data.node.agentVersion}`;
-          document.getElementById('timestamp').textContent = 
-            `Last updated: ${new Date(data.timestamp).toLocaleTimeString()}`;
-        }
-      } catch (error) {
-        document.getElementById('nodeId').textContent = 'Error';
-        document.getElementById('bandwidth').textContent = 'Error loading';
-        document.getElementById('repoSize').textContent = 'Error loading';
-        document.getElementById('repoObjects').textContent = 'Objects: Error';
-        document.getElementById('version').textContent = 'Error';
-        document.getElementById('timestamp').textContent = 'Last updated: Error';
-      }
-    }
+            <!-- Upload Button -->
+            <button
+              @click="uploadFile"
+              :disabled="uploading || !file"
+              class="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white py-3 rounded-xl font-medium transition-all duration-300 hover:from-purple-700 hover:to-blue-700 hover:shadow-lg hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              <i data-lucide="send" class="w-5 h-5"></i>
+              Upload to IPFS
+            </button>
 
-    // Initial fetch and periodic updates
-    fetchStatus();
-    setInterval(fetchStatus, 10000);
-  </script>
-</body>
+            <!-- Progress -->
+            <div v-if="uploading" class="text-center">
+              <i
+                data-lucide="loader-2"
+                class="w-8 h-8 text-blue-600 animate-spin mx-auto"
+              ></i>
+              <p class="text-gray-600 mt-2">Uploading to IPFS...</p>
+            </div>
+
+            <!-- Result -->
+            <div v-if="result" class="mt-6 animate-fade-in">
+              <div
+                :class="[
+              'p-4 rounded-xl',
+              result.success ? 'bg-green-50' : 'bg-red-50'
+            ]"
+              >
+                <p
+                  :class="[
+                'font-medium flex items-center gap-2',
+                result.success ? 'text-green-700' : 'text-red-600'
+              ]"
+                >
+                  <i
+                    :data-lucide="result.success ? 'check-circle' : 'alert-circle'"
+                    class="w-5 h-5"
+                  ></i>
+                  {{ result.message }}
+                </p>
+                <template v-if="result.success">
+                  <p class="text-xs mt-2">
+                    CID:
+                    <span class="font-mono text-gray-800"
+                      >{{ result.cid }}</span
+                    >
+                  </p>
+                  <div class="mt-3 grid grid-cols-1 gap-2">
+                    <a
+                      :href="`https://ipfs.io/ipfs/${result.cid}`"
+                      target="_blank"
+                      class="text-blue-600 hover:underline flex items-center gap-1"
+                    >
+                      <i data-lucide="external-link" class="w-4 h-4"></i>
+                      ipfs.io
+                    </a>
+                    <a
+                      :href="`https://dweb.link/ipfs/${result.cid}`"
+                      target="_blank"
+                      class="text-blue-600 hover:underline flex items-center gap-1"
+                    >
+                      <i data-lucide="external-link" class="w-4 h-4"></i>
+                      dweb.link
+                    </a>
+                  </div>
+                  <p class="text-xs mt-2 text-gray-600">
+                    Size: {{ result.size }}
+                  </p>
+                </template>
+              </div>
+            </div>
+          </div>
+        </main>
+      </div>
+
+       <footer class="bg-gray-100 p-4 text-center">
+        <p class="text-gray-600">
+          <a
+            href="https://github.com/besoeasy/file-drop"
+            target="_blank"
+            class="text-blue-600 hover:underline uppercase flex items-center justify-center gap-1"
+          >
+            <i data-lucide="github" class="w-5 h-5"></i> GitHub
+          </a>
+        </p>
+      </footer>
+    </div>
+
+    <script>
+      const { createApp } = Vue;
+
+      createApp({
+        data() {
+          return {
+            file: null,
+            fileLabel: "Drop or Choose File",
+            uploading: false,
+            result: null,
+            status: {
+              nodeId: "Loading...",
+              bandwidth: "Loading...",
+              repoSize: "Loading...",
+              repoObjects: "Loading...",
+              version: "Loading...",
+              timestamp: "Loading...",
+            },
+          };
+        },
+        methods: {
+          formatBytes(bytes) {
+            const sizes = ["Bytes", "KB", "MB", "GB", "TB"];
+            if (bytes === 0) return "0 Bytes";
+            const i = Math.floor(Math.log(bytes) / Math.log(1024));
+            return (bytes / Math.pow(1024, i)).toFixed(2) + " " + sizes[i];
+          },
+          updateFileLabel(event) {
+            const fileInput = event.target;
+            this.file = fileInput.files[0];
+            this.fileLabel = this.file ? this.file.name : "Drop or Choose File";
+          },
+          handleDrop(event) {
+            this.file = event.dataTransfer.files[0];
+            this.fileLabel = this.file ? this.file.name : "Drop or Choose File";
+          },
+          async uploadFile() {
+            if (!this.file) {
+              this.result = { success: false, message: "Please select a file" };
+              return;
+            }
+
+            this.uploading = true;
+            this.result = null;
+
+            const formData = new FormData();
+            formData.append("file", this.file);
+
+            try {
+              const response = await fetch("/upload", {
+                method: "POST",
+                body: formData,
+              });
+              const data = await response.json();
+
+              this.uploading = false;
+              if (data.status === "success") {
+                this.result = {
+                  success: true,
+                  message: "Upload Successful",
+                  cid: data.cid,
+                  size: this.formatBytes(data.size),
+                };
+              } else {
+                this.result = {
+                  success: false,
+                  message: `Error: ${data.error}`,
+                };
+              }
+            } catch (error) {
+              this.uploading = false;
+              this.result = {
+                success: false,
+                message: "Upload failed. Please try again.",
+              };
+            }
+          },
+          async fetchStatus() {
+            try {
+              const response = await fetch("/status");
+              const data = await response.json();
+
+              if (data.status === "success") {
+                this.status = {
+                  nodeId: data.node.id.slice(0, 12) + "...",
+                  bandwidth: `In: ${this.formatBytes(
+                    data.bandwidth.totalIn
+                  )} | Out: ${this.formatBytes(data.bandwidth.totalOut)}`,
+                  repoSize: `${this.formatBytes(
+                    data.repository.size
+                  )} / ${this.formatBytes(data.repository.storageMax)}`,
+                  repoObjects: `${data.repository.numObjects}`,
+                  version: data.node.agentVersion,
+                  timestamp: new Date(data.timestamp).toLocaleTimeString(),
+                };
+              }
+            } catch (error) {
+              this.status = {
+                nodeId: "Error",
+                bandwidth: "Error loading",
+                repoSize: "Error loading",
+                repoObjects: "Error",
+                version: "Error",
+                timestamp: "Error",
+              };
+            }
+          },
+        },
+        mounted() {
+          this.fetchStatus();
+          setInterval(this.fetchStatus, 10000);
+          lucide.createIcons(); // Initialize Lucide icons
+        },
+      }).mount("#app");
+    </script>
+  </body>
 </html>
