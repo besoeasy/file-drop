@@ -6,12 +6,15 @@
 
 File Drop is a lightweight, peer-to-peer (P2P) application that allows users to share images and videos directly between devices without relying on centralized servers. Built with privacy and simplicity in mind, it leverages Docker for easy deployment and P2P protocols for efficient, secure file transfers.
 
+
 ## Features
 
 - **P2P Sharing**: Share files directly between peers, no middleman required.
 - **Image & Video Support**: Optimized for common media formats (e.g., JPG, PNG, MP4).
 - **Dockerized**: Quick setup with a single Docker command.
 - **Open Source**: Free to use, modify, and contribute to.
+
+File Drop is not built for permanent storage. Think of it as a way to share files temporarily on networks like Nostr, forums, and other apps. Since IPFS itself can be memory-intensive, we’ve designed File Drop to be lightweight. If you need permanent storage, you can edit 2-3 lines in the code and set pinning to true, but that’s not our aim.
 
 ## Installation
 
