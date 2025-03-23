@@ -1,7 +1,7 @@
  
 # File Drop
 
-*A decentralized, open-source solution for sharing images, videos, and any other files using P2P technology.*
+*A decentralized, open-source solution for sharing images, videos, and any other files.*
 
 ## Overview
 
