@@ -16,15 +16,24 @@ File Drop is not built for permanent storage. Think of it as a way to share file
 ## Installation
 
 Run the following command to start File Drop:
+
 ```bash
 docker run -d --restart unless-stopped -p 3232:3232 --name file-drop ghcr.io/besoeasy/file-drop:main
 ```
-- `-d`: Runs the container in detached mode.
-- `--restart unless-stopped`: Automatically restarts the container unless manually stopped.
-- `-p 3232:3232`: Maps port 3232 on your host to the container.
-- `--name file-drop`: Names the container "file-drop".
-- `ghcr.io/besoeasy/file-drop:main`: Pulls the latest image from GitHub Container Registry.
+or 
 
+```bash
+
+version: '3.8'  # Specify the Docker Compose version
+
+services:
+  file-drop:
+    image: ghcr.io/besoeasy/file-drop:main  # Pulls the latest image from GitHub Container Registry
+    container_name: file-drop               # Names the container "file-drop"
+    ports:
+      - "3232:3232"                        # Maps port 3232 on the host to 3232 in the container
+    restart: unless-stopped                # Automatically restarts unless manually stopped
+```
 ## Usage
 
 Access the application via `http://localhost:3232` in your browser (or your machine’s IP if remote).
