@@ -31,6 +31,11 @@ COPY . .
 # Expose ports: 3232 (app), 5001 (IPFS API), 8080 (IPFS gateway)
 EXPOSE 3232 5001 8080
 
-# Initialize IPFS, start daemon, connect to swarm, and run app
-# Using exec form for proper signal handling
-CMD ["sh", "-c", "ipfs init && ipfs daemon & ipfs swarm connect /dnsaddr/dweb.link && sleep 5 && exec node app.js"]
+
+CMD ["sh", "-c", "\
+  if [ ! -d \"$HOME/.ipfs\" ]; then ipfs init; fi && \
+  ipfs daemon & \
+  until curl -s http://127.0.0.1:5001/api/v0/id > /dev/null; do \
+    echo 'Waiting for IPFS daemon...'; sleep 3; \
+  done && \
+  exec node app.js"]
