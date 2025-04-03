@@ -61,33 +61,60 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract Docker metadata
-        id: meta
+      - name: Extract Docker metadata for versioned build
+        if: steps.version-check.outputs.version_changed == 'true'
+        id: meta-version
         uses: docker/metadata-action@v5.0.0
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
             type=raw,value=main
             type=raw,value=${{ steps.version-check.outputs.version }}
-            type=raw,value=dev
 
-      - name: Build and push Docker image
-        id: build-and-push
+      - name: Extract Docker metadata for dev build
+        if: steps.version-check.outputs.version_changed == 'false'
+        id: meta-dev
+        uses: docker/metadata-action@v5.0.0
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: type=raw,value=dev
+
+      - name: Build and push versioned Docker image (main & version)
+        if: steps.version-check.outputs.version_changed == 'true'
+        id: build-and-push-version
         uses: docker/build-push-action@v5.0.0
         with:
           context: .
           push: ${{ github.event_name != 'pull_request' }}
-          tags: |
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:dev
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.version-check.outputs.version }}
-          labels: ${{ steps.meta.outputs.labels }}
+          tags: ${{ steps.meta-version.outputs.tags }}
+          labels: ${{ steps.meta-version.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
           platforms: linux/amd64,linux/arm64
 
-      - name: Sign the published Docker image
-        if: github.event_name != 'pull_request'
+      - name: Build and push dev Docker image
+        if: steps.version-check.outputs.version_changed == 'false'
+        id: build-and-push-dev
+        uses: docker/build-push-action@v5.0.0
+        with:
+          context: .
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta-dev.outputs.tags }}
+          labels: ${{ steps.meta-dev.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          platforms: linux/amd64,linux/arm64
+
+      - name: Sign the published versioned Docker image
+        if: github.event_name != 'pull_request' && steps.version-check.outputs.version_changed == 'true'
         env:
-          TAGS: ${{ steps.meta.outputs.tags }}
-          DIGEST: ${{ steps.build-and-push.outputs.digest }}
+          TAGS: ${{ steps.meta-version.outputs.tags }}
+          DIGEST: ${{ steps.build-and-push-version.outputs.digest }}
+        run: echo "${TAGS}" | xargs -I {} cosign sign --yes {}@${DIGEST}
+
+      - name: Sign the published dev Docker image
+        if: github.event_name != 'pull_request' && steps.version-check.outputs.version_changed == 'false'
+        env:
+          TAGS: ${{ steps.meta-dev.outputs.tags }}
+          DIGEST: ${{ steps.build-and-push-dev.outputs.digest }}
         run: echo "${TAGS}" | xargs -I {} cosign sign --yes {}@${DIGEST}
