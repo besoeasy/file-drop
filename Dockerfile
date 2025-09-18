@@ -36,6 +36,6 @@ CMD ["sh", "-c", "\
   if [ ! -d \"$HOME/.ipfs\" ]; then ipfs init; fi && \
   ipfs daemon & \
   until curl -s http://127.0.0.1:5001/api/v0/id > /dev/null; do \
-  echo 'Waiting for IPFS daemon...'; sleep 3; \
+  echo 'Waiting for IPFS daemon...'; sleep 5; \
   done && \
   exec node app.js"]
