@@ -220,7 +220,7 @@
             formData.append("file", this.file);
 
             try {
-              const response = await fetch("/uploadx", {
+              const response = await fetch("/upload", {
                 method: "POST",
                 body: formData,
               });
