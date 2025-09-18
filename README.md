@@ -1,7 +1,6 @@
- 
 # File Drop
 
-*A decentralized, open-source solution for sharing images, videos, and any other files.*
+_A decentralized, open-source solution for sharing images, videos, and any other files._
 
 File Drop is a lightweight, peer-to-peer (P2P) application that allows users to share files directly between devices without relying on centralized servers. Built with privacy and simplicity in mind, it leverages Docker for easy deployment and P2P protocols for efficient, secure file transfers. With File Drop, you can upload anything without the fear of being censored since your data is relayed through your own computer. Even if your node loses its internet connection, your files persist across the entire IPFS network, ensuring availability.
 
@@ -12,7 +11,6 @@ File Drop is not built for permanent storage. Think of it as a way to share file
 ![File Drop](https://github.com/user-attachments/assets/ff683fd8-d7c0-4378-81d4-a6342890cb86)
 ![File Drop](https://github.com/user-attachments/assets/0d7c6291-0194-470c-a07c-ef748b39337f)
 
-
 ## Installation
 
 Run the following command to start File Drop:
@@ -21,13 +19,7 @@ Run the following command to start File Drop:
 // stable version
 docker run -d --restart unless-stopped -p 3232:3232 --name file-drop ghcr.io/besoeasy/file-drop:main
 ```
-or 
 
-```bash
-// for developers only
-podman run -d --restart=unless-stopped -p 3232:3232 --name file-drop ghcr.io/besoeasy/file-drop:dev && podman logs -f file-drop
-```
 ## Usage
 
 Access the application via `http://localhost:3232` in your browser (or your machine’s IP if remote).
- 
