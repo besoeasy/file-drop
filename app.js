@@ -38,7 +38,7 @@ const errorHandler = (err, req, res, next) => {
 };
 
 // Upload endpoint
-app.post("/upload", upload.single("file"), async (req, res) => {
+app.post("/uploadx", upload.single("file"), async (req, res) => {
   try {
     // Validate file presence
     if (!req.file) {

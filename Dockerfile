@@ -11,7 +11,7 @@ RUN apt-get update && \
 
 # Install specific version of IPFS (kubo) based on target architecture
 # Downloads, extracts, moves binary to PATH, and cleans up in one layer
-RUN curl -fsSL "https://dist.ipfs.tech/kubo/v0.34.1/kubo_v0.34.1_linux-${TARGETARCH}.tar.gz" | \
+RUN curl -fsSL "https://dist.ipfs.tech/kubo/v0.34.1/kubo_v0.45.0_linux-${TARGETARCH}.tar.gz" | \
     tar -xz -C /tmp && \
     mv /tmp/kubo/ipfs /usr/local/bin/ipfs && \
     rm -rf /tmp/kubo
