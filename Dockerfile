@@ -10,11 +10,15 @@ RUN apt-get update && \
   rm -rf /var/lib/apt/lists/*
 
 # Install specific version of IPFS (kubo) based on target architecture
-# Downloads, extracts, moves binary to PATH, and cleans up in one layer
 RUN curl -fsSL "https://dist.ipfs.tech/kubo/v0.37.1/kubo_v0.37.0_linux-${TARGETARCH}.tar.gz" | \
   tar -xz -C /tmp && \
   mv /tmp/kubo/ipfs /usr/local/bin/ipfs && \
   rm -rf /tmp/kubo
+
+# Initialize IPFS repo and configure GC + storage limits
+RUN ipfs init && \
+  ipfs config Datastore.StorageMax 200GB && \
+  ipfs config Datastore.GCPeriod 200h
 
 # Set working directory for application code
 WORKDIR /app
@@ -31,10 +35,9 @@ COPY . .
 # Expose ports: 3232 (app), 5001 (IPFS API), 8080 (IPFS gateway)
 EXPOSE 3232 5001 8080
 
-
+# Start IPFS daemon with GC enabled, wait for it, then run the app
 CMD ["sh", "-c", "\
-  if [ ! -d \"$HOME/.ipfs\" ]; then ipfs init; fi && \
-  ipfs daemon & \
+  ipfs daemon --enable-gc & \
   until curl -s http://127.0.0.1:5001/api/v0/id > /dev/null; do \
   echo 'Waiting for IPFS daemon...'; sleep 5; \
   done && \
