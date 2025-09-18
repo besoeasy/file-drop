@@ -34,6 +34,8 @@ COPY . .
 
 # Expose ports: 3232 (app), 5001 (IPFS API), 8080 (IPFS gateway)
 EXPOSE 3232 5001 8080
+# Expose libp2p swarm ports for P2P connectivity
+EXPOSE 4001/tcp 4001/udp
 
 # Start IPFS daemon with GC enabled, wait for it, then run the app
 CMD ["sh", "-c", "\
