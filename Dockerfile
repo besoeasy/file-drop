@@ -1,20 +1,20 @@
 # Use Node.js 20 as the base image - provides a stable Node environment
-FROM node:20
+FROM node:slim
 
 # Define build argument for architecture (amd64 or arm64)
 ARG TARGETARCH
 
 # Update package lists and install curl, then clean up to reduce image size
 RUN apt-get update && \
-    apt-get install -y curl && \
-    rm -rf /var/lib/apt/lists/*
+  apt-get install -y curl && \
+  rm -rf /var/lib/apt/lists/*
 
 # Install specific version of IPFS (kubo) based on target architecture
 # Downloads, extracts, moves binary to PATH, and cleans up in one layer
-RUN curl -fsSL "https://dist.ipfs.tech/kubo/v0.34.1/kubo_v0.45.0_linux-${TARGETARCH}.tar.gz" | \
-    tar -xz -C /tmp && \
-    mv /tmp/kubo/ipfs /usr/local/bin/ipfs && \
-    rm -rf /tmp/kubo
+RUN curl -fsSL "https://dist.ipfs.tech/kubo/v0.37.1/kubo_v0.37.0_linux-${TARGETARCH}.tar.gz" | \
+  tar -xz -C /tmp && \
+  mv /tmp/kubo/ipfs /usr/local/bin/ipfs && \
+  rm -rf /tmp/kubo
 
 # Set working directory for application code
 WORKDIR /app
@@ -36,6 +36,6 @@ CMD ["sh", "-c", "\
   if [ ! -d \"$HOME/.ipfs\" ]; then ipfs init; fi && \
   ipfs daemon & \
   until curl -s http://127.0.0.1:5001/api/v0/id > /dev/null; do \
-    echo 'Waiting for IPFS daemon...'; sleep 3; \
+  echo 'Waiting for IPFS daemon...'; sleep 3; \
   done && \
   exec node app.js"]

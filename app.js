@@ -87,9 +87,7 @@ app.post("/uploadx", upload.single("file"), async (req, res) => {
     if (err instanceof multer.MulterError) {
       if (err.code === "LIMIT_FILE_SIZE") {
         return res.status(400).json({
-          error: `File too large. Max size is ${
-            MAX_FILE_SIZE / (1024 * 1024)
-          }MB`,
+          error: `File too large. Max size is ${MAX_FILE_SIZE / (1024 * 1024)}MB`,
           status: "failed",
           timestamp: new Date().toISOString(),
         });
