@@ -33,7 +33,7 @@ RUN npm ci --omit=dev
 COPY . .
 
 # Expose ports: 3232 (app), 5001 (IPFS API), 8080 (IPFS gateway)
-EXPOSE 3232 5001 8080
+EXPOSE 3232
 # Expose libp2p swarm ports for P2P connectivity
 EXPOSE 4001/tcp 4001/udp
 

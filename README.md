@@ -16,8 +16,13 @@ File Drop is not built for permanent storage. Think of it as a way to share file
 Run the following command to start File Drop:
 
 ```bash
-// stable version
-docker run -d --restart unless-stopped -p 3232:3232 --name file-drop ghcr.io/besoeasy/file-drop:main
+docker run -d --restart unless-stopped \
+  -p 3232:3232 \
+  -p 4001:4001/tcp \
+  -p 4001:4001/udp \
+  --name file-drop \
+  ghcr.io/besoeasy/file-drop:main
+
 ```
 
 ## Usage
