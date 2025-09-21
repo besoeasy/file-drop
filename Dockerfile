@@ -1,5 +1,5 @@
 # Use Node.js 20 as the base image - provides a stable Node environment
-FROM node:slim
+FROM node:lts
 
 # Define build argument for architecture (amd64 or arm64)
 ARG TARGETARCH
@@ -18,7 +18,12 @@ RUN curl -fsSL "https://dist.ipfs.tech/kubo/v0.37.0/kubo_v0.37.0_linux-${TARGETA
 # Initialize IPFS repo and configure GC + storage limits
 RUN ipfs init && \
   ipfs config Datastore.StorageMax 200GB && \
-  ipfs config Datastore.GCPeriod 200h
+  ipfs config Datastore.GCPeriod 200h && \
+  ipfs bootstrap add /dnsaddr/bootstrap.libp2p.io/p2p/QmNnooDu7bfjPFoTZYxMNLWUQJyrVwtbZg5gBMjTezGAJN && \
+  ipfs bootstrap add /dnsaddr/bootstrap.libp2p.io/p2p/QmQCU2EcMqAqQPR2i9bChDtGNJchTbq5TbXJJ16u19uLTa && \
+  ipfs bootstrap add /dnsaddr/bootstrap.libp2p.io/p2p/QmbLHAnMoJPWSCR5Zp9VUdgHqVQggUP9WJA9jJ6F7HpLFq && \
+  ipfs bootstrap add /ip4/104.131.131.82/tcp/4001/p2p/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ && \
+  ipfs bootstrap add /ip4/104.236.179.241/tcp/4001/p2p/QmSoLPppuBtQSGwKDZT2M73ULpjvfd3aZ6ha4oFGL1KrGM
 
 # Set working directory for application code
 WORKDIR /app
@@ -27,7 +32,7 @@ WORKDIR /app
 COPY package.json package-lock.json* ./
 
 # Install production dependencies only, using cached layer if unchanged
-RUN npm ci --omit=dev
+RUN npm ci
 
 # Copy remaining application files
 COPY . .
