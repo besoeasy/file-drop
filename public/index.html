@@ -28,7 +28,7 @@
     </style>
   </head>
   <body class="min-h-screen bg-white flex items-center justify-center p-4">
-    <div id="app" class="w-full max-w-4xl glassmorphism rounded-3xl shadow-2xl overflow-hidden transform transition-all duration-500 hover:scale-105">
+    <div id="app" class="w-full max-w-6xl glassmorphism rounded-3xl shadow-2xl overflow-hidden transform transition-all duration-500 hover:scale-105">
       <!-- Header -->
       <header class="bg-black p-6 text-white text-center">
         <h1 class="text-3xl font-bold uppercase">File Drop</h1>
@@ -62,10 +62,6 @@
             <div>
               <p class="text-gray-500 font-medium">Version</p>
               <p class="text-black">{{ status.version }}</p>
-            </div>
-            <div>
-              <p class="text-gray-500 font-medium">App Version</p>
-              <p class="text-black">{{ status.appver }}</p>
             </div>
             <p class="text-gray-700 text-xs mt-4 animate-pulse">Last updated: {{ status.timestamp }}</p>
           </div>
@@ -175,7 +171,7 @@
       <footer class="bg-gray-100 p-4 text-center">
         <p class="text-black">
           <a href="https://github.com/besoeasy/file-drop" target="_blank" class="text-black hover:underline uppercase">
-            <strong>GitHub</strong>
+            <strong>GitHub</strong> - {{ status.appver }}
           </a>
         </p>
       </footer>
