@@ -156,6 +156,8 @@ app.get("/status", async (req, res) => {
       list: peersResponse.data.Peers,
     };
 
+    // Get app version from package.json
+    const { version: appVersion } = require("./package.json");
     res.json({
       status: "success",
       timestamp: new Date().toISOString(),
@@ -163,6 +165,7 @@ app.get("/status", async (req, res) => {
       repository: repo,
       node: nodeInfo,
       peers: connectedPeers,
+      appVersion,
     });
   } catch (err) {
     console.error("Status check error:", {

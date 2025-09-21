@@ -63,6 +63,10 @@
               <p class="text-gray-500 font-medium">Version</p>
               <p class="text-black">{{ status.version }}</p>
             </div>
+            <div>
+              <p class="text-gray-500 font-medium">App Version</p>
+              <p class="text-black">{{ status.appver }}</p>
+            </div>
             <p class="text-gray-700 text-xs mt-4 animate-pulse">Last updated: {{ status.timestamp }}</p>
           </div>
         </aside>
@@ -147,17 +151,17 @@
                       />
                     </div>
 
-                      <!-- IPFS Propagation Check Button -->
-                      <div class="flex items-center gap-2">
-                        <label class="text-xs text-gray-600 w-16">Check:</label>
-                        <a
-                          :href="`https://check.ipfs.network/?cid=${result.cid}`"
-                          target="_blank"
-                          class="flex-1 px-2 py-1 text-xs border border-blue-400 rounded bg-blue-50 font-mono text-blue-700 cursor-pointer hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-500 text-center"
-                        >
-                          Check Propagation
-                        </a>
-                      </div>
+                    <!-- IPFS Propagation Check Button -->
+                    <div class="flex items-center gap-2">
+                      <label class="text-xs text-gray-600 w-16">Check:</label>
+                      <a
+                        :href="`https://check.ipfs.network/?cid=${result.cid}`"
+                        target="_blank"
+                        class="flex-1 px-2 py-1 text-xs border border-blue-400 rounded bg-blue-50 font-mono text-blue-700 cursor-pointer hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-500 text-center"
+                      >
+                        Check Propagation
+                      </a>
+                    </div>
                   </div>
 
                   <p class="text-xs mt-2 text-gray-600">Size: {{ result.size }}</p>
@@ -193,6 +197,7 @@
               repoSize: "Loading...",
               repoObjects: "Loading...",
               version: "Loading...",
+              appver: "Loading...",
               timestamp: "Loading...",
             },
           };
@@ -265,7 +270,9 @@
                   bandwidth: `In: ${this.formatBytes(data.bandwidth.totalIn)} | Out: ${this.formatBytes(data.bandwidth.totalOut)}`,
                   repoSize: `${this.formatBytes(data.repository.size)} / ${this.formatBytes(data.repository.storageMax)}`,
                   repoObjects: `${data.repository.numObjects}`,
-                  version: data.node.agentVersion,
+                  version: `${data.node.agentVersion}`,
+                  appver: `${data.appVersion}`,
+
                   timestamp: new Date(data.timestamp).toLocaleTimeString(),
                   peerscount: data.peers.count,
                 };
@@ -277,6 +284,7 @@
                 repoSize: "Error loading",
                 repoObjects: "Error",
                 version: "Error",
+                appver: "Error",
                 timestamp: "Error",
               };
             }
