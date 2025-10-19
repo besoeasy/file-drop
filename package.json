@@ -1,6 +1,6 @@
 {
   "name": "file-drop",
-  "version": "1.0.8",
+  "version": "1.0.7",
   "description": "file drop",
   "main": "app.js",
   "scripts": {
