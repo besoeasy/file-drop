@@ -21,7 +21,7 @@ docker run -d --restart unless-stopped \
   -p 4001:4001/tcp \
   -p 4001:4001/udp \
   --name file-drop \
-  -e MAX_FILE_SIZE=34 \
+  -e MAX_FILE_SIZE=50 \
   ghcr.io/besoeasy/file-drop:main
 ```
 
@@ -30,8 +30,8 @@ docker run -d --restart unless-stopped \
 ### Environment Variables
 
 - **MAX_FILE_SIZE**: Sets the maximum file size limit in megabytes (MB) that can be uploaded to the application. 
-  - Default: `250` MB
-  - Example: `-e MAX_FILE_SIZE=34` limits uploads to 34 MB
+  - Default: `99000` MB
+  - Example: `-e MAX_FILE_SIZE=50` limits uploads to 50 MB
   - Range: Any positive integer (recommended to stay under 250 MB for optimal IPFS network performance)
   - Note: While larger files are technically possible with powerful hardware, the IPFS network performs best with smaller files
 
