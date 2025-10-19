@@ -8,7 +8,7 @@ const cors = require("cors");
 // Constants
 const IPFS_API = "http://127.0.0.1:5001";
 const PORT = 3232;
-const MAX_FILE_SIZE = parseInt(process.env.MAX_FILE_SIZE || 25000) * 1024 * 1024;
+const MAX_FILE_SIZE = parseInt(process.env.MAX_FILE_SIZE || 99000) * 1024 * 1024;
 const HOST = "0.0.0.0";
 
 // Initialize Express app
