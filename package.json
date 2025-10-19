@@ -1,10 +1,11 @@
 {
   "name": "file-drop",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "description": "file drop",
   "main": "app.js",
   "scripts": {
-    "test": "podman run --rm -it --net=host docker.io/ipfs/kubo:latest"
+    "test": "podman run --rm -it --net=host docker.io/ipfs/kubo:latest && npx nodemon app.js",
+    "start": "node app.js"
   },
   "repository": {
     "type": "git",
