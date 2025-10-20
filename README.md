@@ -22,7 +22,7 @@ docker run -d --restart unless-stopped \
   -p 4001:4001/udp \
   --name file-drop \
   -e MAX_FILE_SIZE=50 \
-  -e STORAGE_MAX=50GB \
+  -e IPFS_STORAGE_MAX=50GB \
   ghcr.io/besoeasy/file-drop:main
 ```
 

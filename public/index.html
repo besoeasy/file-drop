@@ -195,6 +195,19 @@
               <p class="text-gray-500 font-medium text-xs uppercase">Version</p>
               <p class="text-black font-mono text-sm">{{ status.version }}</p>
             </div>
+            <div class="bg-white rounded-lg p-3 shadow-sm border border-gray-200">
+              <p class="text-gray-500 font-medium text-xs uppercase">Garbage Collection</p>
+              <p class="text-black font-semibold text-sm">Every {{ status.gcPeriod }}</p>
+              <p class="text-gray-600 text-xs mt-1">Last run: {{ status.gcLastRun }}</p>
+            </div>
+            <div class="bg-white rounded-lg p-3 shadow-sm border border-gray-200">
+              <p class="text-gray-500 font-medium text-xs uppercase">File Size Limit</p>
+              <p class="text-black font-semibold">{{ status.fileLimit }}</p>
+            </div>
+            <div class="bg-white rounded-lg p-3 shadow-sm border border-gray-200">
+              <p class="text-gray-500 font-medium text-xs uppercase">Storage Limit</p>
+              <p class="text-black font-semibold">{{ status.storageLimit }}</p>
+            </div>
             <div class="bg-white rounded-lg p-3 mt-4 border border-gray-200">
               <p class="text-gray-500 text-xs font-medium">Last updated: {{ status.timestamp }}</p>
             </div>
@@ -477,6 +490,10 @@
               appver: "Loading...",
               timestamp: "Loading...",
               peerscount: 0,
+              gcPeriod: "Loading...",
+              gcLastRun: "Loading...",
+              fileLimit: "Loading...",
+              storageLimit: "Loading...",
             },
           };
         },
@@ -675,9 +692,12 @@
                   repoObjects: `${data.repository.numObjects}`,
                   version: `${data.node.agentVersion}`,
                   appver: `${data.appVersion}`,
-
                   timestamp: new Date(data.timestamp).toLocaleTimeString(),
                   peerscount: data.peers.count,
+                  gcPeriod: data.garbageCollection?.period || "200h",
+                  gcLastRun: data.garbageCollection?.lastRun || "Unknown",
+                  fileLimit: data.fileLimit?.humanReadable || "Unknown",
+                  storageLimit: data.storageLimit?.configured || "Unknown",
                 };
               }
             } catch (error) {
@@ -689,6 +709,11 @@
                 version: "Error",
                 appver: "Error",
                 timestamp: "Error",
+                peerscount: 0,
+                gcPeriod: "Error",
+                gcLastRun: "Error",
+                fileLimit: "Error",
+                storageLimit: "Error",
               };
             }
           },

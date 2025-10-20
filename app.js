@@ -9,6 +9,7 @@ const cors = require("cors");
 const IPFS_API = "http://127.0.0.1:5001";
 const PORT = 3232;
 const MAX_FILE_SIZE = parseInt(process.env.MAX_FILE_SIZE || 99000) * 1024 * 1024;
+const IPFS_STORAGE_MAX = process.env.IPFS_STORAGE_MAX || "200GB";
 const HOST = "0.0.0.0";
 
 // Initialize Express app
@@ -138,6 +139,22 @@ app.get("/status", async (req, res) => {
       version: repoResponse.data.Version,
     };
 
+    // Get GC configuration info
+    let gcInfo = { 
+      enabled: true, 
+      period: "200h", 
+      lastRun: "Unknown" 
+    };
+    
+    try {
+      const configResponse = await axios.post(`${IPFS_API}/api/v0/config/show`, { timeout: 3000 });
+      if (configResponse.data && configResponse.data.Datastore) {
+        gcInfo.period = configResponse.data.Datastore.GCPeriod || "200h";
+      }
+    } catch (configErr) {
+      console.log("Could not fetch GC config:", configErr.message);
+    }
+
     // Node identity info
     const nodeInfo = {
       id: idResponse.data.ID,
@@ -158,6 +175,15 @@ app.get("/status", async (req, res) => {
 
     // Get app version from package.json
     const { version: appVersion } = require("./package.json");
+    
+    // Format file size limit in human readable form
+    const formatBytes = (bytes) => {
+      const sizes = ["Bytes", "KB", "MB", "GB", "TB"];
+      if (bytes === 0) return "0 Bytes";
+      const i = Math.floor(Math.log(bytes) / Math.log(1024));
+      return (bytes / Math.pow(1024, i)).toFixed(2) + " " + sizes[i];
+    };
+    
     res.json({
       status: "success",
       timestamp: new Date().toISOString(),
@@ -165,6 +191,15 @@ app.get("/status", async (req, res) => {
       repository: repo,
       node: nodeInfo,
       peers: connectedPeers,
+      garbageCollection: gcInfo,
+      fileLimit: {
+        bytes: MAX_FILE_SIZE,
+        humanReadable: formatBytes(MAX_FILE_SIZE)
+      },
+      storageLimit: {
+        configured: IPFS_STORAGE_MAX,
+        current: formatBytes(repo.storageMax)
+      },
       appVersion,
     });
   } catch (err) {
