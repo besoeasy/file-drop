@@ -11,6 +11,7 @@ const PORT = 3232;
 const MAX_FILE_SIZE = parseInt(process.env.MAX_FILE_SIZE || 99000) * 1024 * 1024;
 const STORAGE_MAX = process.env.STORAGE_MAX || "200GB";
 const HOST = "0.0.0.0";
+const SERVER_URL = process.env.SERVER_URL || `http://localhost:${PORT}`;
 
 // Initialize Express app
 const app = express();
@@ -38,6 +39,28 @@ const errorHandler = (err, req, res, next) => {
   res.status(500).json({ error: "Internal server error" });
 };
 
+// NIP-96 server info endpoint
+app.get("/.well-known/nostr/nip96.json", (req, res) => {
+  const { version: appVersion } = require("./package.json");
+
+  res.json({
+    api_url: SERVER_URL,
+    download_url: "https://dweb.link/ipfs",
+    supported_nips: [96],
+    tos_url: "https://github.com/besoeasy/file-drop",
+    content_types: ["image/*", "video/*", "audio/*", "text/*", "application/*", "blob"],
+    plans: {
+      free: {
+        name: "File Drop",
+        is_nip98_required: false,
+        url: `${SERVER_URL}/upload`,
+        max_byte_size: MAX_FILE_SIZE,
+        file_expiry: [2628000], // 30 days in seconds
+      },
+    },
+  });
+});
+
 // Upload endpoint
 app.post("/upload", upload.single("file"), async (req, res) => {
   try {
@@ -45,7 +68,8 @@ app.post("/upload", upload.single("file"), async (req, res) => {
     if (!req.file) {
       return res.status(400).json({
         error: "No file uploaded",
-        status: "failed",
+        status: "error",
+        message: "No file uploaded",
         timestamp: new Date().toISOString(),
       });
     }
@@ -76,24 +100,41 @@ app.post("/upload", upload.single("file"), async (req, res) => {
     };
     console.log("File uploaded successfully:", uploadDetails);
 
-    // Response with more details
+    // NIP-96 compatible response with your existing fields
     res.json({
+      // Your existing fields
       status: "success",
       cid: response.data.Hash,
       filename: req.file.originalname,
       size: req.file.size,
       details: uploadDetails,
+
+      // NIP-96 required fields
+      message: "Upload successful",
+      nip94_event: {
+        tags: [
+          ["url", `https://dweb.link/ipfs/${response.data.Hash}`],
+          ["m", req.file.mimetype],
+          ["x", response.data.Hash],
+          ["size", req.file.size.toString()],
+        ],
+      },
     });
   } catch (err) {
     if (err instanceof multer.MulterError) {
       if (err.code === "LIMIT_FILE_SIZE") {
         return res.status(400).json({
           error: `File too large. Max size is ${MAX_FILE_SIZE / (1024 * 1024)}MB`,
-          status: "failed",
+          status: "error",
+          message: `File too large. Max size is ${MAX_FILE_SIZE / (1024 * 1024)}MB`,
           timestamp: new Date().toISOString(),
         });
       }
-      return res.status(400).json({ error: err.message, status: "failed" });
+      return res.status(400).json({
+        error: err.message,
+        status: "error",
+        message: err.message,
+      });
     }
 
     console.error("IPFS upload error:", {
@@ -105,7 +146,8 @@ app.post("/upload", upload.single("file"), async (req, res) => {
     res.status(500).json({
       error: "Failed to upload to IPFS",
       details: err.message,
-      status: "failed",
+      status: "error",
+      message: "Failed to upload to IPFS",
       timestamp: new Date().toISOString(),
     });
   }
@@ -140,12 +182,12 @@ app.get("/status", async (req, res) => {
     };
 
     // Get GC configuration info
-    let gcInfo = { 
-      enabled: true, 
-      period: "200h", 
-      lastRun: "Unknown" 
+    let gcInfo = {
+      enabled: true,
+      period: "200h",
+      lastRun: "Unknown",
     };
-    
+
     try {
       const configResponse = await axios.post(`${IPFS_API}/api/v0/config/show`, { timeout: 3000 });
       if (configResponse.data && configResponse.data.Datastore) {
@@ -175,7 +217,7 @@ app.get("/status", async (req, res) => {
 
     // Get app version from package.json
     const { version: appVersion } = require("./package.json");
-    
+
     // Format file size limit in human readable form
     const formatBytes = (bytes) => {
       const sizes = ["Bytes", "KB", "MB", "GB", "TB"];
@@ -183,7 +225,7 @@ app.get("/status", async (req, res) => {
       const i = Math.floor(Math.log(bytes) / Math.log(1024));
       return (bytes / Math.pow(1024, i)).toFixed(2) + " " + sizes[i];
     };
-    
+
     res.json({
       status: "success",
       timestamp: new Date().toISOString(),
@@ -194,11 +236,11 @@ app.get("/status", async (req, res) => {
       garbageCollection: gcInfo,
       fileLimit: {
         bytes: MAX_FILE_SIZE,
-        humanReadable: formatBytes(MAX_FILE_SIZE)
+        humanReadable: formatBytes(MAX_FILE_SIZE),
       },
       storageLimit: {
         configured: STORAGE_MAX,
-        current: formatBytes(repo.storageMax)
+        current: formatBytes(repo.storageMax),
       },
       appVersion,
     });
@@ -224,5 +266,7 @@ app.use(errorHandler);
 // Start server
 app.listen(PORT, HOST, () => {
   console.log(`Server running on http://${HOST}:${PORT}`);
+  console.log(`Public URL: ${SERVER_URL}`);
   console.log(`IPFS API endpoint: ${IPFS_API}`);
+  console.log(`NIP-96 info: ${SERVER_URL}/.well-known/nostr/nip96.json`);
 });
