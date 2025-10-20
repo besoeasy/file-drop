@@ -26,15 +26,51 @@ docker run -d --restart unless-stopped \
   ghcr.io/besoeasy/file-drop:main
 ```
 
+## Portainer Stack
+
+For easy deployment with Portainer, use this stack configuration:
+
+```yaml
+version: "3.8"
+
+services:
+  file-drop:
+    image: ghcr.io/besoeasy/file-drop:main
+    container_name: file-drop
+    restart: unless-stopped
+    ports:
+      - "3232:3232"
+      - "4001:4001/tcp"
+      - "4001:4001/udp"
+    environment:
+      - MAX_FILE_SIZE=50
+      - IPFS_STORAGE_MAX=50GB
+```
+
+**Steps to deploy with Portainer:**
+
+1. Open Portainer and navigate to **Stacks**
+2. Click **Add stack** and give it a name (e.g., "file-drop")
+3. Paste the above YAML configuration in the editor
+4. Adjust environment variables as needed
+5. Click **Deploy the stack**
+
 ## Configuration
 
 ### Environment Variables
 
 - **MAX_FILE_SIZE**: Sets the maximum file size limit in megabytes (MB) that can be uploaded to the application.
+
   - Default: `99000` MB
   - Example: `-e MAX_FILE_SIZE=50` limits uploads to 50 MB
   - Range: Any positive integer (recommended to stay under 250 MB for optimal IPFS network performance)
   - Note: While larger files are technically possible with powerful hardware, the IPFS network performs best with smaller files
+
+- **IPFS_STORAGE_MAX**: Sets the maximum storage limit for the IPFS repository.
+  - Default: `200GB`
+  - Example: `-e IPFS_STORAGE_MAX=50GB` limits IPFS storage to 50 GB
+  - Formats: Supports standard units like `MB`, `GB`, `TB`
+  - Note: This controls how much disk space IPFS can use for storing files and metadata
 
 ## Usage
 
