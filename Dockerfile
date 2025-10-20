@@ -1,7 +1,4 @@
-FROM node:lts-alpine
-
-# Install system dependencies
-RUN apk add --no-cache curl
+FROM node:lts
 
 # Set working directory for application code
 WORKDIR /app
