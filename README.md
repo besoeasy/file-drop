@@ -22,7 +22,7 @@ docker run -d --restart unless-stopped \
   -p 4001:4001/udp \
   --name file-drop \
   -e MAX_FILE_SIZE=50 \
-  -e IPFS_STORAGE_MAX=50GB \
+  -e STORAGE_MAX=50GB \
   ghcr.io/besoeasy/file-drop:main
 ```
 
@@ -44,7 +44,7 @@ services:
       - "4001:4001/udp"
     environment:
       - MAX_FILE_SIZE=50
-      - IPFS_STORAGE_MAX=50GB
+      - STORAGE_MAX=50GB
 ```
 
 **Steps to deploy with Portainer:**
@@ -66,9 +66,9 @@ services:
   - Range: Any positive integer (recommended to stay under 250 MB for optimal IPFS network performance)
   - Note: While larger files are technically possible with powerful hardware, the IPFS network performs best with smaller files
 
-- **IPFS_STORAGE_MAX**: Sets the maximum storage limit for the IPFS repository.
+- **STORAGE_MAX**: Sets the maximum storage limit for the IPFS repository.
   - Default: `200GB`
-  - Example: `-e IPFS_STORAGE_MAX=50GB` limits IPFS storage to 50 GB
+  - Example: `-e STORAGE_MAX=50GB` limits IPFS storage to 50 GB
   - Formats: Supports standard units like `MB`, `GB`, `TB`
   - Note: This controls how much disk space IPFS can use for storing files and metadata
 

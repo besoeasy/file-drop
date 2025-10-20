@@ -9,7 +9,7 @@ const cors = require("cors");
 const IPFS_API = "http://127.0.0.1:5001";
 const PORT = 3232;
 const MAX_FILE_SIZE = parseInt(process.env.MAX_FILE_SIZE || 99000) * 1024 * 1024;
-const IPFS_STORAGE_MAX = process.env.IPFS_STORAGE_MAX || "200GB";
+const STORAGE_MAX = process.env.STORAGE_MAX || "200GB";
 const HOST = "0.0.0.0";
 
 // Initialize Express app
@@ -197,7 +197,7 @@ app.get("/status", async (req, res) => {
         humanReadable: formatBytes(MAX_FILE_SIZE)
       },
       storageLimit: {
-        configured: IPFS_STORAGE_MAX,
+        configured: STORAGE_MAX,
         current: formatBytes(repo.storageMax)
       },
       appVersion,
