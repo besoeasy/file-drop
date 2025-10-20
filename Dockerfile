@@ -9,10 +9,12 @@ COPY package.json package-lock.json* ./
 # Install production dependencies and kubo (IPFS)
 RUN npm ci && npm install -g kubo
 
+# Set default storage max (can be overridden with environment variable)
+ENV STORAGE_MAX=100GB
+
 # Initialize IPFS repo and configure GC + storage limits
 RUN npx kubo init && \
-    npx kubo config Datastore.StorageMax 200GB && \
-    npx kubo config Datastore.GCPeriod 200h && \
+    npx kubo config Datastore.GCPeriod 2h && \
     npx kubo bootstrap add /dnsaddr/bootstrap.libp2p.io/p2p/QmNnooDu7bfjPFoTZYxMNLWUQJyrVwtbZg5gBMjTezGAJN && \
     npx kubo bootstrap add /dnsaddr/bootstrap.libp2p.io/p2p/QmQCU2EcMqAqQPR2i9bChDtGNJchTbq5TbXJJ16u19uLTa && \
     npx kubo bootstrap add /dnsaddr/bootstrap.libp2p.io/p2p/QmbLHAnMoJPWSCR5Zp9VUdgHqVQggUP9WJA9jJ6F7HpLFq && \
@@ -32,6 +34,7 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
 
 # Start IPFS daemon with GC enabled, wait for it, then run the app
 CMD ["sh", "-c", "\
+    npx kubo config Datastore.StorageMax ${STORAGE_MAX} && \
     npx kubo daemon --enable-gc & \
     until curl -s http://127.0.0.1:5001/api/v0/id > /dev/null; do \
     echo 'Waiting for IPFS daemon...'; sleep 5; \
