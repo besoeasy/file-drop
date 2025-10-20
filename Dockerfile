@@ -10,7 +10,7 @@ COPY package.json package-lock.json* ./
 RUN npm ci && npm install -g kubo
 
 # Set default storage max (can be overridden with environment variable)
-ENV STORAGE_MAX=100GB
+ENV STORAGE_MAX=200GB
 
 # Initialize IPFS repo and configure GC + storage limits
 RUN npx kubo init && \
