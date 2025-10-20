@@ -158,7 +158,7 @@
           <i class="fas fa-cloud-upload-alt text-2xl"></i>
           <h1 class="text-3xl font-bold">File Drop</h1>
         </div>
-        <p class="text-gray-300 text-sm">Decentralized file sharing powered by IPFS</p>
+        <p class="text-gray-300 text-sm">Decentralized Anonymous File Sharing</p>
       </header>
 
       <div class="flex flex-col md:flex-row">
@@ -251,10 +251,7 @@
                   <p class="text-black font-semibold text-lg">Uploading to IPFS...</p>
                 </div>
                 <div class="w-full bg-gray-200 rounded-full h-3 mb-4">
-                  <div 
-                    class="bg-black h-3 rounded-full transition-all duration-300 ease-out"
-                    :style="{ width: uploadProgress + '%' }"
-                  ></div>
+                  <div class="bg-black h-3 rounded-full transition-all duration-300 ease-out" :style="{ width: uploadProgress + '%' }"></div>
                 </div>
                 <div class="flex justify-between items-center text-sm text-gray-600 mb-2">
                   <span>{{ uploadProgress.toFixed(1) }}% complete</span>
@@ -432,7 +429,7 @@
       </div>
 
       <footer class="bg-black p-4 text-center">
-        <div class="flex items-center justify-center gap-4 mb-2">
+        <div class="flex items-center justify-center gap-4">
           <a
             href="https://github.com/besoeasy/file-drop"
             target="_blank"
@@ -491,37 +488,37 @@
             this.fileLabel = this.file ? this.file.name : "Drop or Choose File";
           },
           handlePaste(event) {
-            console.log('Paste event triggered', event);
-            
+            console.log("Paste event triggered", event);
+
             // Check if clipboard contains files
             const items = event.clipboardData?.items;
             if (!items) {
-              console.log('No clipboard items found');
+              console.log("No clipboard items found");
               return;
             }
 
-            console.log('Clipboard items:', items.length);
+            console.log("Clipboard items:", items.length);
 
             for (let i = 0; i < items.length; i++) {
               const item = items[i];
-              console.log('Item', i, ':', item.kind, item.type);
-              
-              if (item.kind === 'file') {
+              console.log("Item", i, ":", item.kind, item.type);
+
+              if (item.kind === "file") {
                 event.preventDefault();
                 const file = item.getAsFile();
-                console.log('File pasted:', file);
-                
+                console.log("File pasted:", file);
+
                 if (file) {
                   this.file = file;
                   this.fileLabel = file.name || "Pasted File";
-                  
+
                   // Show visual feedback for paste
                   this.isPasted = true;
                   setTimeout(() => {
                     this.isPasted = false;
                   }, 1000);
-                  
-                  console.log('File set successfully:', this.file.name);
+
+                  console.log("File set successfully:", this.file.name);
                   break;
                 }
               }
@@ -588,20 +585,20 @@
               const xhr = new XMLHttpRequest();
 
               // Track upload progress
-              xhr.upload.addEventListener('progress', (event) => {
+              xhr.upload.addEventListener("progress", (event) => {
                 if (event.lengthComputable) {
                   this.uploadProgress = (event.loaded / event.total) * 100;
                 }
               });
 
               // Handle completion
-              xhr.addEventListener('load', () => {
+              xhr.addEventListener("load", () => {
                 this.uploading = false;
                 this.uploadProgress = 100;
 
                 try {
                   const data = JSON.parse(xhr.responseText);
-                  
+
                   if (data.status === "success") {
                     this.result = {
                       success: true,
@@ -629,29 +626,29 @@
               });
 
               // Handle errors
-              xhr.addEventListener('error', () => {
+              xhr.addEventListener("error", () => {
                 this.uploading = false;
                 this.uploadProgress = 0;
                 this.result = {
                   success: false,
                   message: "Upload failed. Please check your connection and try again.",
                 };
-                reject(new Error('Upload failed'));
+                reject(new Error("Upload failed"));
               });
 
               // Handle abort
-              xhr.addEventListener('abort', () => {
+              xhr.addEventListener("abort", () => {
                 this.uploading = false;
                 this.uploadProgress = 0;
                 this.result = {
                   success: false,
                   message: "Upload was cancelled.",
                 };
-                reject(new Error('Upload cancelled'));
+                reject(new Error("Upload cancelled"));
               });
 
               // Start the upload
-              xhr.open('POST', '/upload');
+              xhr.open("POST", "/upload");
               xhr.send(formData);
             });
           },
@@ -689,16 +686,16 @@
         mounted() {
           this.fetchStatus();
           setInterval(this.fetchStatus, 10000);
-          
+
           // Add global paste event listener
-          document.addEventListener('paste', this.handlePaste);
-          
+          document.addEventListener("paste", this.handlePaste);
+
           // Focus the app to enable paste events
           this.$el.focus();
         },
         beforeUnmount() {
           // Clean up event listener
-          document.removeEventListener('paste', this.handlePaste);
+          document.removeEventListener("paste", this.handlePaste);
         },
       }).mount("#app");
     </script>
