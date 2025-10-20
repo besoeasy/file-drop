@@ -151,7 +151,7 @@
     </style>
   </head>
   <body class="min-h-screen bg-gray-100 flex items-center justify-center p-4">
-    <div id="app" class="w-full max-w-6xl glassmorphism rounded-2xl shadow-xl overflow-hidden hover-lift">
+    <div id="app" class="w-full max-w-6xl glassmorphism rounded-2xl shadow-xl overflow-hidden hover-lift" tabindex="0" @paste="handlePaste" @keydown.prevent>
       <!-- Header -->
       <header class="bg-black p-6 text-white text-center">
         <div class="flex items-center justify-center gap-3 mb-2">
@@ -212,13 +212,16 @@
                 @dragover.prevent="isDragOver = true"
                 @dragleave.prevent="isDragOver = false"
                 @drop.prevent="handleDrop($event)"
-                :class="{ 'bg-gray-100 border-black': isDragOver }"
+                :class="{ 
+                  'bg-gray-100 border-black': isDragOver,
+                  'bg-green-50 border-green-500': isPasted
+                }"
               >
                 <div class="flex flex-col items-center gap-4">
                   <i class="fas fa-cloud-upload-alt text-4xl text-gray-400 group-hover:text-black transition-colors duration-300"></i>
                   <div>
                     <span class="text-lg font-semibold text-gray-700 group-hover:text-black transition-colors duration-300"> {{ fileLabel }} </span>
-                    <p class="text-sm text-gray-500 mt-2">Drag and drop your file here or click to browse</p>
+                    <p class="text-sm text-gray-500 mt-2">Drag and drop your file here, click to browse, or paste anywhere on the page</p>
                   </div>
                 </div>
               </label>
@@ -456,6 +459,7 @@
             uploadProgress: 0,
             result: null,
             isDragOver: false,
+            isPasted: false,
             activeTab: "details",
             status: {
               nodeId: "Loading...",
@@ -485,6 +489,43 @@
             this.isDragOver = false;
             this.file = event.dataTransfer.files[0];
             this.fileLabel = this.file ? this.file.name : "Drop or Choose File";
+          },
+          handlePaste(event) {
+            console.log('Paste event triggered', event);
+            
+            // Check if clipboard contains files
+            const items = event.clipboardData?.items;
+            if (!items) {
+              console.log('No clipboard items found');
+              return;
+            }
+
+            console.log('Clipboard items:', items.length);
+
+            for (let i = 0; i < items.length; i++) {
+              const item = items[i];
+              console.log('Item', i, ':', item.kind, item.type);
+              
+              if (item.kind === 'file') {
+                event.preventDefault();
+                const file = item.getAsFile();
+                console.log('File pasted:', file);
+                
+                if (file) {
+                  this.file = file;
+                  this.fileLabel = file.name || "Pasted File";
+                  
+                  // Show visual feedback for paste
+                  this.isPasted = true;
+                  setTimeout(() => {
+                    this.isPasted = false;
+                  }, 1000);
+                  
+                  console.log('File set successfully:', this.file.name);
+                  break;
+                }
+              }
+            }
           },
           getFileTypeIcon(fileType) {
             switch (fileType) {
@@ -648,6 +689,16 @@
         mounted() {
           this.fetchStatus();
           setInterval(this.fetchStatus, 10000);
+          
+          // Add global paste event listener
+          document.addEventListener('paste', this.handlePaste);
+          
+          // Focus the app to enable paste events
+          this.$el.focus();
+        },
+        beforeUnmount() {
+          // Clean up event listener
+          document.removeEventListener('paste', this.handlePaste);
         },
       }).mount("#app");
     </script>
