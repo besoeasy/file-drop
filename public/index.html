@@ -247,8 +247,16 @@
                   </div>
                   <p class="text-black font-semibold text-lg">Uploading to IPFS...</p>
                 </div>
-                <div class="w-full bg-gray-200 rounded-full h-2 mb-2">
-                  <div class="bg-black h-2 rounded-full shimmer"></div>
+                <div class="w-full bg-gray-200 rounded-full h-3 mb-4">
+                  <div 
+                    class="bg-black h-3 rounded-full transition-all duration-300 ease-out"
+                    :style="{ width: uploadProgress + '%' }"
+                  ></div>
+                </div>
+                <div class="flex justify-between items-center text-sm text-gray-600 mb-2">
+                  <span>{{ uploadProgress.toFixed(1) }}% complete</span>
+                  <span v-if="uploadProgress < 100">Uploading...</span>
+                  <span v-else>Processing...</span>
                 </div>
                 <p class="text-gray-600 text-sm">Your file is being distributed across the decentralized network</p>
               </div>
@@ -445,6 +453,7 @@
             file: null,
             fileLabel: "Drop or Choose File",
             uploading: false,
+            uploadProgress: 0,
             result: null,
             isDragOver: false,
             activeTab: "details",
@@ -528,42 +537,82 @@
             }
 
             this.uploading = true;
+            this.uploadProgress = 0;
             this.result = null;
 
             const formData = new FormData();
             formData.append("file", this.file);
 
-            try {
-              const response = await fetch("/upload", {
-                method: "POST",
-                body: formData,
-              });
-              const data = await response.json();
+            return new Promise((resolve, reject) => {
+              const xhr = new XMLHttpRequest();
 
-              this.uploading = false;
-              if (data.status === "success") {
-                this.result = {
-                  success: true,
-                  message: "Upload Successful",
-                  cid: data.cid,
-                  size: this.formatBytes(data.size),
-                  fileType: this.getFileType(this.file.type),
-                  fileName: this.file.name,
-                  mimeType: this.file.type || "application/octet-stream",
-                };
-              } else {
+              // Track upload progress
+              xhr.upload.addEventListener('progress', (event) => {
+                if (event.lengthComputable) {
+                  this.uploadProgress = (event.loaded / event.total) * 100;
+                }
+              });
+
+              // Handle completion
+              xhr.addEventListener('load', () => {
+                this.uploading = false;
+                this.uploadProgress = 100;
+
+                try {
+                  const data = JSON.parse(xhr.responseText);
+                  
+                  if (data.status === "success") {
+                    this.result = {
+                      success: true,
+                      message: "Upload Successful",
+                      cid: data.cid,
+                      size: this.formatBytes(data.size),
+                      fileType: this.getFileType(this.file.type),
+                      fileName: this.file.name,
+                      mimeType: this.file.type || "application/octet-stream",
+                    };
+                  } else {
+                    this.result = {
+                      success: false,
+                      message: `Error: ${data.error}`,
+                    };
+                  }
+                  resolve(data);
+                } catch (error) {
+                  this.result = {
+                    success: false,
+                    message: "Upload failed. Invalid response from server.",
+                  };
+                  reject(error);
+                }
+              });
+
+              // Handle errors
+              xhr.addEventListener('error', () => {
+                this.uploading = false;
+                this.uploadProgress = 0;
                 this.result = {
                   success: false,
-                  message: `Error: ${data.error}`,
+                  message: "Upload failed. Please check your connection and try again.",
                 };
-              }
-            } catch (error) {
-              this.uploading = false;
-              this.result = {
-                success: false,
-                message: "Upload failed. Please try again.",
-              };
-            }
+                reject(new Error('Upload failed'));
+              });
+
+              // Handle abort
+              xhr.addEventListener('abort', () => {
+                this.uploading = false;
+                this.uploadProgress = 0;
+                this.result = {
+                  success: false,
+                  message: "Upload was cancelled.",
+                };
+                reject(new Error('Upload cancelled'));
+              });
+
+              // Start the upload
+              xhr.open('POST', '/upload');
+              xhr.send(formData);
+            });
           },
           async fetchStatus() {
             try {
