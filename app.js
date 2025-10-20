@@ -11,7 +11,6 @@ const PORT = 3232;
 const MAX_FILE_SIZE = parseInt(process.env.MAX_FILE_SIZE || 99000) * 1024 * 1024;
 const STORAGE_MAX = process.env.STORAGE_MAX || "200GB";
 const HOST = "0.0.0.0";
-const SERVER_URL = process.env.SERVER_URL || `http://localhost:${PORT}`;
 
 // Initialize Express app
 const app = express();
@@ -42,9 +41,10 @@ const errorHandler = (err, req, res, next) => {
 // NIP-96 server info endpoint
 app.get("/.well-known/nostr/nip96.json", (req, res) => {
   const { version: appVersion } = require("./package.json");
+  const serverUrl = `${req.protocol}://${req.get('host')}`;
 
   res.json({
-    api_url: SERVER_URL,
+    api_url: serverUrl,
     download_url: "https://dweb.link/ipfs",
     supported_nips: [96],
     tos_url: "https://github.com/besoeasy/file-drop",
@@ -53,7 +53,7 @@ app.get("/.well-known/nostr/nip96.json", (req, res) => {
       free: {
         name: "File Drop",
         is_nip98_required: false,
-        url: `${SERVER_URL}/upload`,
+        url: `${serverUrl}/upload`,
         max_byte_size: MAX_FILE_SIZE,
         file_expiry: [2628000], // 30 days in seconds
       },
@@ -266,7 +266,5 @@ app.use(errorHandler);
 // Start server
 app.listen(PORT, HOST, () => {
   console.log(`Server running on http://${HOST}:${PORT}`);
-  console.log(`Public URL: ${SERVER_URL}`);
   console.log(`IPFS API endpoint: ${IPFS_API}`);
-  console.log(`NIP-96 info: ${SERVER_URL}/.well-known/nostr/nip96.json`);
 });
