@@ -13,13 +13,7 @@ RUN npm ci && npm install -g kubo
 ENV STORAGE_MAX=200GB
 
 # Initialize IPFS repo and configure GC + storage limits
-RUN npx kubo init && \
-    npx kubo config Datastore.GCPeriod 2h && \
-    npx kubo bootstrap add /dnsaddr/bootstrap.libp2p.io/p2p/QmNnooDu7bfjPFoTZYxMNLWUQJyrVwtbZg5gBMjTezGAJN && \
-    npx kubo bootstrap add /dnsaddr/bootstrap.libp2p.io/p2p/QmQCU2EcMqAqQPR2i9bChDtGNJchTbq5TbXJJ16u19uLTa && \
-    npx kubo bootstrap add /dnsaddr/bootstrap.libp2p.io/p2p/QmbLHAnMoJPWSCR5Zp9VUdgHqVQggUP9WJA9jJ6F7HpLFq && \
-    npx kubo bootstrap add /ip4/104.131.131.82/tcp/4001/p2p/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ && \
-    npx kubo bootstrap add /ip4/104.236.179.241/tcp/4001/p2p/QmSoLPppuBtQSGwKDZT2M73ULpjvfd3aZ6ha4oFGL1KrGM
+RUN npx kubo init && npx kubo config Datastore.GCPeriod 2h
 
 # Copy remaining application files
 COPY . .

@@ -12,7 +12,6 @@ const unlinkAsync = promisify(fs.unlink);
 // Constants
 const IPFS_API = "http://127.0.0.1:5001";
 const PORT = 3232;
-const MAX_FILE_SIZE = parseInt(process.env.MAX_FILE_SIZE || 99000) * 1024 * 1024;
 const STORAGE_MAX = process.env.STORAGE_MAX || "200GB";
 const HOST = "0.0.0.0";
 const UPLOAD_TEMP_DIR = path.join(__dirname, "temp_uploads");
@@ -46,7 +45,6 @@ const storage = multer.diskStorage({
 
 const upload = multer({
   storage,
-  limits: { fileSize: MAX_FILE_SIZE },
   fileFilter: (req, file, cb) => {
     cb(null, true);
   },
@@ -139,10 +137,6 @@ app.get("/status", async (req, res) => {
       node: nodeInfo,
       peers: connectedPeers,
       garbageCollection: gcInfo,
-      fileLimit: {
-        bytes: MAX_FILE_SIZE,
-        humanReadable: formatBytes(MAX_FILE_SIZE),
-      },
       storageLimit: {
         configured: STORAGE_MAX,
         current: formatBytes(repo.storageMax),
@@ -168,7 +162,7 @@ app.get("/status", async (req, res) => {
 // Upload endpoint
 app.post("/upload", upload.single("file"), async (req, res) => {
   let filePath = null;
-  
+
   try {
     // Validate file presence
     if (!req.file) {
@@ -185,7 +179,7 @@ app.post("/upload", upload.single("file"), async (req, res) => {
     // Prepare file for IPFS using stream instead of buffer
     const formData = new FormData();
     const fileStream = fs.createReadStream(filePath);
-    
+
     formData.append("file", fileStream, {
       filename: req.file.originalname,
       contentType: req.file.mimetype,
@@ -202,9 +196,7 @@ app.post("/upload", upload.single("file"), async (req, res) => {
     });
 
     // Clean up temp file after successful upload
-    await unlinkAsync(filePath).catch(err => 
-      console.warn("Failed to delete temp file:", err.message)
-    );
+    await unlinkAsync(filePath).catch((err) => console.warn("Failed to delete temp file:", err.message));
 
     // Detailed logging
     const uploadDetails = {
@@ -242,24 +234,15 @@ app.post("/upload", upload.single("file"), async (req, res) => {
   } catch (err) {
     // Clean up temp file on error
     if (filePath) {
-      await unlinkAsync(filePath).catch(cleanupErr => 
-        console.warn("Failed to delete temp file on error:", cleanupErr.message)
-      );
+      await unlinkAsync(filePath).catch((cleanupErr) => console.warn("Failed to delete temp file on error:", cleanupErr.message));
     }
 
     if (err instanceof multer.MulterError) {
-      if (err.code === "LIMIT_FILE_SIZE") {
-        return res.status(400).json({
-          error: `File too large. Max size is ${MAX_FILE_SIZE / (1024 * 1024)}MB`,
-          status: "error",
-          message: `File too large. Max size is ${MAX_FILE_SIZE / (1024 * 1024)}MB`,
-          timestamp: new Date().toISOString(),
-        });
-      }
       return res.status(400).json({
         error: err.message,
         status: "error",
         message: err.message,
+        timestamp: new Date().toISOString(),
       });
     }
 
