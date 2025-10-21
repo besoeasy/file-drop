@@ -62,6 +62,113 @@ app.get("/.well-known/nostr/nip96.json", (req, res) => {
   });
 });
 
+// Enhanced status endpoint
+app.get("/status", async (req, res) => {
+  try {
+    // Fetch multiple IPFS stats concurrently
+    const [bwResponse, repoResponse, idResponse] = await Promise.all([
+      axios.post(`${IPFS_API}/api/v0/stats/bw?interval=5m`, { timeout: 5000 }),
+      axios.post(`${IPFS_API}/api/v0/repo/stat`, { timeout: 5000 }),
+      axios.post(`${IPFS_API}/api/v0/id`, { timeout: 5000 }),
+    ]);
+
+    // Format bandwidth data
+    const bandwidth = {
+      totalIn: bwResponse.data.TotalIn,
+      totalOut: bwResponse.data.TotalOut,
+      rateIn: bwResponse.data.RateIn,
+      rateOut: bwResponse.data.RateOut,
+      interval: "1h",
+    };
+
+    // Format repository stats
+    const repo = {
+      size: repoResponse.data.RepoSize,
+      storageMax: repoResponse.data.StorageMax,
+      numObjects: repoResponse.data.NumObjects,
+      path: repoResponse.data.RepoPath,
+      version: repoResponse.data.Version,
+    };
+
+    // Get GC configuration info
+    let gcInfo = {
+      enabled: true,
+      period: "200h",
+      lastRun: "Unknown",
+    };
+
+    try {
+      const configResponse = await axios.post(`${IPFS_API}/api/v0/config/show`, { timeout: 3000 });
+      if (configResponse.data && configResponse.data.Datastore) {
+        gcInfo.period = configResponse.data.Datastore.GCPeriod || "200h";
+      }
+    } catch (configErr) {
+      console.log("Could not fetch GC config:", configErr.message);
+    }
+
+    // Node identity info
+    const nodeInfo = {
+      id: idResponse.data.ID,
+      publicKey: idResponse.data.PublicKey,
+      addresses: idResponse.data.Addresses,
+      agentVersion: idResponse.data.AgentVersion,
+      protocolVersion: idResponse.data.ProtocolVersion,
+    };
+
+    const peersResponse = await axios.post(`${IPFS_API}/api/v0/swarm/peers`, {
+      timeout: 5000,
+    });
+
+    const connectedPeers = {
+      count: peersResponse.data.Peers.length,
+      list: peersResponse.data.Peers,
+    };
+
+    // Get app version from package.json
+    const { version: appVersion } = require("./package.json");
+
+    // Format file size limit in human readable form
+    const formatBytes = (bytes) => {
+      const sizes = ["Bytes", "KB", "MB", "GB", "TB"];
+      if (bytes === 0) return "0 Bytes";
+      const i = Math.floor(Math.log(bytes) / Math.log(1024));
+      return (bytes / Math.pow(1024, i)).toFixed(2) + " " + sizes[i];
+    };
+
+    res.json({
+      status: "success",
+      timestamp: new Date().toISOString(),
+      bandwidth,
+      repository: repo,
+      node: nodeInfo,
+      peers: connectedPeers,
+      garbageCollection: gcInfo,
+      fileLimit: {
+        bytes: MAX_FILE_SIZE,
+        humanReadable: formatBytes(MAX_FILE_SIZE),
+      },
+      storageLimit: {
+        configured: STORAGE_MAX,
+        current: formatBytes(repo.storageMax),
+      },
+      appVersion,
+    });
+  } catch (err) {
+    console.error("Status check error:", {
+      message: err.message,
+      stack: err.stack,
+      timestamp: new Date().toISOString(),
+    });
+
+    res.status(503).json({
+      error: "Failed to retrieve IPFS status",
+      details: err.message,
+      status: "failed",
+      timestamp: new Date().toISOString(),
+    });
+  }
+});
+
 // NIP-96 compliant download endpoint
 app.get("/:hash", async (req, res) => {
   try {
@@ -208,113 +315,6 @@ app.post("/upload", upload.single("file"), async (req, res) => {
       details: err.message,
       status: "error",
       message: "Failed to upload to IPFS",
-      timestamp: new Date().toISOString(),
-    });
-  }
-});
-
-// Enhanced status endpoint
-app.get("/status", async (req, res) => {
-  try {
-    // Fetch multiple IPFS stats concurrently
-    const [bwResponse, repoResponse, idResponse] = await Promise.all([
-      axios.post(`${IPFS_API}/api/v0/stats/bw?interval=5m`, { timeout: 5000 }),
-      axios.post(`${IPFS_API}/api/v0/repo/stat`, { timeout: 5000 }),
-      axios.post(`${IPFS_API}/api/v0/id`, { timeout: 5000 }),
-    ]);
-
-    // Format bandwidth data
-    const bandwidth = {
-      totalIn: bwResponse.data.TotalIn,
-      totalOut: bwResponse.data.TotalOut,
-      rateIn: bwResponse.data.RateIn,
-      rateOut: bwResponse.data.RateOut,
-      interval: "1h",
-    };
-
-    // Format repository stats
-    const repo = {
-      size: repoResponse.data.RepoSize,
-      storageMax: repoResponse.data.StorageMax,
-      numObjects: repoResponse.data.NumObjects,
-      path: repoResponse.data.RepoPath,
-      version: repoResponse.data.Version,
-    };
-
-    // Get GC configuration info
-    let gcInfo = {
-      enabled: true,
-      period: "200h",
-      lastRun: "Unknown",
-    };
-
-    try {
-      const configResponse = await axios.post(`${IPFS_API}/api/v0/config/show`, { timeout: 3000 });
-      if (configResponse.data && configResponse.data.Datastore) {
-        gcInfo.period = configResponse.data.Datastore.GCPeriod || "200h";
-      }
-    } catch (configErr) {
-      console.log("Could not fetch GC config:", configErr.message);
-    }
-
-    // Node identity info
-    const nodeInfo = {
-      id: idResponse.data.ID,
-      publicKey: idResponse.data.PublicKey,
-      addresses: idResponse.data.Addresses,
-      agentVersion: idResponse.data.AgentVersion,
-      protocolVersion: idResponse.data.ProtocolVersion,
-    };
-
-    const peersResponse = await axios.post(`${IPFS_API}/api/v0/swarm/peers`, {
-      timeout: 5000,
-    });
-
-    const connectedPeers = {
-      count: peersResponse.data.Peers.length,
-      list: peersResponse.data.Peers,
-    };
-
-    // Get app version from package.json
-    const { version: appVersion } = require("./package.json");
-
-    // Format file size limit in human readable form
-    const formatBytes = (bytes) => {
-      const sizes = ["Bytes", "KB", "MB", "GB", "TB"];
-      if (bytes === 0) return "0 Bytes";
-      const i = Math.floor(Math.log(bytes) / Math.log(1024));
-      return (bytes / Math.pow(1024, i)).toFixed(2) + " " + sizes[i];
-    };
-
-    res.json({
-      status: "success",
-      timestamp: new Date().toISOString(),
-      bandwidth,
-      repository: repo,
-      node: nodeInfo,
-      peers: connectedPeers,
-      garbageCollection: gcInfo,
-      fileLimit: {
-        bytes: MAX_FILE_SIZE,
-        humanReadable: formatBytes(MAX_FILE_SIZE),
-      },
-      storageLimit: {
-        configured: STORAGE_MAX,
-        current: formatBytes(repo.storageMax),
-      },
-      appVersion,
-    });
-  } catch (err) {
-    console.error("Status check error:", {
-      message: err.message,
-      stack: err.stack,
-      timestamp: new Date().toISOString(),
-    });
-
-    res.status(503).json({
-      error: "Failed to retrieve IPFS status",
-      details: err.message,
-      status: "failed",
       timestamp: new Date().toISOString(),
     });
   }
