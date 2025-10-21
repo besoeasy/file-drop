@@ -27,7 +27,6 @@ const upload = multer({
   storage,
   limits: { fileSize: MAX_FILE_SIZE },
   fileFilter: (req, file, cb) => {
-    // Add file type validation if needed
     cb(null, true);
   },
 });
@@ -37,30 +36,6 @@ const errorHandler = (err, req, res, next) => {
   console.error("Unexpected error:", err.stack);
   res.status(500).json({ error: "Internal server error" });
 };
-
-// NIP-96 server info endpoint
-app.get("/.well-known/nostr/nip96.json", (req, res) => {
-  const { version: appVersion } = require("./package.json");
-  const serverUrl = `${req.protocol}://${req.get("host")}`;
-
-  res.json({
-    api_url: serverUrl,
-    download_url: "https://dweb.link/ipfs",
-    supported_nips: [96],
-    tos_url: "https://github.com/besoeasy/file-drop",
-    content_types: ["image/*", "video/*", "audio/*", "text/*", "application/*"],
-    plans: {
-      free: {
-        name: "File Drop",
-        is_nip98_required: false,
-        url: `${serverUrl}/upload`,
-        max_byte_size: MAX_FILE_SIZE,
-        file_expiration: [2628000, 2628000], // 30 days in seconds [min, max]
-        media_transformations: {},
-      },
-    },
-  });
-});
 
 // Enhanced status endpoint
 app.get("/status", async (req, res) => {
@@ -165,63 +140,6 @@ app.get("/status", async (req, res) => {
       details: err.message,
       status: "failed",
       timestamp: new Date().toISOString(),
-    });
-  }
-});
-
-// NIP-96 compliant download endpoint
-app.get("/:hash", async (req, res) => {
-  try {
-    let { hash } = req.params;
-
-    // Handle file extension if present
-    let ext = null;
-    if (hash.includes(".")) {
-      const parts = hash.split(".");
-      hash = parts[0];
-      ext = parts[1];
-    }
-
-    // Validate hash format (IPFS CID)
-    if (!/^Qm[1-9A-HJ-NP-Za-km-z]{44,}$/.test(hash) && !/^[a-f0-9]{64}$/.test(hash)) {
-      return res.status(404).json({
-        status: "error",
-        message: "Invalid file hash",
-      });
-    }
-
-    // Redirect to IPFS gateway for download
-    const downloadUrl = `https://dweb.link/ipfs/${hash}`;
-
-    // Set appropriate headers based on file extension
-    if (ext) {
-      const mimeTypes = {
-        jpg: "image/jpeg",
-        jpeg: "image/jpeg",
-        png: "image/png",
-        gif: "image/gif",
-        webp: "image/webp",
-        mp4: "video/mp4",
-        webm: "video/webm",
-        mp3: "audio/mpeg",
-        wav: "audio/wav",
-        pdf: "application/pdf",
-        txt: "text/plain",
-      };
-
-      const mimeType = mimeTypes[ext.toLowerCase()];
-      if (mimeType) {
-        res.set("Content-Type", mimeType);
-      }
-    }
-
-    // Redirect to IPFS gateway
-    res.redirect(302, downloadUrl);
-  } catch (err) {
-    console.error("Download error:", err);
-    res.status(404).json({
-      status: "error",
-      message: "File not found",
     });
   }
 });
