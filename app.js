@@ -4,6 +4,10 @@ const axios = require("axios");
 const FormData = require("form-data");
 const path = require("path");
 const cors = require("cors");
+const compression = require("compression");
+const fs = require("fs");
+const { promisify } = require("util");
+const unlinkAsync = promisify(fs.unlink);
 
 // Constants
 const IPFS_API = "http://127.0.0.1:5001";
@@ -11,18 +15,35 @@ const PORT = 3232;
 const MAX_FILE_SIZE = parseInt(process.env.MAX_FILE_SIZE || 99000) * 1024 * 1024;
 const STORAGE_MAX = process.env.STORAGE_MAX || "200GB";
 const HOST = "0.0.0.0";
+const UPLOAD_TEMP_DIR = path.join(__dirname, "temp_uploads");
+
+// Ensure temp directory exists
+if (!fs.existsSync(UPLOAD_TEMP_DIR)) {
+  fs.mkdirSync(UPLOAD_TEMP_DIR, { recursive: true });
+}
 
 // Initialize Express app
 const app = express();
 
 // Middleware setup
+app.use(compression()); // Enable gzip/deflate compression
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cors());
 app.use(express.static(path.join(__dirname, "public")));
 
-// Configure multer for file uploads
-const storage = multer.memoryStorage();
+// Configure multer for file uploads with disk storage for streaming
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, UPLOAD_TEMP_DIR);
+  },
+  filename: (req, file, cb) => {
+    // Generate unique filename with timestamp
+    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+    cb(null, uniqueSuffix + "-" + file.originalname);
+  },
+});
+
 const upload = multer({
   storage,
   limits: { fileSize: MAX_FILE_SIZE },
@@ -146,6 +167,8 @@ app.get("/status", async (req, res) => {
 
 // Upload endpoint
 app.post("/upload", upload.single("file"), async (req, res) => {
+  let filePath = null;
+  
   try {
     // Validate file presence
     if (!req.file) {
@@ -157,9 +180,13 @@ app.post("/upload", upload.single("file"), async (req, res) => {
       });
     }
 
-    // Prepare file for IPFS
+    filePath = req.file.path;
+
+    // Prepare file for IPFS using stream instead of buffer
     const formData = new FormData();
-    formData.append("file", req.file.buffer, {
+    const fileStream = fs.createReadStream(filePath);
+    
+    formData.append("file", fileStream, {
       filename: req.file.originalname,
       contentType: req.file.mimetype,
       knownLength: req.file.size,
@@ -169,8 +196,15 @@ app.post("/upload", upload.single("file"), async (req, res) => {
     const uploadStart = Date.now();
     const response = await axios.post(`${IPFS_API}/api/v0/add`, formData, {
       headers: { ...formData.getHeaders() },
-      timeout: 30000, // 30s timeout
+      timeout: 60000, // Increased to 60s for large files
+      maxContentLength: Infinity,
+      maxBodyLength: Infinity,
     });
+
+    // Clean up temp file after successful upload
+    await unlinkAsync(filePath).catch(err => 
+      console.warn("Failed to delete temp file:", err.message)
+    );
 
     // Detailed logging
     const uploadDetails = {
@@ -206,6 +240,13 @@ app.post("/upload", upload.single("file"), async (req, res) => {
       details: uploadDetails,
     });
   } catch (err) {
+    // Clean up temp file on error
+    if (filePath) {
+      await unlinkAsync(filePath).catch(cleanupErr => 
+        console.warn("Failed to delete temp file on error:", cleanupErr.message)
+      );
+    }
+
     if (err instanceof multer.MulterError) {
       if (err.code === "LIMIT_FILE_SIZE") {
         return res.status(400).json({
