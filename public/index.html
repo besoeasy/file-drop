@@ -358,7 +358,7 @@
                           <label class="text-xs text-gray-600 font-medium block mb-1">IPFS Protocol</label>
                           <input
                             type="text"
-                            :value="`ipfs://${result.cid}`"
+                            :value="getIpfsUrlWithFilename(result.cid, result.fileName)"
                             readonly
                             class="w-full px-3 py-2 text-sm border border-gray-300 rounded bg-gray-50 font-mono text-black cursor-pointer hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-black"
                             @click="$event.target.select()"
@@ -368,7 +368,7 @@
                           <label class="text-xs text-gray-600 font-medium block mb-1">IPFS.io Gateway</label>
                           <input
                             type="text"
-                            :value="`https://ipfs.io/ipfs/${result.cid}`"
+                            :value="getIpfsUrlWithFilename(result.cid, result.fileName, 'https://ipfs.io/ipfs/')"
                             readonly
                             class="w-full px-3 py-2 text-sm border border-gray-300 rounded bg-gray-50 font-mono text-black cursor-pointer hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-black"
                             @click="$event.target.select()"
@@ -378,7 +378,7 @@
                           <label class="text-xs text-gray-600 font-medium block mb-1">Dweb.link Gateway</label>
                           <input
                             type="text"
-                            :value="`https://dweb.link/ipfs/${result.cid}`"
+                            :value="getIpfsUrlWithFilename(result.cid, result.fileName, 'https://dweb.link/ipfs/')"
                             readonly
                             class="w-full px-3 py-2 text-sm border border-gray-300 rounded bg-gray-50 font-mono text-black cursor-pointer hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-black"
                             @click="$event.target.select()"
@@ -395,7 +395,7 @@
                               Check Network Propagation
                             </a>
                             <a
-                              :href="`https://dweb.link/ipfs/${result.cid}`"
+                              :href="getIpfsUrlWithFilename(result.cid, result.fileName, 'https://dweb.link/ipfs/')"
                               target="_blank"
                               class="inline-flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded font-medium text-sm hover:bg-gray-700 transition-colors duration-300"
                             >
@@ -594,6 +594,15 @@
               default:
                 return `[url=${url}]Download File[/url]`;
             }
+          },
+          getIpfsUrlWithFilename(cid, filename, gateway = '') {
+            if (!filename) return gateway ? `${gateway}${cid}` : `ipfs://${cid}`;
+            
+            const encodedFilename = encodeURIComponent(filename);
+            if (gateway) {
+              return `${gateway}${cid}?filename=${encodedFilename}`;
+            }
+            return `ipfs://${cid}?filename=${encodedFilename}`;
           },
           async uploadFile() {
             if (!this.file) {
