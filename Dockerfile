@@ -27,11 +27,6 @@ COPY . .
 # Expose necessary ports
 EXPOSE 3232 4001/tcp 4001/udp
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:5001/api/v0/id || exit 1
-
-
 # Start IPFS daemon with GC enabled, wait for it, then run the app
 CMD ["sh", "-c", "\
     npx kubo config Datastore.StorageMax ${STORAGE_MAX} && \
