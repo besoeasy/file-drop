@@ -1,0 +1,28 @@
+{
+  "name": "file-drop",
+  "version": "1.1.1",
+  "description": "file drop",
+  "main": "app.js",
+  "scripts": {
+    "test": "podman run --name ipfs-host --rm --network host docker.io/ipfs/kubo:latest",
+    "start": "node app.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/besoeasy/file-drop.git"
+  },
+  "author": "besoeasy",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/besoeasy/file-drop/issues"
+  },
+  "homepage": "https://github.com/besoeasy/file-drop#readme",
+  "dependencies": {
+    "axios": "^1.8.4",
+    "compression": "^1.8.1",
+    "cors": "^2.8.5",
+    "express": "^4.21.2",
+    "form-data": "^4.0.2",
+    "multer": "^1.4.5-lts.2"
+  }
+}
