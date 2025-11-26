@@ -241,7 +241,6 @@
             <input type="file" id="fileInput" class="hidden" @change="updateFileLabel" />
           </div>
 
-          <!-- Upload Button -->
           <button @click="uploadFile" :disabled="uploading || !file"
             class="w-full bg-black text-white py-3 rounded-xl font-semibold transition-all duration-300 hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed">
             <div class="flex items-center justify-center gap-2">
@@ -251,7 +250,6 @@
             </div>
           </button>
 
-          <!-- Progress -->
           <div v-if="uploading" class="text-center animate-fade-in">
             <div class="bg-white rounded-lg p-6 shadow-lg border border-gray-200">
               <div class="flex items-center justify-center gap-3 mb-4">
@@ -273,14 +271,12 @@
             </div>
           </div>
 
-          <!-- Result -->
           <div v-if="result" class="mt-6 animate-fade-in">
             <div :class="[
                   'p-6 rounded-xl shadow-lg border',
                   result.success ? 'bg-white border-gray-200' : 'bg-gray-50 border-gray-300'
                 ]">
               <template v-if="result.success">
-                <!-- Success Status - Moved to top -->
                 <div class="flex items-center gap-3 mb-6 bg-green-50 border border-green-200 rounded-lg p-4">
                   <div class="flex-shrink-0">
                     <i class="fas fa-check-circle text-green-600 text-2xl"></i>
@@ -291,7 +287,6 @@
                   </div>
                 </div>
 
-                <!-- Tab Navigation -->
                 <div class="flex border-b border-gray-200 mb-4">
                   <button @click="activeTab = 'details'"
                     :class="['tab-button px-4 py-2 text-sm font-medium', activeTab === 'details' ? 'active' : 'text-gray-600 hover:text-gray-800']">
@@ -307,9 +302,7 @@
                   </button>
                 </div>
 
-                <!-- Tab Content -->
                 <div class="min-h-[200px]" v-if="result.fileName">
-                  <!-- File Details Tab -->
                   <div v-if="activeTab === 'details'" class="space-y-3">
                     <div class="grid grid-cols-2 gap-3 text-sm">
                       <div class="bg-gray-50 rounded p-3">
