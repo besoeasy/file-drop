@@ -6,7 +6,7 @@ RUN apt-get update && \
     apt-get install -y curl && \
     rm -rf /var/lib/apt/lists/*
 
-RUN curl -fsSL "https://dist.ipfs.tech/kubo/v0.38.2/kubo_v0.38.2_linux-$(dpkg --print-architecture).tar.gz" | \
+RUN curl -fsSL "https://dist.ipfs.tech/kubo/v0.39.0/kubo_v0.39.0_linux-$(dpkg --print-architecture).tar.gz" | \
     tar -xz -C /tmp && \
     mv /tmp/kubo/ipfs /usr/local/bin/ipfs && \
     rm -rf /tmp/kubo
