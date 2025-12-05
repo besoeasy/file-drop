@@ -14,7 +14,7 @@ const IPFS_API = "http://127.0.0.1:5001";
 const PORT = 3232;
 const STORAGE_MAX = process.env.STORAGE_MAX || "200GB";
 const HOST = "0.0.0.0";
-const UPLOAD_TEMP_DIR = path.join(__dirname, "temp_uploads");
+const UPLOAD_TEMP_DIR = "/tmp/filedrop";
 
 // Ensure temp directory exists
 if (!fs.existsSync(UPLOAD_TEMP_DIR)) {
