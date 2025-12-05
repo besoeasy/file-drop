@@ -66,3 +66,24 @@ services:
 ## Usage
 
 Access the application via `http://localhost:3232` in your browser (or your machine’s IP if remote).
+
+## API
+
+The backend (`app.js`) is a Node.js Express server that handles file uploads to IPFS (InterPlanetary File System). It uses Multer for multipart file handling, temporarily stores files, and streams them to a local IPFS node for pinning.
+
+### Endpoints
+
+- `GET /status`: Fetches and returns IPFS node stats (bandwidth, repository info, peers, etc.) in JSON format.
+- `POST /upload`: Accepts a single file upload via multipart/form-data. Uploads the file to IPFS, returns the CID (Content Identifier), file details, and NIP-96 compatible metadata.
+
+### Uploading Files with curl
+
+You can upload files using curl by sending a POST request to the `/upload` endpoint:
+
+```bash
+curl -X POST -F "file=@/path/to/your/file.ext" http://localhost:3232/upload
+```
+
+- Replace `/path/to/your/file.ext` with the actual file path.
+- This returns a JSON response with the upload status, CID, and file details if successful.
+- The server runs on port 3232 and assumes IPFS is running locally at `http://127.0.0.1:5001`.
