@@ -27,7 +27,7 @@ USER node
 
 EXPOSE 3232 4001/tcp 4001/udp
 
-# Health check - wait 60s for IPFS to connect to peers
+# Health check - wait 7m for IPFS to connect to peers
 HEALTHCHECK --interval=30s --timeout=10s --start-period=7m --retries=5 \
   CMD curl -f http://localhost:3232/health || exit 1
 
