@@ -56,6 +56,22 @@ const errorHandler = (err, req, res, next) => {
   res.status(500).json({ error: "Internal server error" });
 };
 
+// Health check endpoint for Docker
+app.get("/health", async (req, res) => {
+  try {
+    const peersResponse = await axios.post(`${IPFS_API}/api/v0/swarm/peers`, { timeout: 5000 });
+    const peerCount = peersResponse.data.Peers?.length || 0;
+
+    if (peerCount >= 1) {
+      res.status(200).json({ status: "healthy", peers: peerCount });
+    } else {
+      res.status(503).json({ status: "unhealthy", peers: peerCount, reason: "No peers connected" });
+    }
+  } catch (err) {
+    res.status(503).json({ status: "unhealthy", error: err.message });
+  }
+});
+
 // Enhanced status endpoint
 app.get("/status", async (req, res) => {
   try {
