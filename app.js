@@ -272,12 +272,12 @@ app.post("/upload", upload.single("file"), async (req, res) => {
       status: "success",
       message: "Upload successful",
       cid: response.data.Hash,
+      url: `https://dweb.link/ipfs/${response.data.Hash}`,
       filename: req.file.originalname,
       size: uploadDetails.size_bytes,
       details: uploadDetails,
     });
   } catch (err) {
-    // Clean up temp file on error
     if (filePath) {
       await unlinkAsync(filePath).catch((cleanupErr) => console.warn("Failed to delete temp file on error:", cleanupErr.message));
     }
