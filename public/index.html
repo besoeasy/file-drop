@@ -616,79 +616,87 @@
           this.uploadProgress = 0;
           this.result = null;
 
-          const formData = new FormData();
-          formData.append("file", this.file);
+          const CHUNK_SIZE = 256 * 1024; // 256KB
+          const totalChunks = Math.ceil(this.file.size / CHUNK_SIZE);
+          const uploadId = Date.now().toString() + "-" + Math.random().toString(36).substring(2);
 
-          return new Promise((resolve, reject) => {
-            const xhr = new XMLHttpRequest();
+          try {
+            for (let i = 0; i < totalChunks; i++) {
+              const start = i * CHUNK_SIZE;
+              const end = Math.min(start + CHUNK_SIZE, this.file.size);
+              const chunk = this.file.slice(start, end);
 
-            // Track upload progress
-            xhr.upload.addEventListener("progress", (event) => {
-              if (event.lengthComputable) {
-                this.uploadProgress = (event.loaded / event.total) * 100;
-              }
-            });
+              // Update progress logic to reflect chunk progress
+              // We reserve 95% for upload, 5% for finalization
+              this.uploadProgress = (i / totalChunks) * 95;
 
-            // Handle completion
-            xhr.addEventListener("load", () => {
-              this.uploading = false;
-              this.uploadProgress = 100;
+              const formData = new FormData();
+              // Important: Metadata must optionally come before file for some backends, 
+              // though multer handles it, it's safer to append metadata first.
+              formData.append("uploadId", uploadId);
+              formData.append("chunkIndex", i.toString());
+              formData.append("totalChunks", totalChunks.toString());
+              formData.append("file", chunk, this.file.name);
 
-              try {
-                const data = JSON.parse(xhr.responseText);
+              await new Promise((resolve, reject) => {
+                const xhr = new XMLHttpRequest();
+                
+                xhr.upload.addEventListener("progress", (event) => {
+                  if (event.lengthComputable) {
+                    // Calculate granular progress within the chunk
+                    const chunkProgress = event.loaded / event.total;
+                    const overallProgress = ((i + chunkProgress) / totalChunks) * 95;
+                    this.uploadProgress = overallProgress;
+                  }
+                });
 
-                if (data.status === "success") {
-                  this.result = {
-                    success: true,
-                    message: "Upload Successful",
-                    cid: data.cid,
-                    size: this.formatBytes(data.size),
-                    fileType: this.getFileType(this.file.type),
-                    fileName: this.file.name,
-                    mimeType: this.file.type || "application/octet-stream",
-                  };
-                } else {
-                  this.result = {
-                    success: false,
-                    message: `Error: ${data.error}`,
-                  };
-                }
-                resolve(data);
-              } catch (error) {
-                this.result = {
-                  success: false,
-                  message: "Upload failed. Invalid response from server.",
-                };
-                reject(error);
-              }
-            });
+                xhr.addEventListener("load", () => {
+                  if (xhr.status >= 200 && xhr.status < 300) {
+                    try {
+                      const data = JSON.parse(xhr.responseText);
+                      if (data.status === "success") {
+                        // If this was the last chunk, the data contains the final result
+                         if (i === totalChunks - 1) {
+                            this.uploadProgress = 100;
+                            this.result = {
+                              success: true,
+                              message: "Upload Successful",
+                              cid: data.cid,
+                              size: this.formatBytes(data.size),
+                              fileType: this.getFileType(this.file.type),
+                              fileName: this.file.name,
+                              mimeType: this.file.type || "application/octet-stream",
+                            };
+                         }
+                         resolve(data);
+                      } else {
+                        reject(new Error(data.message || "Upload failed"));
+                      }
+                    } catch (e) {
+                      reject(new Error("Invalid response from server"));
+                    }
+                  } else {
+                    reject(new Error("Upload failed with status " + xhr.status));
+                  }
+                });
 
-            // Handle errors
-            xhr.addEventListener("error", () => {
-              this.uploading = false;
-              this.uploadProgress = 0;
-              this.result = {
-                success: false,
-                message: "Upload failed. Please check your connection and try again.",
-              };
-              reject(new Error("Upload failed"));
-            });
-
-            // Handle abort
-            xhr.addEventListener("abort", () => {
-              this.uploading = false;
-              this.uploadProgress = 0;
-              this.result = {
-                success: false,
-                message: "Upload was cancelled.",
-              };
-              reject(new Error("Upload cancelled"));
-            });
-
-            // Start the upload
-            xhr.open("POST", "/upload");
-            xhr.send(formData);
-          });
+                xhr.addEventListener("error", () => reject(new Error("Network error")));
+                xhr.addEventListener("abort", () => reject(new Error("Aborted")));
+                
+                xhr.open("POST", "/upload");
+                xhr.send(formData);
+              });
+            }
+            this.uploading = false;
+          } catch (error) {
+            this.uploading = false;
+            this.uploadProgress = 0;
+             this.result = {
+              success: false,
+              message: error.message || "Upload failed",
+            };
+            console.error("Upload error:", error);
+          }
         },
         copyCurlCommand() {
           const command = `curl -X POST -F "file=@yourfile.pdf" ${this.currentUrl}/upload`;

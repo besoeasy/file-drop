@@ -190,34 +190,73 @@ app.post("/upload", upload.single("file"), async (req, res) => {
       });
     }
 
-    filePath = req.file.path;
+    // Check for chunked upload parameters
+    const { uploadId, chunkIndex, totalChunks } = req.body;
+    const isChunked = uploadId !== undefined && chunkIndex !== undefined;
 
-    // Prepare file for IPFS using stream instead of buffer
+    if (isChunked) {
+      // Chunked Upload Logic
+      const currentChunk = parseInt(chunkIndex);
+      const total = parseInt(totalChunks);
+      const tempFinalPath = path.join(UPLOAD_TEMP_DIR, uploadId);
+
+      // Append chunk to the final file
+      // Using sync operations for 256KB chunks is acceptable and ensures order if requests arrive sequentially
+      const chunkData = fs.readFileSync(req.file.path);
+      fs.appendFileSync(tempFinalPath, chunkData);
+
+      // Delete the chunk file from multer
+      await unlinkAsync(req.file.path).catch(console.warn);
+
+      // If this is not the last chunk, return success immediately
+      if (currentChunk + 1 < total) {
+        return res.json({
+          status: "success",
+          message: `Chunk ${currentChunk + 1}/${total} processed`,
+          chunkIndex: currentChunk
+        });
+      }
+
+      // Last chunk received: Set filePath to the assembled file
+      filePath = tempFinalPath;
+
+      // Note: We need to give it the original name for the IPFS upload to use correct filename
+      // The simplest way is to rename it or just pass metadata to the IPFS step
+      // The existing logic below expects 'req.file.originalname' for headers
+      // We will let the flow continue to the IPFS upload section using the assembled filePath
+      console.log(`File assembly complete for ${req.file.originalname} (${total} chunks)`);
+
+    } else {
+      // Standard Upload Logic
+      filePath = req.file.path;
+    }
+
+    // --- IPFS Upload Logic (Shared) ---
+    // Prepare file for IPFS using stream
     const formData = new FormData();
     const fileStream = fs.createReadStream(filePath);
 
     formData.append("file", fileStream, {
       filename: req.file.originalname,
       contentType: req.file.mimetype,
-      knownLength: req.file.size,
+      knownLength: isChunked ? fs.statSync(filePath).size : req.file.size,
     });
 
     // Upload to IPFS
     const uploadStart = Date.now();
+    console.log(`Starting IPFS upload for ${req.file.originalname} ...`);
+
     const response = await axios.post(`${IPFS_API}/api/v0/add`, formData, {
       headers: { ...formData.getHeaders() },
-      timeout: 60000, // Increased to 60s for large files
+      timeout: 3600000, // 1 hour timeout
       maxContentLength: Infinity,
       maxBodyLength: Infinity,
     });
 
-    // Clean up temp file after successful upload
-    await unlinkAsync(filePath).catch((err) => console.warn("Failed to delete temp file:", err.message));
-
     // Detailed logging
     const uploadDetails = {
       name: req.file.originalname,
-      size_bytes: req.file.size,
+      size_bytes: isChunked ? fs.statSync(filePath).size : req.file.size,
       mime_type: req.file.mimetype,
       cid: response.data.Hash,
       upload_duration_ms: Date.now() - uploadStart,
@@ -225,13 +264,16 @@ app.post("/upload", upload.single("file"), async (req, res) => {
     };
     console.log("File uploaded successfully:", uploadDetails);
 
+    // Clean up temp file after successful upload
+    await unlinkAsync(filePath).catch((err) => console.warn("Failed to delete temp file:", err.message));
+
     // Simple response format
     res.json({
       status: "success",
       message: "Upload successful",
       cid: response.data.Hash,
       filename: req.file.originalname,
-      size: req.file.size,
+      size: uploadDetails.size_bytes,
       details: uploadDetails,
     });
   } catch (err) {
