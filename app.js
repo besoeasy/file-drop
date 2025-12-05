@@ -209,23 +209,10 @@ app.post("/upload", upload.single("file"), async (req, res) => {
     };
     console.log("File uploaded successfully:", uploadDetails);
 
-    // NIP-96 compatible response with your existing fields
+    // Simple response format
     res.json({
-      // NIP-96 required fields
       status: "success",
-      message: "Upload successful.",
-      nip94_event: {
-        tags: [
-          ["url", `https://dweb.link/ipfs/${response.data.Hash}`],
-          ["m", req.file.mimetype || "application/octet-stream"],
-          ["ox", response.data.Hash], // Original file hash (required)
-          ["x", response.data.Hash], // Transformed file hash (same as original since no transformation)
-          ["size", req.file.size.toString()],
-        ],
-        content: "", // Required field, can be empty
-      },
-
-      // Your existing fields for compatibility
+      message: "Upload successful",
       cid: response.data.Hash,
       filename: req.file.originalname,
       size: req.file.size,

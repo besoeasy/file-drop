@@ -250,6 +250,45 @@
             </div>
           </button>
 
+          <!-- CLI Usage Section -->
+          <div class="bg-gray-50 rounded-xl p-4 border border-gray-200">
+            <button @click="showCli = !showCli" class="w-full flex items-center justify-between text-left group">
+              <div class="flex items-center gap-2">
+                <i class="fas fa-terminal text-black"></i>
+                <span class="font-semibold text-black">Upload via Command Line</span>
+              </div>
+              <i class="fas fa-chevron-down text-gray-400 transition-transform duration-300"
+                :class="{ 'rotate-180': showCli }"></i>
+            </button>
+
+            <div v-if="showCli" class="mt-4 space-y-3 animate-fade-in">
+              <p class="text-sm text-gray-600">Use curl to upload files from your terminal:</p>
+
+              <div class="bg-black rounded-lg p-4">
+                <div class="flex items-start justify-between gap-2 mb-2">
+                  <code
+                    class="text-green-400 text-xs flex-1 font-mono break-all">curl -X POST -F "file=@yourfile.pdf" {{ currentUrl }}/upload</code>
+                  <button @click="copyCurlCommand"
+                    class="flex-shrink-0 text-gray-400 hover:text-white transition-colors">
+                    <i :class="copied ? 'fas fa-check' : 'fas fa-copy'"></i>
+                  </button>
+                </div>
+                <p class="text-gray-400 text-xs">Replace <span class="text-yellow-400">yourfile.pdf</span> with your
+                  file path</p>
+              </div>
+
+              <div class="text-xs text-gray-500">
+                <p class="font-semibold mb-1">Example response:</p>
+                <pre class="bg-white rounded p-2 overflow-x-auto text-xs"><code>{
+  "status": "success",
+  "cid": "Qm...",
+  "filename": "yourfile.pdf",
+  "size": 184292
+}</code></pre>
+              </div>
+            </div>
+          </div>
+
           <div v-if="uploading" class="text-center animate-fade-in">
             <div class="bg-white rounded-lg p-6 shadow-lg border border-gray-200">
               <div class="flex items-center justify-center gap-3 mb-4">
@@ -444,6 +483,9 @@
           isDragOver: false,
           isPasted: false,
           activeTab: "details",
+          showCli: false,
+          copied: false,
+          currentUrl: window.location.origin,
           status: {
             nodeId: "Loading...",
             bandwidth: "Loading...",
@@ -646,6 +688,17 @@
             // Start the upload
             xhr.open("POST", "/upload");
             xhr.send(formData);
+          });
+        },
+        copyCurlCommand() {
+          const command = `curl -X POST -F "file=@yourfile.pdf" ${this.currentUrl}/upload`;
+          navigator.clipboard.writeText(command).then(() => {
+            this.copied = true;
+            setTimeout(() => {
+              this.copied = false;
+            }, 2000);
+          }).catch(err => {
+            console.error('Failed to copy:', err);
           });
         },
         async fetchStatus() {
