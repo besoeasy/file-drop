@@ -663,9 +663,9 @@
                               message: "Upload Successful",
                               cid: data.cid,
                               size: this.formatBytes(data.size),
-                              fileType: this.getFileType(this.file.type),
-                              fileName: this.file.name,
-                              mimeType: this.file.type || "application/octet-stream",
+                              fileType: this.getFileType(data.mime_type),
+                              fileName: data.filename,
+                              mimeType: data.mime_type,
                             };
                          }
                          resolve(data);

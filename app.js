@@ -267,15 +267,16 @@ app.post("/upload", upload.single("file"), async (req, res) => {
     // Clean up temp file after successful upload
     await unlinkAsync(filePath).catch((err) => console.warn("Failed to delete temp file:", err.message));
 
-    // Simple response format
+    // Optimized response format
     res.json({
       status: "success",
-      message: "Upload successful",
       cid: response.data.Hash,
       url: `https://dweb.link/ipfs/${response.data.Hash}`,
       filename: req.file.originalname,
       size: uploadDetails.size_bytes,
-      details: uploadDetails,
+      mime_type: req.file.mimetype,
+      upload_duration_ms: Date.now() - uploadStart,
+      timestamp: new Date().toISOString(),
     });
   } catch (err) {
     if (filePath) {
