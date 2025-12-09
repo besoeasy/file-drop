@@ -25,7 +25,7 @@ if (!fs.existsSync(UPLOAD_TEMP_DIR)) {
 const app = express();
 
 // Middleware setup
-app.use(compression()); // Enable gzip/deflate compression
+app.use(compression());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cors());
