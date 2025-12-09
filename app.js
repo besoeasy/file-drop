@@ -210,11 +210,7 @@ app.post("/upload", upload.single("file"), async (req, res) => {
 
       // If this is not the last chunk, return success immediately
       if (currentChunk + 1 < total) {
-        return res.json({
-          status: "success",
-          message: `Chunk ${currentChunk + 1}/${total} processed`,
-          chunkIndex: currentChunk
-        });
+        return res.json({ status: "success" });
       }
 
       // Last chunk received: Set filePath to the assembled file
