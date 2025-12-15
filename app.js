@@ -7,6 +7,7 @@ const cors = require("cors");
 const compression = require("compression");
 const fs = require("fs");
 const { promisify } = require("util");
+const mime = require("mime-types");
 const unlinkAsync = promisify(fs.unlink);
 
 // Constants
@@ -232,9 +233,12 @@ app.put("/upload", upload.single("file"), async (req, res) => {
     const formData = new FormData();
     const fileStream = fs.createReadStream(filePath);
 
+    // Detect correct MIME type from file extension
+    const mimeType = mime.lookup(req.file.originalname) || req.file.mimetype || 'application/octet-stream';
+
     formData.append("file", fileStream, {
       filename: req.file.originalname,
-      contentType: req.file.mimetype,
+      contentType: mimeType,
       knownLength: isChunked ? fs.statSync(filePath).size : req.file.size,
     });
 
@@ -253,7 +257,7 @@ app.put("/upload", upload.single("file"), async (req, res) => {
     const uploadDetails = {
       name: req.file.originalname,
       size_bytes: isChunked ? fs.statSync(filePath).size : req.file.size,
-      mime_type: req.file.mimetype,
+      mime_type: mimeType,
       cid: response.data.Hash,
       upload_duration_ms: Date.now() - uploadStart,
       timestamp: new Date().toISOString(),
@@ -269,7 +273,7 @@ app.put("/upload", upload.single("file"), async (req, res) => {
       url: `https://dweb.link/ipfs/${response.data.Hash}`,
       cid: response.data.Hash,
       size: uploadDetails.size_bytes,
-      type: req.file.mimetype,
+      type: mimeType,
       filename: req.file.originalname,
     });
   } catch (err) {
