@@ -270,7 +270,7 @@ app.put("/upload", upload.single("file"), async (req, res) => {
     // Simple response
     res.json({
       status: "success",
-      url: `https://dweb.link/ipfs/${response.data.Hash}`,
+      url: `https://dweb.link/ipfs/${response.data.Hash}?filename=${encodeURIComponent(req.file.originalname)}`,
       cid: response.data.Hash,
       size: uploadDetails.size_bytes,
       type: mimeType,
