@@ -187,8 +187,50 @@ app.get("/status", async (req, res) => {
   }
 });
 
-// Upload endpoint
-app.post("/upload", upload.single("file"), async (req, res) => {
+// CORS preflight for /upload
+app.options("/upload", (req, res) => {
+  res.header("Access-Control-Allow-Methods", "GET, HEAD, PUT, DELETE");
+  res.header("Access-Control-Allow-Headers", "Authorization, Content-Type, X-SHA-256, X-Content-Length, X-Content-Type");
+  res.header("Access-Control-Max-Age", "86400");
+  res.status(204).send();
+});
+
+// HEAD /upload - Upload requirements (BUD-06)
+app.head("/upload", (req, res) => {
+  const sha256 = req.headers["x-sha-256"];
+  const contentLength = req.headers["x-content-length"];
+  const contentType = req.headers["x-content-type"];
+
+  // Validate required headers
+  if (!sha256) {
+    res.header("X-Reason", "Missing X-SHA-256 header");
+    return res.status(400).send();
+  }
+
+  if (!contentLength) {
+    res.header("X-Reason", "Missing X-Content-Length header");
+    return res.status(411).send();
+  }
+
+  // Optional: Add size limits
+  const maxSize = 100 * 1024 * 1024 * 1024; // 100GB
+  if (parseInt(contentLength) > maxSize) {
+    res.header("X-Reason", "File too large. Max allowed size is 100GB");
+    return res.status(413).send();
+  }
+
+  // Optional: Validate content type
+  if (contentType && !contentType.match(/^[a-z]+\/[a-z0-9\-\+\.]+$/i)) {
+    res.header("X-Reason", "Invalid X-Content-Type header format");
+    return res.status(400).send();
+  }
+
+  // Upload can proceed
+  res.status(200).send();
+});
+
+// Upload endpoint (PUT for Blossom compatibility)
+app.put("/upload", upload.single("file"), async (req, res) => {
   let filePath = null;
 
   try {

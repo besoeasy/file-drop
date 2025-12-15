@@ -267,7 +267,7 @@
               <div class="bg-black rounded-lg p-4">
                 <div class="flex items-start justify-between gap-2 mb-2">
                   <code
-                    class="text-green-400 text-xs flex-1 font-mono break-all">curl -X POST -F "file=@yourfile.pdf" {{ currentUrl }}/upload</code>
+                    class="text-green-400 text-xs flex-1 font-mono break-all">curl -X PUT -F "file=@yourfile.pdf" {{ currentUrl }}/upload</code>
                   <button @click="copyCurlCommand"
                     class="flex-shrink-0 text-gray-400 hover:text-white transition-colors">
                     <i :class="copied ? 'fas fa-check' : 'fas fa-copy'"></i>
@@ -704,7 +704,7 @@
                 xhr.addEventListener("error", () => reject(new Error("Network error")));
                 xhr.addEventListener("abort", () => reject(new Error("Aborted")));
                 
-                xhr.open("POST", "/upload");
+                xhr.open("PUT", "/upload");
                 xhr.send(formData);
               });
             }
@@ -720,7 +720,7 @@
           }
         },
         copyCurlCommand() {
-          const command = `curl -X POST -F "file=@yourfile.pdf" ${this.currentUrl}/upload`;
+          const command = `curl -X PUT -F "file=@yourfile.pdf" ${this.currentUrl}/upload`;
           navigator.clipboard.writeText(command).then(() => {
             this.copied = true;
             setTimeout(() => {

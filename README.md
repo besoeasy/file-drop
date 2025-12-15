@@ -65,7 +65,7 @@ Open `http://localhost:3232` in your browser.
 ### Upload via curl
 
 ```bash
-curl -X POST -F "file=@/path/to/file.jpg" http://localhost:3232/upload
+curl -X PUT -F "file=@/path/to/file.jpg" http://localhost:3232/upload
 ```
 
 **Response (Blossom-compatible format):**
