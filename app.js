@@ -6,7 +6,6 @@ const path = require("path");
 const cors = require("cors");
 const compression = require("compression");
 const fs = require("fs");
-const crypto = require("crypto");
 const { promisify } = require("util");
 const unlinkAsync = promisify(fs.unlink);
 
@@ -21,17 +20,6 @@ const UPLOAD_TEMP_DIR = "/tmp/filedrop";
 if (!fs.existsSync(UPLOAD_TEMP_DIR)) {
   fs.mkdirSync(UPLOAD_TEMP_DIR, { recursive: true });
 }
-
-// Helper function to calculate SHA256 hash of a file
-const calculateSHA256 = (filePath) => {
-  return new Promise((resolve, reject) => {
-    const hash = crypto.createHash("sha256");
-    const stream = fs.createReadStream(filePath);
-    stream.on("data", (data) => hash.update(data));
-    stream.on("end", () => resolve(hash.digest("hex")));
-    stream.on("error", reject);
-  });
-};
 
 // Initialize Express app
 const app = express();
@@ -187,197 +175,7 @@ app.get("/status", async (req, res) => {
   }
 });
 
-// Store for mapping SHA256 hashes to CIDs
-const blobStore = new Map(); // sha256 -> { cid, size, type, uploaded, filename }
-
-// CORS preflight for /upload and /:sha256
-app.options(["/upload", "/upload/:sha256", "/:sha256"], (req, res) => {
-  res.header("Access-Control-Allow-Methods", "GET, HEAD, PUT, DELETE");
-  res.header("Access-Control-Allow-Headers", "Authorization, Content-Type, X-SHA-256, X-Content-Length, X-Content-Type");
-  res.header("Access-Control-Max-Age", "86400");
-  res.status(204).send();
-});
-
-// HEAD /upload - Upload requirements (BUD-06)
-app.head("/upload", (req, res) => {
-  const sha256 = req.headers["x-sha-256"];
-  const contentLength = req.headers["x-content-length"];
-  const contentType = req.headers["x-content-type"];
-
-  // Validate required headers
-  if (!sha256) {
-    res.header("X-Reason", "Missing X-SHA-256 header");
-    return res.status(400).send();
-  }
-
-  if (!contentLength) {
-    res.header("X-Reason", "Missing X-Content-Length header");
-    return res.status(411).send();
-  }
-
-  // Optional: Add size limits
-  const maxSize = 100 * 1024 * 1024 * 1024; // 100GB
-  if (parseInt(contentLength) > maxSize) {
-    res.header("X-Reason", "File too large. Max allowed size is 100GB");
-    return res.status(413).send();
-  }
-
-  // Optional: Validate content type
-  if (contentType && !contentType.match(/^[a-z]+\/[a-z0-9\-\+\.]+$/i)) {
-    res.header("X-Reason", "Invalid X-Content-Type header format");
-    return res.status(400).send();
-  }
-
-  // Upload can proceed
-  res.status(200).send();
-});
-
-// Blossom BUD-01: PUT /upload/:sha256 - Upload blob by SHA256
-app.put("/upload/:sha256", async (req, res) => {
-  const expectedSha256 = req.params.sha256.toLowerCase();
-  let tempFilePath = null;
-
-  try {
-    // Save raw body to temp file
-    tempFilePath = path.join(UPLOAD_TEMP_DIR, `blossom-${Date.now()}-${expectedSha256}`);
-    const writeStream = fs.createWriteStream(tempFilePath);
-    
-    await new Promise((resolve, reject) => {
-      req.pipe(writeStream);
-      writeStream.on("finish", resolve);
-      writeStream.on("error", reject);
-    });
-
-    // Calculate SHA256 hash to verify
-    const actualSha256 = await calculateSHA256(tempFilePath);
-    
-    if (actualSha256 !== expectedSha256) {
-      await unlinkAsync(tempFilePath).catch(console.warn);
-      return res.status(400).json({
-        error: "SHA256 mismatch",
-        expected: expectedSha256,
-        actual: actualSha256,
-      });
-    }
-
-    // Get file stats
-    const stats = fs.statSync(tempFilePath);
-    const fileSize = stats.size;
-    const contentType = req.headers["content-type"] || "application/octet-stream";
-
-    // Upload to IPFS
-    const formData = new FormData();
-    const fileStream = fs.createReadStream(tempFilePath);
-    formData.append("file", fileStream, {
-      filename: expectedSha256,
-      contentType: contentType,
-      knownLength: fileSize,
-    });
-
-    console.log(`Uploading blob ${expectedSha256} to IPFS...`);
-    const response = await axios.post(`${IPFS_API}/api/v0/add`, formData, {
-      headers: { ...formData.getHeaders() },
-      timeout: 3600000,
-      maxContentLength: Infinity,
-      maxBodyLength: Infinity,
-    });
-
-    const cid = response.data.Hash;
-    const uploaded = Math.floor(Date.now() / 1000);
-
-    // Store in blob store
-    blobStore.set(expectedSha256, {
-      cid,
-      size: fileSize,
-      type: contentType,
-      uploaded,
-      filename: expectedSha256,
-    });
-
-    console.log(`Blob uploaded: sha256=${expectedSha256}, cid=${cid}, size=${fileSize}`);
-
-    // Clean up temp file
-    await unlinkAsync(tempFilePath).catch(console.warn);
-
-    // Return Blossom-compatible response (BUD-02)
-    res.json({
-      url: `https://dweb.link/ipfs/${cid}`,
-      sha256: expectedSha256,
-      size: fileSize,
-      type: contentType,
-      uploaded: uploaded,
-      cid: cid,
-    });
-  } catch (err) {
-    if (tempFilePath) {
-      await unlinkAsync(tempFilePath).catch(console.warn);
-    }
-
-    console.error("Blossom upload error:", err.message);
-    res.status(500).json({
-      error: "Failed to upload blob",
-      details: err.message,
-    });
-  }
-});
-
-// Blossom BUD-02: GET /:sha256 - Retrieve blob by SHA256
-app.get("/:sha256", async (req, res) => {
-  const sha256 = req.params.sha256.toLowerCase();
-  
-  // Check if it's a valid SHA256 (64 hex chars)
-  if (!/^[a-f0-9]{64}$/i.test(sha256)) {
-    return res.status(404).json({ error: "Invalid SHA256 format" });
-  }
-
-  const blob = blobStore.get(sha256);
-  if (!blob) {
-    return res.status(404).json({ error: "Blob not found" });
-  }
-
-  try {
-    // Redirect to IPFS gateway
-    res.redirect(`https://dweb.link/ipfs/${blob.cid}`);
-  } catch (err) {
-    console.error("Blob retrieval error:", err.message);
-    res.status(500).json({ error: "Failed to retrieve blob" });
-  }
-});
-
-// HEAD /:sha256 - Check if blob exists
-app.head("/:sha256", (req, res) => {
-  const sha256 = req.params.sha256.toLowerCase();
-  
-  if (!/^[a-f0-9]{64}$/i.test(sha256)) {
-    return res.status(404).send();
-  }
-
-  const blob = blobStore.get(sha256);
-  if (!blob) {
-    return res.status(404).send();
-  }
-
-  res.header("Content-Type", blob.type);
-  res.header("Content-Length", blob.size.toString());
-  res.header("X-SHA-256", sha256);
-  res.status(200).send();
-});
-
-// Blossom BUD-04: GET /list/:pubkey - List blobs (simplified)
-app.get("/list/:pubkey?", (req, res) => {
-  const blobs = Array.from(blobStore.entries()).map(([sha256, data]) => ({
-    url: `https://dweb.link/ipfs/${data.cid}`,
-    sha256,
-    size: data.size,
-    type: data.type,
-    uploaded: data.uploaded,
-    cid: data.cid,
-  }));
-
-  res.json(blobs);
-});
-
-// Upload endpoint (multipart form for web UI)
+// Upload endpoint
 app.put("/upload", upload.single("file"), async (req, res) => {
   let filePath = null;
 
@@ -430,9 +228,6 @@ app.put("/upload", upload.single("file"), async (req, res) => {
     }
 
     // --- IPFS Upload Logic (Shared) ---
-    // Calculate SHA256 hash before uploading
-    const sha256Hash = await calculateSHA256(filePath);
-    
     // Prepare file for IPFS using stream
     const formData = new FormData();
     const fileStream = fs.createReadStream(filePath);
@@ -460,35 +255,21 @@ app.put("/upload", upload.single("file"), async (req, res) => {
       size_bytes: isChunked ? fs.statSync(filePath).size : req.file.size,
       mime_type: req.file.mimetype,
       cid: response.data.Hash,
-      sha256: sha256Hash,
       upload_duration_ms: Date.now() - uploadStart,
       timestamp: new Date().toISOString(),
     };
     console.log("File uploaded successfully:", uploadDetails);
 
-    const uploaded = Math.floor(Date.now() / 1000);
-
-    // Store in blob store for Blossom compatibility
-    blobStore.set(sha256Hash, {
-      cid: response.data.Hash,
-      size: uploadDetails.size_bytes,
-      type: req.file.mimetype,
-      uploaded: uploaded,
-      filename: req.file.originalname,
-    });
-
     // Clean up temp file after successful upload
     await unlinkAsync(filePath).catch((err) => console.warn("Failed to delete temp file:", err.message));
 
-    // Blossom-compatible response format with additional fields
+    // Simple response
     res.json({
       status: "success",
       url: `https://dweb.link/ipfs/${response.data.Hash}`,
-      sha256: sha256Hash,
+      cid: response.data.Hash,
       size: uploadDetails.size_bytes,
       type: req.file.mimetype,
-      uploaded: uploaded,
-      cid: response.data.Hash,
       filename: req.file.originalname,
     });
   } catch (err) {
