@@ -278,12 +278,16 @@
               </div>
 
               <div class="text-xs text-gray-500">
-                <p class="font-semibold mb-1">Example response:</p>
+                <p class="font-semibold mb-1">Example response (Blossom format):</p>
                 <pre class="bg-white rounded p-2 overflow-x-auto text-xs"><code>{
   "status": "success",
+  "url": "https://dweb.link/ipfs/Qm...",
+  "sha256": "b1674191a88ec5cdd733...",
+  "size": 184292,
+  "type": "application/pdf",
+  "uploaded": 1734364800,
   "cid": "Qm...",
-  "filename": "yourfile.pdf",
-  "size": 184292
+  "filename": "yourfile.pdf"
 }</code></pre>
               </div>
             </div>
@@ -374,6 +378,20 @@
                         <p
                           class="text-black font-mono text-sm break-all bg-white rounded px-2 py-1 border border-gray-200 mt-1">
                           {{ result.cid }}</p>
+                      </div>
+                      <div class="col-span-2 bg-gray-50 rounded p-3" v-if="result.sha256">
+                        <p class="text-gray-500 text-xs font-medium uppercase">SHA-256 Hash</p>
+                        <p
+                          class="text-black font-mono text-sm break-all bg-white rounded px-2 py-1 border border-gray-200 mt-1">
+                          {{ result.sha256 }}</p>
+                      </div>
+                      <div class="bg-gray-50 rounded p-3" v-if="result.uploaded">
+                        <p class="text-gray-500 text-xs font-medium uppercase">Upload Time</p>
+                        <p class="text-black font-semibold">{{ new Date(result.uploaded * 1000).toLocaleString() }}</p>
+                      </div>
+                      <div class="bg-gray-50 rounded p-3" v-if="result.url">
+                        <p class="text-gray-500 text-xs font-medium uppercase">Direct URL</p>
+                        <a :href="result.url" target="_blank" class="text-blue-600 hover:text-blue-800 font-mono text-sm break-all">{{ result.url }}</a>
                       </div>
                     </div>
                   </div>
@@ -663,9 +681,12 @@
                               message: "Upload Successful",
                               cid: data.cid,
                               size: this.formatBytes(data.size),
-                              fileType: this.getFileType(data.mime_type),
+                              fileType: this.getFileType(data.type),
                               fileName: data.filename,
-                              mimeType: data.mime_type,
+                              mimeType: data.type,
+                              sha256: data.sha256,
+                              uploaded: data.uploaded,
+                              url: data.url,
                             };
                          }
                          resolve(data);

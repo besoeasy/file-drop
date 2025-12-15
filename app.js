@@ -6,6 +6,7 @@ const path = require("path");
 const cors = require("cors");
 const compression = require("compression");
 const fs = require("fs");
+const crypto = require("crypto");
 const { promisify } = require("util");
 const unlinkAsync = promisify(fs.unlink);
 
@@ -20,6 +21,17 @@ const UPLOAD_TEMP_DIR = "/tmp/filedrop";
 if (!fs.existsSync(UPLOAD_TEMP_DIR)) {
   fs.mkdirSync(UPLOAD_TEMP_DIR, { recursive: true });
 }
+
+// Helper function to calculate SHA256 hash of a file
+const calculateSHA256 = (filePath) => {
+  return new Promise((resolve, reject) => {
+    const hash = crypto.createHash("sha256");
+    const stream = fs.createReadStream(filePath);
+    stream.on("data", (data) => hash.update(data));
+    stream.on("end", () => resolve(hash.digest("hex")));
+    stream.on("error", reject);
+  });
+};
 
 // Initialize Express app
 const app = express();
@@ -228,6 +240,9 @@ app.post("/upload", upload.single("file"), async (req, res) => {
     }
 
     // --- IPFS Upload Logic (Shared) ---
+    // Calculate SHA256 hash before uploading
+    const sha256Hash = await calculateSHA256(filePath);
+    
     // Prepare file for IPFS using stream
     const formData = new FormData();
     const fileStream = fs.createReadStream(filePath);
@@ -255,6 +270,7 @@ app.post("/upload", upload.single("file"), async (req, res) => {
       size_bytes: isChunked ? fs.statSync(filePath).size : req.file.size,
       mime_type: req.file.mimetype,
       cid: response.data.Hash,
+      sha256: sha256Hash,
       upload_duration_ms: Date.now() - uploadStart,
       timestamp: new Date().toISOString(),
     };
@@ -263,16 +279,16 @@ app.post("/upload", upload.single("file"), async (req, res) => {
     // Clean up temp file after successful upload
     await unlinkAsync(filePath).catch((err) => console.warn("Failed to delete temp file:", err.message));
 
-    // Optimized response format
+    // Blossom-compatible response format with additional fields
     res.json({
       status: "success",
-      cid: response.data.Hash,
       url: `https://dweb.link/ipfs/${response.data.Hash}`,
-      filename: req.file.originalname,
+      sha256: sha256Hash,
       size: uploadDetails.size_bytes,
-      mime_type: req.file.mimetype,
-      upload_duration_ms: Date.now() - uploadStart,
-      timestamp: new Date().toISOString(),
+      type: req.file.mimetype,
+      uploaded: Math.floor(Date.now() / 1000), // Unix timestamp in seconds
+      cid: response.data.Hash,
+      filename: req.file.originalname,
     });
   } catch (err) {
     if (filePath) {
