@@ -64,16 +64,6 @@ Open `http://localhost:3232` in your browser.
 curl -X PUT -F "file=@file.jpg" http://localhost:3232/upload
 ```
 
-### Use FILEdrop as a Backend
-
-FILEdrop can be integrated as a backend service in your applications. Since it accepts all file types without restrictions, it's perfect for:
-- Chat applications needing file sharing
-- Social media platforms
-- Content management systems
-- Any app requiring decentralized file storage
-
-Simply point your app's file upload functionality to your FILEdrop instance endpoint.
-
 ## ⚙️ Configuration
 
 | Variable      | Default | Description                            |
@@ -92,7 +82,83 @@ Simply point your app's file upload functionality to your FILEdrop instance endp
 
 ---
 
-## 📝 Note
+## �‍💻 For Developers
+### Using FILEdrop as a Backend
+
+FILEdrop can be integrated as a backend service in your applications. Since it accepts all file types without restrictions, it's perfect for:
+- Chat applications needing file sharing
+- Social media platforms
+- Content management systems
+- Any app requiring decentralized file storage
+
+Simply point your app's file upload functionality to your FILEdrop instance endpoint.
+### Health Endpoint
+
+FILEdrop includes a health endpoint that reports the number of connected IPFS peers:
+
+```bash
+curl http://localhost:3232/health
+```
+
+Response:
+```json
+{
+  "status": "healthy",
+  "peers": 42
+}
+```
+
+### Multiple Server Setup
+
+If you're running multiple FILEdrop servers, you should **always prefer the server with the highest peer count**. A peer count above **10 is golden and good to go** for reliable file propagation.
+
+#### Pseudo Logic for Server Selection
+
+```javascript
+// For each filedrop server
+const servers = [
+  'http://filedrop1.example.com',
+  'http://filedrop2.example.com',
+  'http://filedrop3.example.com'
+];
+
+async function selectBestServer(servers) {
+  let bestServer = null;
+  let highestPeers = 0;
+
+  for (const server of servers) {
+    try {
+      const response = await fetch(`${server}/health`);
+      const health = await response.json();
+      
+      // Prefer servers with peers > 10 (golden threshold)
+      if (health.peers > 10 && health.peers > highestPeers) {
+        bestServer = server;
+        highestPeers = health.peers;
+      }
+    } catch (error) {
+      console.log(`Server ${server} unavailable`);
+    }
+  }
+
+  // Fallback: use server with highest peers even if < 10
+  if (!bestServer && highestPeers > 0) {
+    bestServer = servers[0]; // or implement fallback logic
+  }
+
+  return bestServer;
+}
+
+// Upload to the best available server
+const bestServer = await selectBestServer(servers);
+if (bestServer) {
+  await uploadFile(bestServer, yourFile);
+}
+```
+
+---
+
+## �📝 Note
 
 File Drop is designed for **temporary sharing**, not permanent storage. Files are cached across IPFS peers but may eventually be garbage-collected. Perfect for sharing on Nostr, forums, or any app that supports IPFS links.
 
