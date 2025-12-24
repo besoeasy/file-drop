@@ -12,7 +12,8 @@ Ever wanted to send or embed a file without trusting Big Tech? File Drop lets yo
 - 🌐 **Decentralized** – Powered by IPFS, no central servers
 - 📦 **Any file type** – Images, videos, documents, anything
 - 🪶 **Lightweight** – Minimal resource footprint
-- 🔄 **Resilient** – Files persist across the IPFS network
+- 🔄 **Resilient** – Files persist across the IPFS network, accessible even if your server goes down
+- 🛡️ **Zero downtime** – FILEdrop server downtime doesn't affect file access, perfect for newbies to experts
 
 ---
 
@@ -92,6 +93,8 @@ FILEdrop can be integrated as a backend service in your applications. Since it a
 - Any app requiring decentralized file storage
 
 Simply point your app's file upload functionality to your FILEdrop instance endpoint.
+
+**What makes FILEdrop special:** Even if your server goes down, files are cached on the IPFS network and will work fine. This means FILEdrop downtime doesn't really affect users from accessing files, which makes it a better choice for newbies to experts all together.
 ### Health Endpoint
 
 FILEdrop includes a health endpoint that reports the number of connected IPFS peers:
