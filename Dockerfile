@@ -40,6 +40,7 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=7m --retries=5 \
 CMD ["sh", "-c", "\
   if [ ! -f \"$IPFS_PATH/config\" ]; then ipfs init; fi && \
   ipfs config Datastore.StorageMax ${STORAGE_MAX} && \
+  ipfs config --json Routing.Type '\"dhtclient\"' && \
   ipfs daemon --enable-gc & \
   until curl -s http://127.0.0.1:5001/api/v0/id > /dev/null; do \
     echo 'Waiting for IPFS daemon...'; sleep 3; \
