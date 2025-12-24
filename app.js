@@ -132,21 +132,7 @@ app.get("/status", async (req, res) => {
       version: repoResponse.data.Version,
     };
 
-    // Get GC configuration info
-    let gcInfo = {
-      enabled: true,
-      period: "200h",
-      lastRun: "Unknown",
-    };
 
-    try {
-      const configResponse = await axios.post(`${IPFS_API}/api/v0/config/show`, { timeout: 3000 });
-      if (configResponse.data && configResponse.data.Datastore) {
-        gcInfo.period = configResponse.data.Datastore.GCPeriod || "200h";
-      }
-    } catch (configErr) {
-      console.log("Could not fetch GC config:", configErr.message);
-    }
 
     // Node identity info
     const nodeInfo = {
@@ -184,7 +170,6 @@ app.get("/status", async (req, res) => {
       repository: repo,
       node: nodeInfo,
       peers: connectedPeers,
-      garbageCollection: gcInfo,
       storageLimit: {
         configured: STORAGE_MAX,
         current: formatBytes(repo.storageMax),
@@ -277,7 +262,7 @@ const handleUpload = async (req, res) => {
     const uploadStart = Date.now();
     console.log(`Starting IPFS upload for ${req.file.originalname} ...`);
 
-    const response = await axios.post(`${IPFS_API}/api/v0/add`, formData, {
+    const response = await axios.post(`${IPFS_API}/api/v0/add?pin=false`, formData, {
       headers: { ...formData.getHeaders() },
       timeout: 3600000, // 1 hour timeout
       maxContentLength: Infinity,
