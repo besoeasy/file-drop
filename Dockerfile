@@ -38,7 +38,7 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=7m --retries=5 \
   CMD curl -f http://localhost:3232/health || exit 1
 
 CMD ["sh", "-c", "\
-  if [ ! -d \"$IPFS_PATH\" ]; then ipfs init; fi && \
+  if [ ! -f \"$IPFS_PATH/config\" ]; then ipfs init; fi && \
   ipfs config Datastore.StorageMax ${STORAGE_MAX} && \
   ipfs daemon --enable-gc & \
   until curl -s http://127.0.0.1:5001/api/v0/id > /dev/null; do \
