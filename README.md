@@ -64,6 +64,16 @@ Open `http://localhost:3232` in your browser.
 curl -X PUT -F "file=@file.jpg" http://localhost:3232/upload
 ```
 
+### Use FILEdrop as a Backend
+
+FILEdrop can be integrated as a backend service in your applications. Since it accepts all file types without restrictions, it's perfect for:
+- Chat applications needing file sharing
+- Social media platforms
+- Content management systems
+- Any app requiring decentralized file storage
+
+Simply point your app's file upload functionality to your FILEdrop instance endpoint.
+
 ## ⚙️ Configuration
 
 | Variable      | Default | Description                            |
@@ -72,6 +82,18 @@ curl -X PUT -F "file=@file.jpg" http://localhost:3232/upload
 
 ---
 
+## 🌟 Apps Using FILEdrop
+
+### [0xchat](https://0xchat.com/)
+
+0xchat is a secure chat app built on the Nostr protocol. It prioritizes security, featuring private key login, encrypted private chats and contacts, encrypted group chats, and lightning payments. Additionally, it also offers an open communication platform through public channels.
+
+**Use Case:** Uses FILEdrop as a way to send files in chat conversations.
+
+---
+
 ## 📝 Note
 
 File Drop is designed for **temporary sharing**, not permanent storage. Files are cached across IPFS peers but may eventually be garbage-collected. Perfect for sharing on Nostr, forums, or any app that supports IPFS links.
+
+
