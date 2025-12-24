@@ -176,8 +176,8 @@ app.get("/status", async (req, res) => {
   }
 });
 
-// Upload endpoint
-app.put("/upload", upload.single("file"), async (req, res) => {
+// Shared upload handler logic
+const handleUpload = async (req, res) => {
   let filePath = null;
 
   try {
@@ -304,7 +304,13 @@ app.put("/upload", upload.single("file"), async (req, res) => {
       timestamp: new Date().toISOString(),
     });
   }
-});
+};
+
+// PUT Upload endpoint
+app.put("/upload", upload.single("file"), handleUpload);
+
+// POST Upload endpoint (alternative method)
+app.post("/upload", upload.single("file"), handleUpload);
 
 // Apply error handler
 app.use(errorHandler);
