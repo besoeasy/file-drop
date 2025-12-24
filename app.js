@@ -10,10 +10,31 @@ const { promisify } = require("util");
 const mime = require("mime-types");
 const unlinkAsync = promisify(fs.unlink);
 
+// Parse human-readable size format (e.g., "5GB", "50MB") to bytes
+const parseSize = (sizeStr) => {
+  const units = {
+    B: 1,
+    KB: 1024,
+    MB: 1024 * 1024,
+    GB: 1024 * 1024 * 1024,
+    TB: 1024 * 1024 * 1024 * 1024,
+  };
+
+  const match = sizeStr.trim().match(/^(\d+(?:\.\d+)?)\s*(B|KB|MB|GB|TB)$/i);
+  if (!match) {
+    throw new Error(`Invalid size format: ${sizeStr}`);
+  }
+
+  const value = parseFloat(match[1]);
+  const unit = match[2].toUpperCase();
+  return Math.floor(value * units[unit]);
+};
+
 // Constants
 const IPFS_API = "http://127.0.0.1:5001";
 const PORT = 3232;
 const STORAGE_MAX = process.env.STORAGE_MAX || "200GB";
+const FILE_LIMIT = parseSize(process.env.FILE_LIMIT || "5GB");
 const HOST = "0.0.0.0";
 const UPLOAD_TEMP_DIR = "/tmp/filedrop";
 
@@ -46,6 +67,9 @@ const storage = multer.diskStorage({
 
 const upload = multer({
   storage,
+  limits: {
+    fileSize: FILE_LIMIT, // Max file size in bytes
+  },
   fileFilter: (req, file, cb) => {
     cb(null, true);
   },
@@ -53,6 +77,15 @@ const upload = multer({
 
 // Error handling middleware
 const errorHandler = (err, req, res, next) => {
+  // Handle Multer file size limit error
+  if (err instanceof multer.MulterError && err.code === "LIMIT_FILE_SIZE") {
+    return res.status(413).json({
+      error: "File too large",
+      message: `File exceeds the maximum allowed size of ${process.env.FILE_LIMIT || "5GB"}`,
+      maxSize: process.env.FILE_LIMIT || "5GB",
+    });
+  }
+
   console.error("Unexpected error:", err.stack);
   res.status(500).json({ error: "Internal server error" });
 };

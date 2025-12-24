@@ -1,6 +1,8 @@
 FROM docker.io/node:lts-slim
 
 ENV STORAGE_MAX=200GB
+ENV FILE_LIMIT=5GB
+ENV IPFS_PATH=/data
 
 RUN apt-get update && \
     apt-get install -y curl && \
@@ -19,20 +21,24 @@ RUN npm i
 
 COPY . .
 
-# Create temp uploads directory and set ownership
-RUN mkdir -p /tmp/filedrop && chown -R node:node /app /tmp/filedrop
+# Create temp uploads directory, data directory, and set ownership
+RUN mkdir -p /tmp/filedrop /data && chown -R node:node /app /tmp/filedrop /data
 
 # Switch to non-root user
 USER node
 
 EXPOSE 3232 4001/tcp 4001/udp
 
+# Declare volume for IPFS data persistence
+VOLUME ["/data"]
+
+
 # Health check - wait 7m for IPFS to connect to peers
 HEALTHCHECK --interval=30s --timeout=10s --start-period=7m --retries=5 \
   CMD curl -f http://localhost:3232/health || exit 1
 
 CMD ["sh", "-c", "\
-  if [ ! -d \"$HOME/.ipfs\" ]; then ipfs init; fi && \
+  if [ ! -d \"$IPFS_PATH\" ]; then ipfs init; fi && \
   ipfs config Datastore.StorageMax ${STORAGE_MAX} && \
   ipfs daemon --enable-gc & \
   until curl -s http://127.0.0.1:5001/api/v0/id > /dev/null; do \

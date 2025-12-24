@@ -33,7 +33,9 @@ docker run -d --restart unless-stopped \
   -p 4001:4001/tcp \
   -p 4001:4001/udp \
   --name file-drop \
+  -v file-drop-data:/data \
   -e STORAGE_MAX=50GB \
+  -e FILE_LIMIT=5GB \
   ghcr.io/besoeasy/file-drop:main
 ```
 
@@ -49,8 +51,14 @@ services:
       - "3232:3232"
       - "4001:4001/tcp"
       - "4001:4001/udp"
+    volumes:
+      - file-drop-data:/data
     environment:
       - STORAGE_MAX=50GB
+      - FILE_LIMIT=5GB
+
+volumes:
+  file-drop-data:
 ```
 
 ---
@@ -67,9 +75,28 @@ curl -X PUT -F "file=@file.jpg" http://localhost:3232/upload
 
 ## ⚙️ Configuration
 
+### Environment Variables
+
 | Variable      | Default | Description                            |
 | ------------- | ------- | -------------------------------------- |
 | `STORAGE_MAX` | `200GB` | Max IPFS storage (e.g., `50GB`, `1TB`) |
+| `FILE_LIMIT`  | `5GB`   | Max file upload size (e.g., `50MB`, `10GB`) |
+
+### Docker Volumes
+
+The IPFS repository is stored at `/data` inside the container. **Mounting this as a volume is critical** to persist your IPFS data across container restarts.
+
+**Named Volume (Recommended):**
+```bash
+-v file-drop-data:/data
+```
+
+**Bind Mount (Alternative):**
+```bash
+-v /path/on/host:/data
+```
+
+Without a volume mount, all uploaded files and IPFS configuration will be lost when the container is removed or recreated.
 
 ---
 
@@ -161,8 +188,8 @@ if (bestServer) {
 
 ---
 
-## �📝 Note
+## 📝 Note
 
-File Drop is designed for **temporary sharing**, not permanent storage. Files are cached across IPFS peers but may eventually be garbage-collected. Perfect for sharing on Nostr, forums, or any app that supports IPFS links.
+**File Persistence:** With Docker volumes configured, your IPFS repository and uploaded files will persist across container restarts. However, files are stored **unpinned** by design and will be automatically garbage-collected when your `STORAGE_MAX` limit is reached. The oldest and least-accessed files are removed first to make room for new uploads.
 
-
+**Use Case:** File Drop is ideal for **temporary file sharing** - shared links on Nostr, forums, chat apps, or any platform that supports IPFS/HTTP links. Files remain available as long as storage permits and are distributed across the IPFS network for resilience.
