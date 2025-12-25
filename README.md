@@ -69,38 +69,23 @@ Open **http://localhost:3232** after starting.
 
 ---
 
-## API
+## API Quick Reference
 
-### Upload
+### Upload a File
 
 ```bash
 curl -X PUT -F "file=@photo.jpg" http://localhost:3232/upload
 ```
 
-**Response:**
-```json
-{
-  "status": "success",
-  "cid": "QmXxx...",
-  "url": "https://dweb.link/ipfs/QmXxx..."
-}
-```
+**Returns IPFS CID and gateway URL.**
 
-### Health Check
+### Check Server Health
 
 ```bash
 curl http://localhost:3232/health
 ```
 
-**Response:**
-```json
-{
-  "status": "healthy",
-  "peers": 42
-}
-```
-
-A peer count above **10** indicates good network connectivity for file propagation.
+**📚 Complete API Documentation:** See [API.md](API.md) for full specification, error handling, chunked uploads, and client implementation examples.
 
 ---
 
@@ -117,32 +102,19 @@ A peer count above **10** indicates good network connectivity for file propagati
 
 ## For Developers
 
-File Drop works as a drop-in file backend for any application:
+**📚 Full API Documentation:** [API.md](API.md)
 
+File Drop provides a simple HTTP API for file uploads to IPFS:
+- **Single uploads** for small files (< 5MB)
+- **Chunked uploads** for large files with automatic retry
+- Client libraries: JavaScript, Python, Go, Dart/Flutter
+- No authentication required
+
+**Use cases:**
 - Chat apps (file attachments)
 - Social platforms (media uploads)
 - Forums (embedded content)
-- Any IPFS-compatible service
-
-### Multi-Server Setup
-
-When running multiple instances, prefer the server with the highest peer count:
-
-```javascript
-const servers = ['https://drop1.example.com', 'https://drop2.example.com'];
-
-async function getBestServer() {
-  const results = await Promise.all(
-    servers.map(async (s) => {
-      try {
-        const { peers } = await fetch(`${s}/health`).then(r => r.json());
-        return { server: s, peers };
-      } catch { return null; }
-    })
-  );
-  return results.filter(Boolean).sort((a, b) => b.peers - a.peers)[0]?.server;
-}
-```
+- CDN replacement for static assets
 
 ---
 
@@ -151,7 +123,3 @@ async function getBestServer() {
 **[0xchat](https://0xchat.com/)** – Secure Nostr chat app using File Drop for file sharing in conversations.
 
 ---
-
-## License
-
-MIT

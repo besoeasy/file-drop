@@ -654,58 +654,42 @@
             const CHUNK_SIZE = 256 * 1024; // 256KB
             const totalChunks = Math.ceil(this.file.size / CHUNK_SIZE);
             const uploadId = Date.now().toString() + "-" + Math.random().toString(36).substring(2);
+            const MAX_RETRIES = 3;
+            const PARALLEL_UPLOADS = 3; // Upload 3 chunks at a time
 
             try {
-              for (let i = 0; i < totalChunks; i++) {
-                const start = i * CHUNK_SIZE;
+              const uploadChunk = async (chunkIndex, retryCount = 0) => {
+                const start = chunkIndex * CHUNK_SIZE;
                 const end = Math.min(start + CHUNK_SIZE, this.file.size);
                 const chunk = this.file.slice(start, end);
 
-                // Update progress logic to reflect chunk progress
-                // We reserve 95% for upload, 5% for finalization
-                this.uploadProgress = (i / totalChunks) * 95;
-
                 const formData = new FormData();
-                // Important: Metadata must optionally come before file for some backends,
-                // though multer handles it, it's safer to append metadata first.
                 formData.append("uploadId", uploadId);
-                formData.append("chunkIndex", i.toString());
+                formData.append("chunkIndex", chunkIndex.toString());
                 formData.append("totalChunks", totalChunks.toString());
                 formData.append("file", chunk, this.file.name);
 
-                await new Promise((resolve, reject) => {
+                return new Promise((resolve, reject) => {
                   const xhr = new XMLHttpRequest();
+                  const timeout = setTimeout(() => {
+                    xhr.abort();
+                    reject(new Error("Chunk upload timeout"));
+                  }, 60000); // 60 second timeout per chunk
 
                   xhr.upload.addEventListener("progress", (event) => {
                     if (event.lengthComputable) {
-                      // Calculate granular progress within the chunk
                       const chunkProgress = event.loaded / event.total;
-                      const overallProgress = ((i + chunkProgress) / totalChunks) * 95;
-                      this.uploadProgress = overallProgress;
+                      const overallProgress = ((chunkIndex + chunkProgress) / totalChunks) * 95;
+                      this.uploadProgress = Math.min(overallProgress, 95);
                     }
                   });
 
                   xhr.addEventListener("load", () => {
+                    clearTimeout(timeout);
                     if (xhr.status >= 200 && xhr.status < 300) {
                       try {
                         const data = JSON.parse(xhr.responseText);
                         if (data.status === "success") {
-                          // If this was the last chunk, the data contains the final result
-                          if (i === totalChunks - 1) {
-                            this.uploadProgress = 100;
-                            this.result = {
-                              success: true,
-                              message: "Upload Successful",
-                              cid: data.cid,
-                              size: this.formatBytes(data.size),
-                              fileType: this.getFileType(data.type),
-                              fileName: data.filename,
-                              mimeType: data.type,
-                              sha256: data.sha256,
-                              uploaded: data.uploaded,
-                              url: data.url,
-                            };
-                          }
                           resolve(data);
                         } else {
                           reject(new Error(data.message || "Upload failed"));
@@ -714,17 +698,62 @@
                         reject(new Error("Invalid response from server"));
                       }
                     } else {
-                      reject(new Error("Upload failed with status " + xhr.status));
+                      reject(new Error(`Upload failed with status ${xhr.status}`));
                     }
                   });
 
-                  xhr.addEventListener("error", () => reject(new Error("Network error")));
-                  xhr.addEventListener("abort", () => reject(new Error("Aborted")));
+                  xhr.addEventListener("error", () => {
+                    clearTimeout(timeout);
+                    reject(new Error("Network error"));
+                  });
+
+                  xhr.addEventListener("abort", () => {
+                    clearTimeout(timeout);
+                    reject(new Error("Upload aborted"));
+                  });
 
                   xhr.open("PUT", "/upload");
                   xhr.send(formData);
+                }).catch(async (error) => {
+                  // Retry logic
+                  if (retryCount < MAX_RETRIES) {
+                    console.log(`Retrying chunk ${chunkIndex}, attempt ${retryCount + 1}/${MAX_RETRIES}`);
+                    await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1))); // Exponential backoff
+                    return uploadChunk(chunkIndex, retryCount + 1);
+                  }
+                  throw error;
                 });
+              };
+
+              // Upload chunks in parallel batches
+              const results = [];
+              for (let i = 0; i < totalChunks; i += PARALLEL_UPLOADS) {
+                const batch = [];
+                for (let j = 0; j < PARALLEL_UPLOADS && i + j < totalChunks; j++) {
+                  batch.push(uploadChunk(i + j));
+                }
+                const batchResults = await Promise.all(batch);
+                results.push(...batchResults);
               }
+
+              // Check if last result contains the final data
+              const lastResult = results[results.length - 1];
+              if (lastResult && lastResult.cid) {
+                this.uploadProgress = 100;
+                this.result = {
+                  success: true,
+                  message: "Upload Successful",
+                  cid: lastResult.cid,
+                  size: this.formatBytes(lastResult.size),
+                  fileType: this.getFileType(lastResult.type),
+                  fileName: lastResult.filename,
+                  mimeType: lastResult.type,
+                  url: lastResult.url,
+                };
+              } else {
+                throw new Error("Upload completed but no CID received");
+              }
+
               this.uploading = false;
             } catch (error) {
               this.uploading = false;

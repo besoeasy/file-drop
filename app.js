@@ -43,6 +43,22 @@ if (!fs.existsSync(UPLOAD_TEMP_DIR)) {
   fs.mkdirSync(UPLOAD_TEMP_DIR, { recursive: true });
 }
 
+// Cleanup stale chunk uploads every 5 minutes
+const CHUNK_TIMEOUT = 30 * 60 * 1000; // 30 minutes
+setInterval(() => {
+  const now = Date.now();
+  for (const [uploadId, tracking] of chunkTracking.entries()) {
+    if (now - tracking.startTime > CHUNK_TIMEOUT) {
+      console.log(`Cleaning up stale upload: ${uploadId}`);
+      chunkTracking.delete(uploadId);
+      
+      // Clean up temp files
+      const tempPath = path.join(UPLOAD_TEMP_DIR, uploadId);
+      unlinkAsync(tempPath).catch(() => {});
+    }
+  }
+}, 5 * 60 * 1000);
+
 // Initialize Express app
 const app = express();
 
@@ -225,6 +241,9 @@ app.get("/status", async (req, res) => {
   }
 });
 
+// Track ongoing chunked uploads to prevent race conditions
+const chunkTracking = new Map();
+
 // Shared upload handler logic
 const handleUpload = async (req, res) => {
   let filePath = null;
@@ -249,28 +268,62 @@ const handleUpload = async (req, res) => {
       const currentChunk = parseInt(chunkIndex);
       const total = parseInt(totalChunks);
       const tempFinalPath = path.join(UPLOAD_TEMP_DIR, uploadId);
+      const chunkTrackPath = path.join(UPLOAD_TEMP_DIR, `${uploadId}.chunks`);
 
-      // Append chunk to the final file
-      // Using sync operations for 256KB chunks is acceptable and ensures order if requests arrive sequentially
-      const chunkData = fs.readFileSync(req.file.path);
-      fs.appendFileSync(tempFinalPath, chunkData);
+      // Initialize chunk tracking for this upload
+      if (!chunkTracking.has(uploadId)) {
+        chunkTracking.set(uploadId, {
+          receivedChunks: new Set(),
+          totalChunks: total,
+          originalName: req.file.originalname,
+          startTime: Date.now(),
+        });
+      }
 
+      const tracking = chunkTracking.get(uploadId);
+
+      // Check for duplicate chunk
+      if (tracking.receivedChunks.has(currentChunk)) {
+        console.log(`Duplicate chunk ${currentChunk} for upload ${uploadId}`);
+        await unlinkAsync(req.file.path).catch(console.warn);
+        return res.json({ status: "success", message: "Chunk already received" });
+      }
+
+      // Use async stream operations instead of sync reads
+      const chunkStream = fs.createReadStream(req.file.path);
+      const writeStream = fs.createWriteStream(tempFinalPath, { flags: 'a' });
+      
+      await new Promise((resolve, reject) => {
+        chunkStream.pipe(writeStream);
+        writeStream.on('finish', resolve);
+        writeStream.on('error', reject);
+        chunkStream.on('error', reject);
+      });
+
+      // Mark chunk as received
+      tracking.receivedChunks.add(currentChunk);
+      
       // Delete the chunk file from multer
       await unlinkAsync(req.file.path).catch(console.warn);
 
-      // If this is not the last chunk, return success immediately
-      if (currentChunk + 1 < total) {
-        return res.json({ status: "success" });
+      console.log(`Received chunk ${currentChunk + 1}/${total} for upload ${uploadId}`);
+
+      // If this is not the last chunk OR not all chunks received, return success
+      if (tracking.receivedChunks.size < total) {
+        return res.json({ 
+          status: "success",
+          chunksReceived: tracking.receivedChunks.size,
+          chunksTotal: total
+        });
       }
 
-      // Last chunk received: Set filePath to the assembled file
+      // All chunks received: Set filePath to the assembled file
       filePath = tempFinalPath;
-
-      // Note: We need to give it the original name for the IPFS upload to use correct filename
-      // The simplest way is to rename it or just pass metadata to the IPFS step
-      // The existing logic below expects 'req.file.originalname' for headers
-      // We will let the flow continue to the IPFS upload section using the assembled filePath
-      console.log(`File assembly complete for ${req.file.originalname} (${total} chunks)`);
+      
+      console.log(`File assembly complete for ${tracking.originalName} (${total} chunks, took ${Date.now() - tracking.startTime}ms)`);
+      
+      // Clean up tracking
+      chunkTracking.delete(uploadId);
 
     } else {
       // Standard Upload Logic
