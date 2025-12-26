@@ -205,6 +205,11 @@ app.get("/status", async (req, res) => {
         configured: STORAGE_MAX,
         current: formatBytes(repo.storageMax),
       },
+      fileLimit: {
+        configured: process.env.FILE_LIMIT || "5GB",
+        bytes: FILE_LIMIT,
+        formatted: formatBytes(FILE_LIMIT),
+      },
       appVersion,
     });
   } catch (err) {

@@ -206,6 +206,10 @@
               <p class="text-gray-500 font-medium text-xs uppercase">Storage Limit</p>
               <p class="text-black font-semibold">{{ status.storageLimit }}</p>
             </div>
+            <div class="bg-white rounded-lg p-3 shadow-sm border border-gray-200">
+              <p class="text-gray-500 font-medium text-xs uppercase">File Size Limit</p>
+              <p class="text-black font-semibold">{{ status.fileLimit }}</p>
+            </div>
             <div class="bg-white rounded-lg p-3 mt-4 border border-gray-200">
               <p class="text-gray-500 text-xs font-medium">Last updated: {{ status.timestamp }}</p>
             </div>
@@ -532,6 +536,7 @@
               timestamp: "Loading...",
               peerscount: 0,
               storageLimit: "Loading...",
+              fileLimit: "Loading...",
             },
           };
         },
@@ -714,6 +719,7 @@
                   timestamp: new Date(data.timestamp).toLocaleTimeString(),
                   peerscount: data.peers.count,
                   storageLimit: data.storageLimit?.configured || "Unknown",
+                  fileLimit: data.fileLimit?.formatted || data.fileLimit?.configured || "Unknown",
                 };
               }
             } catch (error) {
@@ -727,6 +733,7 @@
                 timestamp: "Error",
                 peerscount: 0,
                 storageLimit: "Error",
+                fileLimit: "Error",
               };
             }
           },
