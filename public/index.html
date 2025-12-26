@@ -6,6 +6,7 @@
     <title>File Drop</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
     <style>
       /* Import modern font */
@@ -265,7 +266,7 @@
 
                 <div class="bg-black rounded-lg p-4">
                   <div class="flex items-start justify-between gap-2 mb-2">
-                    <code class="text-green-400 text-xs flex-1 font-mono break-all">curl -X PUT -F "file=@yourfile.pdf" {{ currentUrl }}/upload</code>
+                    <code class="text-green-400 text-xs flex-1 font-mono break-all">curl -X POST -F "file=@yourfile.pdf" {{ currentUrl }}/upload</code>
                     <button @click="copyCurlCommand" class="flex-shrink-0 text-gray-400 hover:text-white transition-colors">
                       <i :class="copied ? 'fas fa-check' : 'fas fa-copy'"></i>
                     </button>
@@ -651,122 +652,40 @@
             this.uploadProgress = 0;
             this.result = null;
 
-            const CHUNK_SIZE = 256 * 1024; // 256KB
-            const totalChunks = Math.ceil(this.file.size / CHUNK_SIZE);
-            const uploadId = Date.now().toString() + "-" + Math.random().toString(36).substring(2);
-            const MAX_RETRIES = 3;
-            const PARALLEL_UPLOADS = 3; // Upload 3 chunks at a time
-
             try {
-              const uploadChunk = async (chunkIndex, retryCount = 0) => {
-                const start = chunkIndex * CHUNK_SIZE;
-                const end = Math.min(start + CHUNK_SIZE, this.file.size);
-                const chunk = this.file.slice(start, end);
+              const formData = new FormData();
+              formData.append("file", this.file);
 
-                const formData = new FormData();
-                formData.append("uploadId", uploadId);
-                formData.append("chunkIndex", chunkIndex.toString());
-                formData.append("totalChunks", totalChunks.toString());
-                formData.append("file", chunk, this.file.name);
-
-                return new Promise((resolve, reject) => {
-                  const xhr = new XMLHttpRequest();
-                  const timeout = setTimeout(() => {
-                    xhr.abort();
-                    reject(new Error("Chunk upload timeout"));
-                  }, 60000); // 60 second timeout per chunk
-
-                  xhr.upload.addEventListener("progress", (event) => {
-                    if (event.lengthComputable) {
-                      const chunkProgress = event.loaded / event.total;
-                      const overallProgress = ((chunkIndex + chunkProgress) / totalChunks) * 95;
-                      this.uploadProgress = Math.min(overallProgress, 95);
-                    }
-                  });
-
-                  xhr.addEventListener("load", () => {
-                    clearTimeout(timeout);
-                    if (xhr.status >= 200 && xhr.status < 300) {
-                      try {
-                        const data = JSON.parse(xhr.responseText);
-                        if (data.status === "success") {
-                          resolve(data);
-                        } else {
-                          reject(new Error(data.message || "Upload failed"));
-                        }
-                      } catch (e) {
-                        reject(new Error("Invalid response from server"));
-                      }
-                    } else {
-                      reject(new Error(`Upload failed with status ${xhr.status}`));
-                    }
-                  });
-
-                  xhr.addEventListener("error", () => {
-                    clearTimeout(timeout);
-                    reject(new Error("Network error"));
-                  });
-
-                  xhr.addEventListener("abort", () => {
-                    clearTimeout(timeout);
-                    reject(new Error("Upload aborted"));
-                  });
-
-                  xhr.open("PUT", "/upload");
-                  xhr.send(formData);
-                }).catch(async (error) => {
-                  // Retry logic
-                  if (retryCount < MAX_RETRIES) {
-                    console.log(`Retrying chunk ${chunkIndex}, attempt ${retryCount + 1}/${MAX_RETRIES}`);
-                    await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1))); // Exponential backoff
-                    return uploadChunk(chunkIndex, retryCount + 1);
-                  }
-                  throw error;
-                });
-              };
-
-              // Upload chunks in parallel batches
-              const results = [];
-              for (let i = 0; i < totalChunks; i += PARALLEL_UPLOADS) {
-                const batch = [];
-                for (let j = 0; j < PARALLEL_UPLOADS && i + j < totalChunks; j++) {
-                  batch.push(uploadChunk(i + j));
+              const response = await axios.post("/upload", formData, {
+                onUploadProgress: (progressEvent) => {
+                  this.uploadProgress = (progressEvent.loaded / progressEvent.total) * 100;
                 }
-                const batchResults = await Promise.all(batch);
-                results.push(...batchResults);
-              }
+              });
 
-              // Check if last result contains the final data
-              const lastResult = results[results.length - 1];
-              if (lastResult && lastResult.cid) {
-                this.uploadProgress = 100;
-                this.result = {
-                  success: true,
-                  message: "Upload Successful",
-                  cid: lastResult.cid,
-                  size: this.formatBytes(lastResult.size),
-                  fileType: this.getFileType(lastResult.type),
-                  fileName: lastResult.filename,
-                  mimeType: lastResult.type,
-                  url: lastResult.url,
-                };
-              } else {
-                throw new Error("Upload completed but no CID received");
-              }
-
-              this.uploading = false;
+              this.uploadProgress = 100;
+              this.result = {
+                success: true,
+                message: "Upload Successful",
+                cid: response.data.cid,
+                size: this.formatBytes(response.data.size),
+                fileType: this.getFileType(response.data.type),
+                fileName: response.data.filename,
+                mimeType: response.data.type,
+                url: response.data.url,
+              };
             } catch (error) {
-              this.uploading = false;
               this.uploadProgress = 0;
               this.result = {
                 success: false,
-                message: error.message || "Upload failed",
+                message: error.response?.data?.message || error.message || "Upload failed",
               };
               console.error("Upload error:", error);
+            } finally {
+              this.uploading = false;
             }
           },
           copyCurlCommand() {
-            const command = `curl -X PUT -F "file=@yourfile.pdf" ${this.currentUrl}/upload`;
+            const command = `curl -X POST -F "file=@yourfile.pdf" ${this.currentUrl}/upload`;
             navigator.clipboard
               .writeText(command)
               .then(() => {

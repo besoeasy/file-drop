@@ -22,7 +22,7 @@ Complete API reference for integrating File Drop into your application.
 
 ## Overview
 
-File Drop provides a simple HTTP API for uploading files to IPFS. It supports both single-shot uploads and chunked uploads for large files, with automatic retry handling and parallel processing.
+File Drop provides a simple HTTP API for uploading files to IPFS. It supports single-file uploads up to 5GB with direct IPFS integration.
 
 **Base URL:** `http://localhost:3232` (or your deployed server)
 
@@ -46,49 +46,18 @@ File Drop provides a simple HTTP API for uploading files to IPFS. It supports bo
 ### System Limits
 
 - **Max File Size:** 5GB (configurable via `FILE_LIMIT`)
-- **Chunk Size:** 256KB (client-configurable)
-- **Parallel Chunks:** 3-5 recommended
-- **Chunk Timeout:** 30 minutes
 - **Request Timeout:** 1 hour per upload
 
 ---
 
-## Upload Strategies
+## Upload Strategy
 
-File Drop automatically handles two upload modes:
+**Single Upload**
 
-### 1. Single Upload (Recommended for < 5MB)
-
-**When to use:**
-- Small files (< 5MB)
-- Fast, reliable connections
-- When simplicity is preferred
-
-**How it works:**
 - Entire file sent in one HTTP request
-- No chunking overhead
+- Simple and straightforward
 - Direct to IPFS upload
-
-### 2. Chunked Upload (Recommended for >= 5MB)
-
-**When to use:**
-- Large files (>= 5MB)
-- Unreliable network connections
-- When progress tracking is needed
-- Mobile applications
-
-**How it works:**
-- File split into 256KB chunks
-- Chunks uploaded in parallel (3-5 concurrent)
-- Automatic retry on failure
-- Chunks assembled on server
-- Final chunk triggers IPFS upload
-
-**Benefits:**
-- Resilient to network interruptions
-- Progress tracking per chunk
-- Automatic retry logic
-- Out-of-order chunk handling
+- Supports files up to 5GB
 
 ---
 
@@ -98,19 +67,23 @@ File Drop automatically handles two upload modes:
 
 Upload a file to IPFS and receive a content-addressed URL.
 
-#### Single Upload
-
 **Request:**
 ```http
-PUT /upload HTTP/1.1
+POST /upload HTTP/1.1
 Content-Type: multipart/form-data
 
 file: <binary file data>
 ```
 
+**Parameters:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `file` | binary | Yes | File data (up to 5GB) |
+
 **Example (curl):**
 ```bash
-curl -X PUT \
+curl -X POST \
   -F "file=@document.pdf" \
   http://localhost:3232/upload
 ```
@@ -127,68 +100,33 @@ curl -X PUT \
 }
 ```
 
-#### Chunked Upload
+**Response Fields:**
 
-**Request (per chunk):**
-```http
-PUT /upload HTTP/1.1
-Content-Type: multipart/form-data
+| Field | Type | Description |
+|-------|------|-------------|
+| `status` | string | Always "success" on successful upload |
+| `url` | string | Public IPFS gateway URL for accessing the file |
+| `cid` | string | IPFS Content Identifier (hash of the file) |
+| `size` | number | File size in bytes |
+| `type` | string | MIME type of the file |
+| `filename` | string | Original filename |
 
-file: <binary chunk data>
-uploadId: "1735132800000-abc123def456"
-chunkIndex: "0"
-totalChunks: "42"
-```
-
-**Parameters:**
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `file` | binary | Yes | File chunk data |
-| `uploadId` | string | Yes* | Unique identifier for upload session |
-| `chunkIndex` | string | Yes* | Zero-indexed chunk number (0, 1, 2, ...) |
-| `totalChunks` | string | Yes* | Total number of chunks for this file |
-
-\* Required only for chunked uploads
-
-**uploadId Format:** `{timestamp}-{random}` (e.g., `1735132800000-abc123def456`)
-
-**Response for Non-Final Chunks (200 OK):**
+**Error Response (400 Bad Request):**
 ```json
 {
-  "status": "success",
-  "chunksReceived": 5,
-  "chunksTotal": 42
+  "error": "No file uploaded",
+  "status": "error",
+  "message": "No file uploaded"
 }
 ```
 
-**Response for Final Chunk (200 OK):**
+**Error Response (413 Payload Too Large):**
 ```json
 {
-  "status": "success",
-  "url": "https://dweb.link/ipfs/QmXXXXXX?filename=video.mp4",
-  "cid": "QmXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
-  "size": 104857600,
-  "type": "video/mp4",
-  "filename": "video.mp4"
+  "error": "File too large",
+  "message": "File exceeds the maximum allowed size of 5GB",
+  "maxSize": "5GB"
 }
-```
-
-**Example (curl - chunked):**
-```bash
-FILE="bigfile.mp4"
-UPLOAD_ID="$(date +%s)-$(openssl rand -hex 8)"
-CHUNK_SIZE=262144  # 256KB
-TOTAL_CHUNKS=$(( ($(stat -f%z "$FILE") + CHUNK_SIZE - 1) / CHUNK_SIZE ))
-
-for i in $(seq 0 $((TOTAL_CHUNKS - 1))); do
-  dd if="$FILE" bs=$CHUNK_SIZE skip=$i count=1 2>/dev/null | \
-  curl -X PUT http://localhost:3232/upload \
-    -F "uploadId=$UPLOAD_ID" \
-    -F "chunkIndex=$i" \
-    -F "totalChunks=$TOTAL_CHUNKS" \
-    -F "file=@-;filename=$(basename $FILE)"
-done
 ```
 
 ---
@@ -438,15 +376,13 @@ All errors follow this structure:
 
 ### JavaScript/TypeScript (Browser)
 
-#### Single Upload
-
 ```javascript
-async function uploadFile(file) {
+async function uploadFile(file, onProgress) {
   const formData = new FormData();
   formData.append('file', file);
 
   const response = await fetch('http://localhost:3232/upload', {
-    method: 'PUT',
+    method: 'POST',
     body: formData
   });
 
@@ -463,65 +399,6 @@ console.log('CID:', result.cid);
 console.log('URL:', result.url);
 ```
 
-#### Chunked Upload with Progress
-
-```javascript
-async function uploadFileChunked(file, onProgress) {
-  const CHUNK_SIZE = 256 * 1024; // 256KB
-  const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
-  const uploadId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-  const PARALLEL_CHUNKS = 3;
-
-  const uploadChunk = async (chunkIndex) => {
-    const start = chunkIndex * CHUNK_SIZE;
-    const end = Math.min(start + CHUNK_SIZE, file.size);
-    const chunk = file.slice(start, end);
-
-    const formData = new FormData();
-    formData.append('uploadId', uploadId);
-    formData.append('chunkIndex', chunkIndex.toString());
-    formData.append('totalChunks', totalChunks.toString());
-    formData.append('file', chunk, file.name);
-
-    const response = await fetch('http://localhost:3232/upload', {
-      method: 'PUT',
-      body: formData
-    });
-
-    if (!response.ok) {
-      throw new Error(`Chunk ${chunkIndex} failed`);
-    }
-
-    return await response.json();
-  };
-
-  // Upload chunks in parallel batches
-  let lastResult = null;
-  for (let i = 0; i < totalChunks; i += PARALLEL_CHUNKS) {
-    const batch = [];
-    for (let j = 0; j < PARALLEL_CHUNKS && i + j < totalChunks; j++) {
-      batch.push(uploadChunk(i + j));
-    }
-    
-    const results = await Promise.all(batch);
-    lastResult = results[results.length - 1];
-    
-    if (onProgress) {
-      onProgress((i + batch.length) / totalChunks * 100);
-    }
-  }
-
-  return lastResult;
-}
-
-// Usage
-const result = await uploadFileChunked(
-  largeFile,
-  (progress) => console.log(`${progress.toFixed(1)}%`)
-);
-console.log('Upload complete:', result.cid);
-```
-
 ### Python (requests)
 
 ```python
@@ -532,7 +409,7 @@ def upload_file(file_path, server_url="http://localhost:3232"):
     
     with open(file_path, 'rb') as f:
         files = {'file': f}
-        response = requests.put(f"{server_url}/upload", files=files)
+        response = requests.post(f"{server_url}/upload", files=files)
     
     if response.status_code != 200:
         raise Exception(f"Upload failed: {response.text}")
@@ -590,7 +467,7 @@ func uploadFile(filePath string, serverURL string) (*UploadResponse, error) {
     
     writer.Close()
 
-    req, err := http.NewRequest("PUT", serverURL+"/upload", body)
+    req, err := http.NewRequest("POST", serverURL+"/upload", body)
     if err != nil {
         return nil, err
     }
@@ -619,90 +496,11 @@ func main() {
 }
 ```
 
-### Dart/Flutter (dio)
-
-See [API_DOCUMENTATION.md](API_DOCUMENTATION.md) for complete Dart implementation with chunked uploads.
-
 ---
 
 ## Best Practices
 
-### 1. Upload Strategy Selection
-
-```javascript
-function selectUploadStrategy(fileSize) {
-  const MB = 1024 * 1024;
-  
-  if (fileSize < 5 * MB) {
-    return { mode: 'single', chunkSize: null };
-  } else if (fileSize < 50 * MB) {
-    return { mode: 'chunked', chunkSize: 512 * 1024 };
-  } else {
-    return { mode: 'chunked', chunkSize: 1024 * 1024 };
-  }
-}
-```
-
-### 2. Retry Logic
-
-```javascript
-async function uploadWithRetry(uploadFn, maxRetries = 3) {
-  for (let attempt = 0; attempt < maxRetries; attempt++) {
-    try {
-      return await uploadFn();
-    } catch (error) {
-      if (attempt === maxRetries - 1) throw error;
-      
-      // Exponential backoff
-      const delay = Math.pow(2, attempt) * 1000;
-      await new Promise(resolve => setTimeout(resolve, delay));
-      
-      console.log(`Retry attempt ${attempt + 1}/${maxRetries}`);
-    }
-  }
-}
-```
-
-### 3. Progress Tracking
-
-```javascript
-function createProgressTracker(totalChunks) {
-  const completed = new Set();
-  
-  return {
-    markComplete(chunkIndex) {
-      completed.add(chunkIndex);
-      return (completed.size / totalChunks) * 100;
-    },
-    getProgress() {
-      return (completed.size / totalChunks) * 100;
-    }
-  };
-}
-```
-
-### 4. Server Selection (Multi-Instance)
-
-```javascript
-async function selectBestServer(servers) {
-  const results = await Promise.allSettled(
-    servers.map(async (url) => {
-      const response = await fetch(`${url}/health`, { timeout: 5000 });
-      const data = await response.json();
-      return { url, peers: data.peers, status: data.status };
-    })
-  );
-
-  const healthy = results
-    .filter(r => r.status === 'fulfilled' && r.value.status === 'healthy')
-    .map(r => r.value)
-    .sort((a, b) => b.peers - a.peers);
-
-  return healthy[0]?.url || servers[0];
-}
-```
-
-### 5. Error Handling
+### 1. Error Handling
 
 ```javascript
 async function uploadWithErrorHandling(file) {
@@ -720,6 +518,77 @@ async function uploadWithErrorHandling(file) {
       throw new Error('Upload failed. Please try again.');
     }
   }
+}
+```
+
+### 2. File Validation
+
+```javascript
+function validateFile(file, maxSize = 5 * 1024 * 1024 * 1024) {
+  if (!file) {
+    throw new Error('No file selected');
+  }
+  
+  if (file.size > maxSize) {
+    throw new Error(`File size exceeds ${maxSize / (1024**3).toFixed(2)}GB limit`);
+  }
+  
+  if (file.size === 0) {
+    throw new Error('File is empty');
+  }
+  
+  return true;
+}
+```
+
+### 3. Progress Tracking
+
+```javascript
+function setupProgressTracking(xhr, onProgress) {
+  xhr.upload.addEventListener('progress', (event) => {
+    if (event.lengthComputable) {
+      const percentComplete = (event.loaded / event.total) * 100;
+      if (onProgress) {
+        onProgress(percentComplete);
+      }
+    }
+  });
+}
+```
+
+### 4. Server Health Checking
+
+```javascript
+async function checkServerHealth(serverUrl) {
+  try {
+    const response = await fetch(`${serverUrl}/health`, { timeout: 5000 });
+    const data = await response.json();
+    return data.status === 'healthy';
+  } catch (error) {
+    return false;
+  }
+}
+```
+
+### 5. Caching and CID Verification
+
+```javascript
+// Cache uploaded files by CID to avoid re-uploads
+const uploadCache = new Map();
+
+async function uploadFileWithCache(file) {
+  // Check if already uploaded
+  const fileHash = await hashFile(file);
+  
+  if (uploadCache.has(fileHash)) {
+    return uploadCache.get(fileHash);
+  }
+  
+  // Upload and cache
+  const result = await uploadFile(file);
+  uploadCache.set(fileHash, result);
+  
+  return result;
 }
 ```
 

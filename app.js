@@ -43,22 +43,6 @@ if (!fs.existsSync(UPLOAD_TEMP_DIR)) {
   fs.mkdirSync(UPLOAD_TEMP_DIR, { recursive: true });
 }
 
-// Cleanup stale chunk uploads every 5 minutes
-const CHUNK_TIMEOUT = 30 * 60 * 1000; // 30 minutes
-setInterval(() => {
-  const now = Date.now();
-  for (const [uploadId, tracking] of chunkTracking.entries()) {
-    if (now - tracking.startTime > CHUNK_TIMEOUT) {
-      console.log(`Cleaning up stale upload: ${uploadId}`);
-      chunkTracking.delete(uploadId);
-      
-      // Clean up temp files
-      const tempPath = path.join(UPLOAD_TEMP_DIR, uploadId);
-      unlinkAsync(tempPath).catch(() => {});
-    }
-  }
-}, 5 * 60 * 1000);
-
 // Initialize Express app
 const app = express();
 
@@ -181,8 +165,6 @@ app.get("/status", async (req, res) => {
       version: repoResponse.data.Version,
     };
 
-
-
     // Node identity info
     const nodeInfo = {
       id: idResponse.data.ID,
@@ -241,9 +223,6 @@ app.get("/status", async (req, res) => {
   }
 });
 
-// Track ongoing chunked uploads to prevent race conditions
-const chunkTracking = new Map();
-
 // Shared upload handler logic
 const handleUpload = async (req, res) => {
   let filePath = null;
@@ -259,76 +238,8 @@ const handleUpload = async (req, res) => {
       });
     }
 
-    // Check for chunked upload parameters
-    const { uploadId, chunkIndex, totalChunks } = req.body;
-    const isChunked = uploadId !== undefined && chunkIndex !== undefined;
-
-    if (isChunked) {
-      // Chunked Upload Logic
-      const currentChunk = parseInt(chunkIndex);
-      const total = parseInt(totalChunks);
-      const tempFinalPath = path.join(UPLOAD_TEMP_DIR, uploadId);
-      const chunkTrackPath = path.join(UPLOAD_TEMP_DIR, `${uploadId}.chunks`);
-
-      // Initialize chunk tracking for this upload
-      if (!chunkTracking.has(uploadId)) {
-        chunkTracking.set(uploadId, {
-          receivedChunks: new Set(),
-          totalChunks: total,
-          originalName: req.file.originalname,
-          startTime: Date.now(),
-        });
-      }
-
-      const tracking = chunkTracking.get(uploadId);
-
-      // Check for duplicate chunk
-      if (tracking.receivedChunks.has(currentChunk)) {
-        console.log(`Duplicate chunk ${currentChunk} for upload ${uploadId}`);
-        await unlinkAsync(req.file.path).catch(console.warn);
-        return res.json({ status: "success", message: "Chunk already received" });
-      }
-
-      // Use async stream operations instead of sync reads
-      const chunkStream = fs.createReadStream(req.file.path);
-      const writeStream = fs.createWriteStream(tempFinalPath, { flags: 'a' });
-      
-      await new Promise((resolve, reject) => {
-        chunkStream.pipe(writeStream);
-        writeStream.on('finish', resolve);
-        writeStream.on('error', reject);
-        chunkStream.on('error', reject);
-      });
-
-      // Mark chunk as received
-      tracking.receivedChunks.add(currentChunk);
-      
-      // Delete the chunk file from multer
-      await unlinkAsync(req.file.path).catch(console.warn);
-
-      console.log(`Received chunk ${currentChunk + 1}/${total} for upload ${uploadId}`);
-
-      // If this is not the last chunk OR not all chunks received, return success
-      if (tracking.receivedChunks.size < total) {
-        return res.json({ 
-          status: "success",
-          chunksReceived: tracking.receivedChunks.size,
-          chunksTotal: total
-        });
-      }
-
-      // All chunks received: Set filePath to the assembled file
-      filePath = tempFinalPath;
-      
-      console.log(`File assembly complete for ${tracking.originalName} (${total} chunks, took ${Date.now() - tracking.startTime}ms)`);
-      
-      // Clean up tracking
-      chunkTracking.delete(uploadId);
-
-    } else {
-      // Standard Upload Logic
-      filePath = req.file.path;
-    }
+    // Standard Upload Logic
+    filePath = req.file.path;
 
     // --- IPFS Upload Logic (Shared) ---
     // Prepare file for IPFS using stream
@@ -336,12 +247,12 @@ const handleUpload = async (req, res) => {
     const fileStream = fs.createReadStream(filePath);
 
     // Detect correct MIME type from file extension
-    const mimeType = mime.lookup(req.file.originalname) || req.file.mimetype || 'application/octet-stream';
+    const mimeType = mime.lookup(req.file.originalname) || req.file.mimetype || "application/octet-stream";
 
     formData.append("file", fileStream, {
       filename: req.file.originalname,
       contentType: mimeType,
-      knownLength: isChunked ? fs.statSync(filePath).size : req.file.size,
+      knownLength: req.file.size,
     });
 
     // Upload to IPFS
@@ -358,7 +269,7 @@ const handleUpload = async (req, res) => {
     // Detailed logging
     const uploadDetails = {
       name: req.file.originalname,
-      size_bytes: isChunked ? fs.statSync(filePath).size : req.file.size,
+      size_bytes: req.file.size,
       mime_type: mimeType,
       cid: response.data.Hash,
       upload_duration_ms: Date.now() - uploadStart,
@@ -408,10 +319,7 @@ const handleUpload = async (req, res) => {
   }
 };
 
-// PUT Upload endpoint
-app.put("/upload", upload.single("file"), handleUpload);
-
-// POST Upload endpoint (alternative method)
+// POST Upload endpoint
 app.post("/upload", upload.single("file"), handleUpload);
 
 // Apply error handler
