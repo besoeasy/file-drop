@@ -10,7 +10,7 @@
 
 **One storage backend to rule them all** — Drop into apps, screenshot tools, pastebin-style pastes, Nostr clients, Reddit posts, forum embeds. Durable, anonymous file hosting that keeps you private.
 
-[🚀 Quick Start](#-quick-start) • [🎯 Features](#-features) • [📚 Documentation](api.md) • [🤖 AI Agent Guide](AGENT_SKILLS.md) • [🌍 Public Gateway](https://filedrop.besoeasy.com)
+[🚀 Quick Start](#-quick-start) • [🎯 Features](#-features) • [📚 Documentation](api.md) • [🤖 AI Agent Guide](AGENT_SKILLS.md) • [🌍 Public Gateway](https://originless.besoeasy.com)
 
 <img width="1536" src="https://github.com/user-attachments/assets/5014810c-cc51-4ad4-a1b8-6e4db510c09f" alt="Originless Banner" />
 
@@ -38,7 +38,7 @@ docker run -d --restart unless-stopped --name originless \
 
 Don't want to self-host? Use our public gateway:
 
-🌐 **https://filedrop.besoeasy.com/**
+🌐 **https://originless.besoeasy.com/**
 
 Simply replace `http://localhost:3232` with the public gateway URL in API calls.
 
@@ -314,7 +314,7 @@ Contributions are welcome! Whether it's:
 
 - **GitHub:** [github.com/besoeasy/Originless](https://github.com/besoeasy/Originless)
 - **Docker:** [ghcr.io/besoeasy/originless](https://github.com/besoeasy/Originless/pkgs/container/originless)
-- **Public Gateway:** [filedrop.besoeasy.com](https://filedrop.besoeasy.com)
+- **Public Gateway:** [originless.besoeasy.com](https://originless.besoeasy.com)
 - **IPFS Docs:** [docs.ipfs.tech](https://docs.ipfs.tech)
 - **Daku Auth:** [npmjs.com/package/daku](https://www.npmjs.com/package/daku)
 
