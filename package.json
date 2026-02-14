@@ -1,6 +1,6 @@
 {
   "name": "originless",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "main": "app.js",
   "scripts": {
     "test": "docker run --name ipfs-host --rm --network host docker.io/ipfs/kubo:latest",
