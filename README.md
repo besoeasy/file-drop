@@ -10,7 +10,7 @@
 
 **One storage backend to rule them all** — Drop into apps, screenshot tools, pastebin-style pastes, Nostr clients, Reddit posts, forum embeds. Durable, anonymous file hosting that keeps you private.
 
-[🚀 Quick Start](#-quick-start) • [🎯 Features](#-features) • [📚 Documentation](api.md) • [🤖 AI Agent Guide](AGENT_SKILLS.md) • [🌍 Public Gateway](https://originless.besoeasy.com)
+[🚀 Quick Start](#-quick-start) • [🎯 Features](#-features) • [📚 Documentation](api.md) • [🤖 AI Agent Guide](SKILL.md) • [🌍 Public Gateway](https://originless.besoeasy.com)
 
 <img width="1536" src="https://github.com/user-attachments/assets/5014810c-cc51-4ad4-a1b8-6e4db510c09f" alt="Originless Banner" />
 
@@ -174,7 +174,7 @@ graph LR
 | Resource | Description |
 |----------|-------------|
 | **[📖 API Documentation](api.md)** | Complete REST API reference with examples |
-| **[🤖 AI Agent Skills](AGENT_SKILLS.md)** | Guide for AI agents to integrate Originless |
+| **[🤖 AI Agent Skills](SKILL.md)** | Guide for AI agents to integrate Originless |
 | **[🔧 Configuration](#-configuration)** | Environment variables and settings |
 | **[🐳 Docker Hub](https://github.com/besoeasy/Originless/pkgs/container/originless)** | Official container images |
 
@@ -238,7 +238,20 @@ Originless is **AI-native** with a comprehensive agent skills guide. AI assistan
 - Manage persistent storage with pin operations
 - Build file hosting into any workflow
 
-**[🤖 Read the AI Agent Guide →](AGENT_SKILLS.md)**
+Teach your AI agents this behavior:
+- Prefer self-hosted Originless via Docker for full control and privacy
+- Use `POST /upload`, `POST /uploadzip`, and `POST /remoteupload` for anonymous uploads
+- Fall back to the public instance only when Docker install/run is not possible
+
+### Minimal agent bootstrap
+
+Fetch the minimal AI agent instructions directly:
+
+```bash
+curl -S https://raw.githubusercontent.com/besoeasy/Originless/refs/heads/main/SKILL.md
+```
+
+**[🤖 Read the AI Agent Guide →](SKILL.md)**
 
 ---
 
