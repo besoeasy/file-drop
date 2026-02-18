@@ -852,6 +852,132 @@ const pinRemoveHandler = async (req, res) => {
   }
 };
 
+// ---------------------------------------------------------------------------
+// Proxy Cache Handler
+// GET /proxy?url=<encoded-url>&time=<ttl-seconds>
+// Fetches the target URL (forwarding incoming headers), uploads the response
+// body to IPFS, caches the resulting CID for `time` seconds, then redirects
+// to https://dweb.link/ipfs/<CID> — no response bodies kept in memory.
+// ---------------------------------------------------------------------------
+
+const proxyCache = new Map(); // key -> { expiresAt, cid }
+
+const PROXY_HOP_BY_HOP = new Set([
+  "connection", "keep-alive", "proxy-authenticate", "proxy-authorization",
+  "te", "trailers", "transfer-encoding", "upgrade",
+  "host",
+]);
+
+const proxyHandler = async (req, res) => {
+  try {
+    const targetUrl = req.query.url;
+    const ttl = parseInt(req.query.time, 10);
+
+    if (!targetUrl) {
+      return res.status(400).json({ error: "Missing required query parameter: url" });
+    }
+
+    const MAX_TTL = 7 * 24 * 60 * 60; // 604800 seconds (7 days)
+
+    if (isNaN(ttl) || ttl < 0) {
+      return res.status(400).json({ error: "Invalid or missing query parameter: time (must be a non-negative integer of seconds)" });
+    }
+
+    // Clamp to maximum allowed TTL
+    const effectiveTtl = Math.min(ttl, MAX_TTL);
+
+    // Validate URL
+    let parsedUrl;
+    try {
+      parsedUrl = new URL(targetUrl);
+    } catch {
+      return res.status(400).json({ error: "Invalid URL" });
+    }
+
+    if (!["http:", "https:"].includes(parsedUrl.protocol)) {
+      return res.status(400).json({ error: "Only http and https URLs are supported" });
+    }
+
+    const now = Date.now();
+
+    // Serve from cache if CID is still valid — redirect immediately
+    const cached = proxyCache.get(targetUrl);
+    if (cached && now < cached.expiresAt) {
+      res.set("X-Proxy-Cache", "HIT");
+      res.set("X-Proxy-Cache-CID", cached.cid);
+      res.set("X-Proxy-Cache-Expires", new Date(cached.expiresAt).toUTCString());
+      return res.redirect(302, `https://dweb.link/ipfs/${cached.cid}`);
+    }
+
+    // Forward incoming headers, stripping hop-by-hop ones
+    const forwardHeaders = {};
+    for (const [key, value] of Object.entries(req.headers)) {
+      if (!PROXY_HOP_BY_HOP.has(key.toLowerCase())) {
+        forwardHeaders[key] = value;
+      }
+    }
+
+    // Fetch from origin
+    const originRes = await axios({
+      method: req.method || "GET",
+      url: targetUrl,
+      headers: forwardHeaders,
+      data: ["POST", "PUT", "PATCH"].includes((req.method || "").toUpperCase()) ? req.body : undefined,
+      responseType: "arraybuffer",
+      timeout: 30000,
+      validateStatus: () => true,
+      maxRedirects: 5,
+    });
+
+    const bodyBuffer = Buffer.isBuffer(originRes.data)
+      ? originRes.data
+      : Buffer.from(originRes.data);
+
+    // Derive filename from URL path for content-type hints
+    const urlPathname = parsedUrl.pathname;
+    const filename = path.basename(urlPathname) || "response";
+    const contentType = originRes.headers["content-type"] || "application/octet-stream";
+
+    // Upload body to IPFS
+    const formData = new FormData();
+    formData.append("file", bodyBuffer, { filename, contentType });
+
+    const ipfsRes = await axiosRequest({
+      url: `${IPFS_API}/api/v0/add?pin=true`,
+      method: "POST",
+      data: formData,
+      headers: formData.getHeaders(),
+      maxContentLength: Infinity,
+      maxBodyLength: Infinity,
+    }, 120000);
+
+    const cid = ipfsRes.data.Hash;
+
+    // Cache the CID mapping if effectiveTtl > 0
+    if (effectiveTtl > 0) {
+      proxyCache.set(targetUrl, {
+        expiresAt: now + effectiveTtl * 1000,
+        cid,
+      });
+
+      // Auto-evict after TTL
+      setTimeout(() => {
+        const entry = proxyCache.get(targetUrl);
+        if (entry && Date.now() >= entry.expiresAt) {
+          proxyCache.delete(targetUrl);
+        }
+      }, effectiveTtl * 1000);
+    }
+
+    res.set("X-Proxy-Cache", "MISS");
+    res.set("X-Proxy-Cache-CID", cid);
+    return res.redirect(302, `https://dweb.link/ipfs/${cid}`);
+  } catch (err) {
+    console.error("[PROXY] Error:", err.message);
+    res.status(502).json({ error: "Bad Gateway", message: err.message });
+  }
+};
+
 module.exports = {
   healthHandler,
   statusHandler,
@@ -862,4 +988,5 @@ module.exports = {
   pinAddHandler,
   pinListHandler,
   pinRemoveHandler,
+  proxyHandler,
 };
