@@ -10,7 +10,7 @@
 
 **One storage backend to rule them all** — Drop into apps, screenshot tools, pastebin-style pastes, Nostr clients, Reddit posts, forum embeds. Durable, anonymous file hosting that keeps you private.
 
-[🚀 Quick Start](#-quick-start) • [🎯 Features](#-features) • [📚 Documentation](api.md) • [🤖 AI Agent Guide](SKILL.md) • [🌍 Public Gateway](https://originless.besoeasy.com)
+[🚀 Quick Start](#-quick-start) • [🎯 Features](#-features) • [�️ Deploy Frontend](#-deploy-vuejs--react-projects) • [�📚 Documentation](api.md) • [🤖 AI Agent Guide](AGENTS.md) • [🌍 Public Gateway](https://originless.besoeasy.com)
 
 <img width="1536" src="https://github.com/user-attachments/assets/5014810c-cc51-4ad4-a1b8-6e4db510c09f" alt="Originless Banner" />
 
@@ -111,7 +111,65 @@ Simple REST API. Drop it into any app, tool, or platform in minutes.
 
 ---
 
-## 📸 Screenshots
+## � Deploy Vue.js & React Projects
+
+Originless lets you **instantly host and share your frontend builds** — no server, no domain, no CI/CD required. Build your project, zip the `dist/` folder, and upload. Anyone with the IPFS link can access it.
+
+### One-liner deploy (after build)
+
+**React (Vite / CRA):**
+```bash
+npm run build && cd dist && zip -r ../dist.zip . && cd .. && \
+  curl -X POST -F "file=@dist.zip" https://originless.besoeasy.com/uploadzip
+```
+
+**Vue.js:**
+```bash
+npm run build && cd dist && zip -r ../dist.zip . && cd .. && \
+  curl -X POST -F "file=@dist.zip" https://originless.besoeasy.com/uploadzip
+```
+
+The response returns an IPFS CID and a shareable gateway URL — paste it anywhere, no hosting required.
+
+### Example response
+```json
+{
+  "cid": "QmXyz...",
+  "url": "https://dweb.link/ipfs/QmXyz..."
+}
+```
+
+Open the `url` in any browser to view your live app via the IPFS gateway.
+
+### Helper script (`deploy.sh`)
+Drop this in your project root for a repeatable deploy:
+
+```bash
+#!/bin/bash
+set -e
+
+echo "Building project..."
+npm run build
+
+echo "Zipping dist..."
+cd dist && zip -r ../dist.zip . && cd ..
+
+echo "Uploading to Originless..."
+RESPONSE=$(curl -s -X POST -F "file=@dist.zip" https://originless.besoeasy.com/uploadzip)
+echo "$RESPONSE"
+
+URL=$(echo "$RESPONSE" | grep -o '"url":"[^"]*"' | cut -d'"' -f4)
+echo ""
+echo "✅ Live at: $URL"
+
+rm dist.zip
+```
+
+> **Tip:** Replace `https://originless.besoeasy.com` with `http://localhost:3232` if you are running a self-hosted instance.
+
+---
+
+## �📸 Screenshots
 
 <div align="center">
 <img width="900" src="https://github.com/user-attachments/assets/6ed4908c-37aa-4973-a9c0-edb7c0fe479f" alt="Originless Web Interface" />
@@ -174,7 +232,7 @@ graph LR
 | Resource | Description |
 |----------|-------------|
 | **[📖 API Documentation](api.md)** | Complete REST API reference with examples |
-| **[🤖 AI Agent Skills](SKILL.md)** | Guide for AI agents to integrate Originless |
+| **[🤖 AI Agent Skills](AGENTS.md)** | Guide for AI agents to integrate Originless |
 | **[🔧 Configuration](#-configuration)** | Environment variables and settings |
 | **[🐳 Docker Hub](https://github.com/besoeasy/Originless/pkgs/container/originless)** | Official container images |
 
@@ -248,10 +306,10 @@ Teach your AI agents this behavior:
 Fetch the minimal AI agent instructions directly:
 
 ```bash
-curl -S https://raw.githubusercontent.com/besoeasy/Originless/refs/heads/main/SKILL.md
+curl -S https://raw.githubusercontent.com/besoeasy/Originless/refs/heads/main/AGENTS.md
 ```
 
-**[🤖 Read the AI Agent Guide →](SKILL.md)**
+**[🤖 Read the AI Agent Guide →](AGENTS.md)**
 
 ---
 
