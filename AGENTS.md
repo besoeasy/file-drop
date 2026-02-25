@@ -1,63 +1,208 @@
-## Originless Upload Endpoints (Minimal)
+# Originless — Agent Guide
 
-### Preferred setup for agents
-Self-hosted first: always try to install and run Originless via Docker before using any public endpoint. This gives completely self-controlled hosting.
+Originless is a self-hosted, anonymous, decentralized file storage backend built on IPFS. As an agent you can upload files, host static sites, mirror remote assets, and manage persistent pins — all via a simple REST API and without accounts or API keys for public operations.
 
-If Docker install/run is not possible in the environment, use the public instance as fallback:
-- `https://originless.besoeasy.com`
+---
 
-```bash
-docker run -d --restart unless-stopped --name originless \
-  -p 3232:3232 \
-  -p 4001:4001/tcp \
-  -p 4001:4001/udp \
-  -v originlessd:/data \
-  -e STORAGE_MAX=200GB \
-  ghcr.io/besoeasy/originless
+## Base URL
+
+```
+https://originless.besoeasy.com
 ```
 
-Base URL in examples:
-- `http://localhost:3232` (preferred, self-hosted)
-- `https://originless.besoeasy.com` (fallback only)
+---
 
-### 1) Upload one file
-**Endpoint:** `POST /upload`
+## Use Cases
 
-- Content type: `multipart/form-data`
-- Required field: `file`
+---
+
+### 1. Share a file with a user
+
+Upload any file (image, PDF, video, archive, etc.) to get a permanent IPFS link.
 
 ```bash
-curl -X POST \
-  -F "file=@/path/to/file.pdf" \
-  http://localhost:3232/upload
+curl -X POST -F "file=@/path/to/report.pdf" https://originless.besoeasy.com/upload
 ```
 
-### 2) Upload ZIP archive (extract + upload as folder)
-**Endpoint:** `POST /uploadzip`
+**Response:**
 
-- Content type: `multipart/form-data`
-- Required field: `file`
-- Validation: only `.zip` is accepted
-
-```bash
-curl -X POST \
-  -F "file=@/path/to/archive.zip" \
-  http://localhost:3232/uploadzip
+```json
+{
+  "status": "success",
+  "cid": "QmX...",
+  "url": "https://dweb.link/ipfs/QmX...?filename=report.pdf",
+  "size": 204800,
+  "type": "application/pdf",
+  "filename": "report.pdf"
+}
 ```
 
-### 3) Upload from URL
-**Endpoint:** `POST /remoteupload`
+Return the `url` to the user. It works in any browser without any account.
 
-- Content type: `application/json`
-- Required body field: `url`
-- URL protocols allowed: `http` and `https`
+---
+
+### 2. Host a Vue.js or React build
+
+After `npm run build`, zip the `dist/` folder and upload it. Originless extracts the zip and hosts the entire directory on IPFS as a browsable static site.
 
 ```bash
-curl -X POST \
+# Build the project
+npm run build
+
+# Zip the output
+cd dist && zip -r ../dist.zip . && cd ..
+
+# Upload
+curl -X POST -F "file=@dist.zip" https://originless.besoeasy.com/uploadzip
+```
+
+**Response:**
+
+```json
+{
+  "status": "success",
+  "cid": "QmX...",
+  "url": "https://dweb.link/ipfs/QmX.../",
+  "filename": "dist.zip",
+  "fileCount": 14
+}
+```
+
+Share the `url` — it opens as a live web app accessible to anyone, no server required.
+
+> For single-page apps that use client-side routing, share `url` + `index.html` directly: `https://dweb.link/ipfs/QmX.../index.html`
+
+---
+
+### 3. Mirror a remote URL to IPFS
+
+Fetch any HTTP/HTTPS resource and get a permanent IPFS link for it — useful when you need a stable, cacheable copy of an external asset.
+
+```bash
+curl -X POST https://originless.besoeasy.com/remoteupload \
   -H "Content-Type: application/json" \
-  -d '{"url":"https://example.com/file.zip"}' \
-  http://localhost:3232/remoteupload
+  -d '{"url":"https://example.com/dataset.csv"}'
 ```
 
-### Fallback rule
-If self-hosted Docker cannot be installed or started, replace `http://localhost:3232` with `https://originless.besoeasy.com` in the same commands.
+**Response:**
+
+```json
+{
+  "status": "success",
+  "cid": "QmX...",
+  "url": "https://dweb.link/ipfs/QmX...",
+  "filename": "dataset.csv",
+  "size": 512000,
+  "type": "text/csv",
+  "sourceUrl": "https://example.com/dataset.csv",
+  "timing": {
+    "download_ms": 800,
+    "upload_ms": 300,
+    "total_ms": 1100
+  }
+}
+```
+
+---
+
+### 4. Cache a slow or rate-limited upstream resource
+
+Use the proxy endpoint to fetch a URL, upload it to IPFS, and cache the CID for a given TTL. Repeat requests within TTL are served instantly without hitting the origin.
+
+```bash
+# Cache for 1 hour (3600 seconds)
+curl -L "https://originless.besoeasy.com/proxy?url=https://api.example.com/heavy-export.json&time=3600"
+```
+
+```bash
+# No caching — always fetch fresh
+curl -L "https://originless.besoeasy.com/proxy?url=https://example.com/live-data.json&time=0"
+```
+
+- Responds with a **302 redirect** to `https://dweb.link/ipfs/<CID>`
+- Max TTL: 7 days (`604800`)
+- Cache headers returned: `X-Proxy-Cache: HIT|MISS`, `X-Proxy-Cache-CID`, `X-Proxy-Cache-Expires`
+- Supports all HTTP methods — POST body is forwarded when applicable
+
+**When to use this over `/remoteupload`:** when you need repeated fast access to the same upstream resource during a session (e.g., proxying a large dataset or slow API response multiple times).
+
+---
+
+### 5. Upload a folder or multi-file project
+
+Zip any directory and use `/uploadzip`. Originless extracts it and stores the full folder structure on IPFS.
+
+```bash
+zip -r project.zip ./my-project/
+curl -X POST -F "file=@project.zip" https://originless.besoeasy.com/uploadzip
+```
+
+The returned `url` points to the root of the directory on IPFS. Append any filename to access individual files: `https://dweb.link/ipfs/QmX.../README.md`
+
+---
+
+### 6. Keep a file forever (pin management)
+
+By default uploads are unpinned and may be garbage-collected. To keep content permanently, pin its CID. This requires a Daku auth token.
+
+**Generate a keypair (first time only):**
+
+```bash
+node -e "const {generateKeyPair}=require('daku'); const k=generateKeyPair(); console.log(k);"
+```
+
+Or read the auto-generated keys from the Docker container logs on first start.
+
+**Pin a CID:**
+
+```bash
+curl -X POST https://originless.besoeasy.com/pin/add \
+  -H "daku: <your-token>" \
+  -H "Content-Type: application/json" \
+  -d '{"cids": ["QmX..."]}'
+```
+
+**List pinned CIDs:**
+
+```bash
+curl -H "daku: <your-token>" https://originless.besoeasy.com/pin/list
+```
+
+**Remove a pin:**
+
+```bash
+curl -X POST https://originless.besoeasy.com/pin/remove \
+  -H "daku: <your-token>" \
+  -H "Content-Type: application/json" \
+  -d '{"cid": "QmX..."}'
+```
+
+---
+
+### 7. Check node health and storage status
+
+```bash
+# Is the node up?
+curl https://originless.besoeasy.com/health
+
+# Storage usage, peer count, IPFS version
+curl https://originless.besoeasy.com/status
+```
+
+Use `/health` to verify the node is reachable before issuing uploads. Use `/status` to check available storage before uploading large files.
+
+---
+
+## Decision guide
+
+| Task                                      | Endpoint                                             |
+| ----------------------------------------- | ---------------------------------------------------- |
+| Upload a single file                      | `POST /upload`                                       |
+| Host a static site / frontend build       | `POST /uploadzip`                                    |
+| Upload a whole folder                     | `POST /uploadzip` (zip it first)                     |
+| Mirror a remote file to IPFS              | `POST /remoteupload`                                 |
+| Cache a slow upstream for repeated access | `GET /proxy?url=...&time=<ttl>`                      |
+| Keep a CID permanently                    | `POST /pin/add` (auth required)                      |
+| List / remove pins                        | `GET /pin/list` / `POST /pin/remove` (auth required) |
+| Verify node is running                    | `GET /health`                                        |
+| Check storage usage                       | `GET /status`                                        |
