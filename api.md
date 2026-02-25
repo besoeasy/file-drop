@@ -92,45 +92,6 @@ curl -X POST http://localhost:3232/remoteupload \
 
 ---
 
-### GET /proxy
-Fetches any HTTP/HTTPS URL, uploads the response body to IPFS, and redirects (302) to `https://dweb.link/ipfs/<CID>`. Results are cached in memory for the requested TTL so repeat requests skip the origin entirely.
-
-**Query parameters**
-
-| Parameter | Required | Description |
-|-----------|----------|-------------|
-| `url` | ✅ | The target URL to fetch (must be `http` or `https`) |
-| `time` | ✅ | Cache TTL in seconds. `0` disables caching. Max: `604800` (7 days) |
-
-**Request**
-
-```bash
-# Fetch and cache for 1 hour
-curl -L "http://localhost:3232/proxy?url=https://example.com/image.png&time=3600"
-```
-
-```bash
-# No caching
-curl -L "http://localhost:3232/proxy?url=https://example.com/file.pdf&time=0"
-```
-
-**Response**
-
-302 redirect to `https://dweb.link/ipfs/<CID>` with headers:
-
-| Header | Value |
-|--------|-------|
-| `X-Proxy-Cache` | `HIT` or `MISS` |
-| `X-Proxy-Cache-CID` | The IPFS CID of the content |
-| `X-Proxy-Cache-Expires` | UTC expiry date (on cache hits) |
-
-**Use cases**
-- Mirror any remote asset to IPFS with a stable link
-- Cache slow or rate-limited upstream APIs
-- Convert ephemeral URLs to permanent IPFS links
-
----
-
 ## Pin Management (Auth Required)
 
 Authentication is handled via [Daku](https://www.npmjs.com/package/daku). Send your Daku token in the `daku: <token>` header.

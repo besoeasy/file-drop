@@ -105,30 +105,7 @@ curl -X POST https://originless.besoeasy.com/remoteupload \
 
 ---
 
-### 4. Cache a slow or rate-limited upstream resource
-
-Use the proxy endpoint to fetch a URL, upload it to IPFS, and cache the CID for a given TTL. Repeat requests within TTL are served instantly without hitting the origin.
-
-```bash
-# Cache for 1 hour (3600 seconds)
-curl -L "https://originless.besoeasy.com/proxy?url=https://api.example.com/heavy-export.json&time=3600"
-```
-
-```bash
-# No caching — always fetch fresh
-curl -L "https://originless.besoeasy.com/proxy?url=https://example.com/live-data.json&time=0"
-```
-
-- Responds with a **302 redirect** to `https://dweb.link/ipfs/<CID>`
-- Max TTL: 7 days (`604800`)
-- Cache headers returned: `X-Proxy-Cache: HIT|MISS`, `X-Proxy-Cache-CID`, `X-Proxy-Cache-Expires`
-- Supports all HTTP methods — POST body is forwarded when applicable
-
-**When to use this over `/remoteupload`:** when you need repeated fast access to the same upstream resource during a session (e.g., proxying a large dataset or slow API response multiple times).
-
----
-
-### 5. Upload a folder or multi-file project
+### 4. Upload a folder or multi-file project
 
 Zip any directory and use `/uploadzip`. Originless extracts it and stores the full folder structure on IPFS.
 
@@ -141,7 +118,7 @@ The returned `url` points to the root of the directory on IPFS. Append any filen
 
 ---
 
-### 6. Keep a file forever (pin management)
+### 5. Keep a file forever (pin management)
 
 By default uploads are unpinned and may be garbage-collected. To keep content permanently, pin its CID. This requires a Daku auth token.
 
@@ -179,7 +156,7 @@ curl -X POST https://originless.besoeasy.com/pin/remove \
 
 ---
 
-### 7. Check node health and storage status
+### 6. Check node health and storage status
 
 ```bash
 # Is the node up?
@@ -201,7 +178,6 @@ Use `/health` to verify the node is reachable before issuing uploads. Use `/stat
 | Host a static site / frontend build       | `POST /uploadzip`                                    |
 | Upload a whole folder                     | `POST /uploadzip` (zip it first)                     |
 | Mirror a remote file to IPFS              | `POST /remoteupload`                                 |
-| Cache a slow upstream for repeated access | `GET /proxy?url=...&time=<ttl>`                      |
 | Keep a CID permanently                    | `POST /pin/add` (auth required)                      |
 | List / remove pins                        | `GET /pin/list` / `POST /pin/remove` (auth required) |
 | Verify node is running                    | `GET /health`                                        |

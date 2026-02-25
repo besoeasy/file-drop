@@ -27,7 +27,6 @@ const {
   pinAddHandler,
   pinListHandler,
   pinRemoveHandler,
-  proxyHandler,
 } = require("./modules/routes");
 
 const { refreshGateways } = require("./modules/gateways");
@@ -56,7 +55,6 @@ if (ALLOWED_USERS.length === 0) {
 
 // API Routes
 app.get("/health", healthHandler);
-app.all("/proxy", proxyHandler);
 app.get("/status", statusHandler);
 app.get("/api/pins", pinsHandler);
 app.post("/upload", upload.single("file"), uploadHandler);
