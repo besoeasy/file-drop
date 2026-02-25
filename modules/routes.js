@@ -2,11 +2,11 @@
 const fs = require("fs");
 const path = require("path");
 const mime = require("mime-types");
-const axios = require("axios");
 const FormData = require("form-data");
 const unzipper = require("unzipper");
 
-const { IPFS_API, STORAGE_MAX, FILE_LIMIT, PROXY_FILE_LIMIT, formatBytes, UPLOAD_TEMP_DIR } = require("./config");
+const { IPFS_API, STORAGE_MAX, FILE_LIMIT, REMOTE_FILE_LIMIT, formatBytes, UPLOAD_TEMP_DIR } = require("./config");
+const { axiosRequest, axiosStream } = require("./utils");
 const { checkIPFSHealth, getIPFSStats, pinCid, unpinCid } = require("./ipfs");
 const { getGatewayUrl, refreshGateways } = require("./gateways");
 
@@ -34,55 +34,6 @@ const unlinkSafe = async (filePath, context) => {
       console.warn(`${context || "Failed to delete temp file"}: ${err.message}`);
     }
   }
-};
-
-const axiosRequest = async (config, timeoutMs = 10000) => {
-  const res = await axios({
-    timeout: timeoutMs,
-    validateStatus: () => true,
-    ...config,
-  });
-
-  if (res.status < 200 || res.status >= 300) {
-    let text = "";
-    if (typeof res.data === "string") {
-      text = res.data;
-    } else if (Buffer.isBuffer(res.data)) {
-      text = res.data.toString("utf8");
-    } else if (res.data && typeof res.data === "object") {
-      try {
-        text = JSON.stringify(res.data);
-      } catch {
-        text = "";
-      }
-    }
-
-    const error = new Error(`HTTP ${res.status} ${res.statusText}${text ? `: ${text}` : ""}`);
-    error.status = res.status;
-    throw error;
-  }
-
-  return res;
-};
-
-const axiosStream = async (config, timeoutMs = 10000) => {
-  const res = await axios({
-    responseType: "stream",
-    timeout: timeoutMs,
-    validateStatus: () => true,
-    ...config,
-  });
-
-  if (res.status < 200 || res.status >= 300) {
-    const error = new Error(`Remote server returned ${res.status}: ${res.statusText}`);
-    error.status = res.status;
-    if (res.data && res.data.destroy) {
-      res.data.destroy();
-    }
-    throw error;
-  }
-
-  return res;
 };
 
 const streamToFileWithLimit = (readableStream, filePath, sizeLimit) => new Promise((resolve, reject) => {
@@ -214,8 +165,8 @@ const statusHandler = async (req, res) => {
       },
       remoteFileLimit: {
         configured: process.env.REMOTE_FILE_LIMIT || "2GB",
-        bytes: PROXY_FILE_LIMIT,
-        formatted: formatBytes(PROXY_FILE_LIMIT),
+        bytes: REMOTE_FILE_LIMIT,
+        formatted: formatBytes(REMOTE_FILE_LIMIT),
       },
       appVersion,
     });
@@ -488,80 +439,28 @@ const pinsHandler = async (req, res) => {
     const limit = Math.min(parseInt(req.query.limit) || 50, 200);
     const offset = parseInt(req.query.offset) || 0;
 
-    // Get pins grouped by NPUB
-    const groupedPins = getPinsGroupedByNpub(limit, offset);
-
-    // Build response with stats for each NPUB
-    const npubData = {};
-    Object.keys(groupedPins).forEach(npub => {
-      const pins = groupedPins[npub];
-      const stats = getStatsByNpub(npub);
-      const totalCount = countByNpub(npub);
-
-      // Calculate totals
-      const totalSize = stats.reduce((sum, stat) => sum + (stat.total_size || 0), 0);
-      const pinnedCount = stats.find(s => s.status === 'pinned')?.count || 0;
-      const pendingCount = stats.find(s => s.status === 'pending')?.count || 0;
-      const failedCount = stats.find(s => s.status === 'failed')?.count || 0;
-
-      npubData[npub] = {
-        npub,
-        pins: pins.map(pin => ({
-          id: pin.id,
-          eventId: pin.event_id,
-          cid: pin.cid,
-          size: pin.size,
-          timestamp: pin.timestamp,
-          author: pin.author,
-          type: pin.type,
-          status: pin.status,
-          createdAt: pin.created_at,
-          updatedAt: pin.updated_at,
-          // npub: pin.npub,
-        })),
-        stats: {
-          total: totalCount,
-          pinned: pinnedCount,
-          pending: pendingCount,
-          failed: failedCount,
-          totalSize: totalSize,
-        },
-        pagination: {
-          limit,
-          offset,
-          total: totalCount,
-          hasMore: offset + limit < totalCount,
-        },
-      };
-    });
-
+    const pins = getPins(limit, offset);
     const total = getTotalCount();
-    const globalStats = getStats();
+    const stats = getStats();
 
     res.json({
       success: true,
-      byNpub: npubData,
+      pins,
       pagination: {
         limit,
         offset,
         total,
         hasMore: offset + limit < total,
       },
-      stats: globalStats.reduce((acc, stat) => {
+      stats: stats.reduce((acc, stat) => {
         const key = `${stat.type}_${stat.status}`;
-        acc[key] = {
-          count: stat.count,
-          totalSize: stat.total_size,
-        };
+        acc[key] = { count: stat.count, totalSize: stat.total_size };
         return acc;
       }, {}),
     });
   } catch (err) {
     console.error("Pins handler error:", err);
-    res.status(500).json({
-      success: false,
-      error: err.message,
-    });
+    res.status(500).json({ success: false, error: err.message });
   }
 };
 
@@ -627,8 +526,8 @@ const remoteUploadHandler = async (req, res) => {
     }, 1800000);
 
     const contentLength = Number(response.headers["content-length"]) || 0;
-    if (contentLength && contentLength > PROXY_FILE_LIMIT) {
-      const error = new Error(`File size exceeds limit of ${formatBytes(PROXY_FILE_LIMIT)}`);
+    if (contentLength && contentLength > REMOTE_FILE_LIMIT) {
+      const error = new Error(`File size exceeds limit of ${formatBytes(REMOTE_FILE_LIMIT)}`);
       error.code = "FILE_TOO_LARGE";
       throw error;
     }
@@ -655,7 +554,7 @@ const remoteUploadHandler = async (req, res) => {
     tempFilePath = path.join(UPLOAD_TEMP_DIR, randomName);
 
     // Create write stream
-    const downloadedSize = await streamToFileWithLimit(response.data, tempFilePath, PROXY_FILE_LIMIT);
+    const downloadedSize = await streamToFileWithLimit(response.data, tempFilePath, REMOTE_FILE_LIMIT);
 
     const downloadDuration = Date.now() - downloadStart;
     console.log(`[REMOTE-UPLOAD] Downloaded ${formatBytes(downloadedSize)} in ${downloadDuration}ms`);
@@ -727,7 +626,7 @@ const remoteUploadHandler = async (req, res) => {
         error: "File too large",
         status: "error",
         message: err.message,
-        limit: formatBytes(PROXY_FILE_LIMIT),
+        limit: formatBytes(REMOTE_FILE_LIMIT),
         timestamp: new Date().toISOString(),
       });
     }

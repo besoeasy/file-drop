@@ -1,35 +1,6 @@
 // IPFS-related helper functions (Node.js, axios-based)
-const axios = require("axios");
 const { IPFS_API } = require("./config");
-
-const axiosRequest = async (config, timeoutMs = 10000) => {
-  const res = await axios({
-    timeout: timeoutMs,
-    validateStatus: () => true,
-    ...config,
-  });
-
-  if (res.status < 200 || res.status >= 300) {
-    let text = "";
-    if (typeof res.data === "string") {
-      text = res.data;
-    } else if (Buffer.isBuffer(res.data)) {
-      text = res.data.toString("utf8");
-    } else if (res.data && typeof res.data === "object") {
-      try {
-        text = JSON.stringify(res.data);
-      } catch {
-        text = "";
-      }
-    }
-
-    const error = new Error(`HTTP ${res.status} ${res.statusText}${text ? `: ${text}` : ""}`);
-    error.status = res.status;
-    throw error;
-  }
-
-  return res;
-};
+const { axiosRequest } = require("./utils");
 
 const fetchJson = async (url, options = {}, timeoutMs = 10000) => {
   const res = await axiosRequest(
