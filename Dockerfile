@@ -11,7 +11,7 @@ RUN apt-get update && \
   rm -rf /var/lib/apt/lists/*
 
 # Install IPFS (Kubo)
-RUN curl -fsSL "https://dist.ipfs.tech/kubo/v0.39.0/kubo_v0.39.0_linux-$(dpkg --print-architecture).tar.gz" | \
+RUN curl -fsSL "https://dist.ipfs.tech/kubo/v0.40.1/kubo_v0.40.1_linux-$(dpkg --print-architecture).tar.gz" | \
   tar -xz -C /tmp && \
   mv /tmp/kubo/ipfs /usr/local/bin/ipfs && \
   rm -rf /tmp/kubo
