@@ -34,13 +34,17 @@ docker run -d --restart unless-stopped --name originless \
 
 **Access:** Open http://localhost:3232
 
-### Public Gateway
+### Public Gateways
 
-Don't want to self-host? Use our public gateway:
+Don't want to self-host? Use one of the community-run public gateways:
 
-🌐 **https://originless.besoeasy.com/**
+| Gateway | URL |
+|---------|-----|
+| besoeasy | https://originless.besoeasy.com/ |
+| gupt.app | https://originless.gupt.app/ |
+| 0xchat | https://originless.0xchat.com/ |
 
-Simply replace `http://localhost:3232` with the public gateway URL in API calls.
+Simply replace `http://localhost:3232` with any public gateway URL in API calls.
 
 ---
 
@@ -183,7 +187,7 @@ Originless is already powering file storage for these platforms:
 
 <table>
 <tr>
-<td align="center" width="50%">
+<td align="center" width="33%">
 
 ### 💬 0xchat
 Private, decentralized Nostr chat
@@ -191,12 +195,20 @@ Private, decentralized Nostr chat
 [Visit 0xchat.com →](https://0xchat.com/)
 
 </td>
-<td align="center" width="50%">
+<td align="center" width="33%">
 
 ### 📝 ZeroNote
 Anonymous encrypted notes sharing
 
 [Visit zeronote.js.org →](https://zeronote.js.org/)
+
+</td>
+<td align="center" width="33%">
+
+### 🌐 gupt.app
+Private, anonymous file sharing
+
+[Visit gupt.app →](https://gupt.app/)
 
 </td>
 </tr>
