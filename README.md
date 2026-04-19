@@ -95,27 +95,7 @@ Simple REST API. Drop it into any app, tool, or platform in minutes.
 
 ---
 
-## 🎨 Example Applications
-
-**See what's possible with Originless:**
-
-<div align="center">
-
-[![Open Examples](https://img.shields.io/badge/🎯_Open_Live_Examples-2563eb?style=for-the-badge)](https://dweb.link/ipfs/QmTiXA22rjzx2g1yzDJmXu21AL5zM5dz7W9UquWSpL2ss2)
-
-</div>
-
-**Included demos:**
-- 🖼️ **Image Share** - Anonymous image upload with instant IPFS links
-- 📝 **Encrypted Notes** - Client-side encrypted note sharing
-- 🎨 **Gallery Drop** - Multi-file gallery creation
-- 🔊 **Audio Drop** - Anonymous audio file hosting
-- 📷 **QR Share** - Generate QR codes for instant sharing
-- 💾 **GitHub Backup** - Archive repositories to IPFS
-
----
-
-## � Deploy Vue.js & React Projects
+## 🚀 Deploy Vue.js & React Projects
 
 Originless lets you **instantly host and share your frontend builds** — no server, no domain, no CI/CD required. Build your project, zip the `dist/` folder, and upload. Anyone with the IPFS link can access it.
 
