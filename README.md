@@ -10,7 +10,7 @@
 
 **One storage backend to rule them all** — Drop into apps, screenshot tools, pastebin-style pastes, Nostr clients, Reddit posts, forum embeds. Durable, anonymous file hosting that keeps you private.
 
-[🚀 Quick Start](#-quick-start) • [🎯 Features](#-features) • [️ Deploy Frontend](#-deploy-vuejs--react-projects) • [🛠️ API Reference](#-api-reference) • [🤖 AI Agent Integration](#-ai-agent-integration) • [🌍 Public Gateway](https://originless.besoeasy.com)
+[🚀 Quick Start](#-quick-start) • [🎯 Features](#-features) • [🛠️ API Reference](#-api-reference) • [🤖 AI Agent Integration](#-ai-agent-integration) • [🌍 Public Gateway](https://originless.besoeasy.com)
 
 <img width="1536" src="https://github.com/user-attachments/assets/5014810c-cc51-4ad4-a1b8-6e4db510c09f" alt="Originless Banner" />
 
@@ -45,6 +45,20 @@ Don't want to self-host? Use one of the community-run public gateways:
 | 0xchat   | https://originless.0xchat.com/   |
 
 Simply replace `http://localhost:3232` with any public gateway URL in API calls.
+
+---
+
+## 🌟 Use Cases
+
+- **🌍 Decentralized Apps** — Build your frontend and upload the `dist` folder to host your live DApp on IPFS
+- **🖼️ Screenshot Tools** — Anonymous image hosting for screenshots and screen recordings
+- **📝 Pastebin Alternative** — Decentralized paste and snippet sharing
+- **💬 Nostr Clients** — Media attachments for decentralized social apps
+- **🎨 Portfolio Hosting** — Permanent galleries and portfolios that survive link rot
+- **📦 Package Distribution** — Resilient software and asset distribution
+- **🎵 Podcast Hosting** — Decentralized RSS feed media hosting
+- **💾 Backup Storage** — Self-healing backup infrastructure
+- **🔗 Link Preservation** — Archive important content permanently on IPFS
 
 ---
 
@@ -101,11 +115,31 @@ Simple REST API. Drop it into any app, tool, or platform in minutes.
 
 ---
 
-## �📸 Screenshots
+## 📸 Screenshots
 
 <div align="center">
 <img width="900" src="https://github.com/user-attachments/assets/6ed4908c-37aa-4973-a9c0-edb7c0fe479f" alt="Originless Web Interface" />
 </div>
+
+---
+
+## 🔄 How It Works
+
+```mermaid
+graph LR
+    A[📤 Upload File] --> B[🏠 Local IPFS Node]
+    B --> C[🌐 IPFS Network]
+    C --> D[👥 Peers Request]
+    D --> E[♻️ Content Spreads]
+
+    style A fill:#2563eb,color:#fff
+    style B fill:#10b981,color:#fff
+    style C fill:#8b5cf6,color:#fff
+```
+
+1. **📤 Upload** — Files stream to your local IPFS node (unpinned by default)
+2. **🌐 Propagate** — Content spreads via IPFS as peers request it
+3. **♻️ Self-Heal** — If garbage collected, your node repopulates content when online
 
 ---
 
@@ -147,26 +181,6 @@ Private, anonymous file sharing
 
 ---
 
-## 🔄 How It Works
-
-```mermaid
-graph LR
-    A[📤 Upload File] --> B[🏠 Local IPFS Node]
-    B --> C[🌐 IPFS Network]
-    C --> D[👥 Peers Request]
-    D --> E[♻️ Content Spreads]
-
-    style A fill:#2563eb,color:#fff
-    style B fill:#10b981,color:#fff
-    style C fill:#8b5cf6,color:#fff
-```
-
-1. **📤 Upload** — Files stream to your local IPFS node (unpinned by default)
-2. **🌐 Propagate** — Content spreads via IPFS as peers request it
-3. **♻️ Self-Heal** — If garbage collected, your node repopulates content when online
-
----
-
 ## ⚙️ Configuration
 
 ### Environment Variables
@@ -176,33 +190,27 @@ graph LR
 | `STORAGE_MAX` | `200GB` | Maximum storage limit for IPFS |
 | `PORT`        | `3232`  | API server port                |
 
-### Advanced Setup
-
 **Custom storage limit:**
 
 ```bash
 docker run -d ... -e STORAGE_MAX=500GB ghcr.io/besoeasy/originless
 ```
 
+---
+
 ## 🛠️ API Reference
 
 Base URL (local): `http://localhost:3232`
 
-### Overview
-
-- Responses are JSON unless otherwise noted.
+Responses are JSON unless otherwise noted.
 
 ### POST /upload
 
-Upload a file directly from your local system.
-
-**Request**
+Upload a single file.
 
 ```bash
 curl -X POST -F "file=@yourfile.pdf" http://localhost:3232/upload
 ```
-
-**Response**
 
 ```json
 {
@@ -217,15 +225,11 @@ curl -X POST -F "file=@yourfile.pdf" http://localhost:3232/upload
 
 ### POST /uploadzip
 
-Upload a `.zip` archive. Originless extracts it and stores the entire folder to IPFS as a directory. This is the endpoint to use for static site deploys.
-
-**Request**
+Upload a `.zip` archive. Originless extracts it and stores the entire folder to IPFS as a directory. Use this for static site and DApp deploys.
 
 ```bash
 curl -X POST -F "file=@dist.zip" http://localhost:3232/uploadzip
 ```
-
-**Response**
 
 ```json
 {
@@ -243,28 +247,12 @@ Open the returned `url` in a browser to view the hosted folder. For single-page 
 
 ## 🤖 AI Agent Integration
 
-Originless is an excellent drop-in tool for your AI agents. You can teach your AI agents to use Originless for uploading files, HTML reports, images, and PDFs seamlessly.
+Originless is an excellent drop-in tool for AI agents. Teach your agents (Cursor, GitHub Copilot, Claude, etc.) to use Originless for uploading HTML reports, images, PDFs, and built web apps — **no API keys, no accounts, no configuration required**.
 
-By giving your agents access to the Originless API, they can instantly share artifacts, diagnostic reports, and generative content via IPFS—**no hosting, user accounts, or API keys required**. Just point them to your running instance to automatically give them permanent, decentralized file sharing capabilities.
+Just point your agent at a running Originless instance and it can instantly publish artifacts to IPFS.
 
-### Example Prompts for your AI
+### Example Prompts
 
-Try giving these tasks to an agent or coding assistant (like Cursor or GitHub Copilot) that has terminal access:
-
-- _"What's the current Bitcoin price and what recent news do we have on Bitcoin? Create a beautiful `index.html` report with this data and upload it to Originless (https://originless.besoeasy.com/upload) so I can share it."_
-- _"Write a python script that generates a complex 3D fractal image, save it as a PNG, and upload it anonymously to my local Originless node (http://localhost:3232/upload)."_
+- _"What's the current Bitcoin price and what recent news do we have on Bitcoin? Create a beautiful `index.html` report with this data and upload it to Originless (`https://originless.besoeasy.com/upload`) so I can share it."_
+- _"Write a Python script that generates a complex 3D fractal image, save it as a PNG, and upload it to my local Originless node (`http://localhost:3232/upload`)."_
 - _"Build a small React app for a Pomodoro timer, build it to the `dist` folder, zip the output, and publish it as a live website to IPFS using `https://originless.besoeasy.com/uploadzip`."_
-
----
-
-## 🌟 Use Cases
-
-- **🌍 Decentralized Apps** — Build your frontend and upload the `dist` folder to host your live DApp
-- **🖼️ Screenshot Tools** — Anonymous image hosting for screenshots
-- **📝 Pastebin Alternative** — Decentralized paste sharing
-- **💬 Nostr Clients** — Media attachments for decentralized social
-- **🎨 Portfolio Hosting** — Permanent galleries and portfolios
-- **📦 Package Distribution** — Resilient software distribution
-- **🎵 Podcast Hosting** — Decentralized RSS feed media
-- **💾 Backup Storage** — Self-healing backup infrastructure
-- **🔗 Link Preservation** — Combat link rot with IPFS archiving
