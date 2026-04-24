@@ -38,10 +38,6 @@ const REMOTE_FILE_LIMIT = process.env.REMOTE_FILE_LIMIT ? parseSize(process.env.
 const HOST = "0.0.0.0";
 const UPLOAD_TEMP_DIR = "/tmp/originless";
 
-
-// Access Control
-const ALLOWED_USERS = process.env.ALLOWED_USERS ? process.env.ALLOWED_USERS.split(',').map(u => u.trim()).filter(u => u) : [];
-
 module.exports = {
   parseSize,
   formatBytes,
@@ -52,5 +48,4 @@ module.exports = {
   REMOTE_FILE_LIMIT,
   HOST,
   UPLOAD_TEMP_DIR,
-  ALLOWED_USERS,
 };

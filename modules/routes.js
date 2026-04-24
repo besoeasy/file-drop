@@ -7,22 +7,8 @@ const unzipper = require("unzipper");
 
 const { IPFS_API, STORAGE_MAX, FILE_LIMIT, REMOTE_FILE_LIMIT, formatBytes, UPLOAD_TEMP_DIR } = require("./config");
 const { axiosRequest, axiosStream } = require("./utils");
-const { checkIPFSHealth, getIPFSStats, pinCid, unpinCid } = require("./ipfs");
+const { checkIPFSHealth, getIPFSStats } = require("./ipfs");
 const { getGatewayUrl, refreshGateways } = require("./gateways");
-
-
-const {
-  getPins,
-  getPinsByType,
-  getStats,
-  getTotalCount,
-  getRecentPins,
-  countByTypeAndStatus,
-  getPinsByAuthor,
-  recordPin,
-  deletePin,
-  getPinByCid,
-} = require("./database");
 
 const unlinkSafe = async (filePath, context) => {
   if (!filePath) return;
@@ -433,37 +419,6 @@ const uploadZipHandler = async (req, res) => {
   }
 };
 
-// Pins history endpoint
-const pinsHandler = async (req, res) => {
-  try {
-    const limit = Math.min(parseInt(req.query.limit) || 50, 200);
-    const offset = parseInt(req.query.offset) || 0;
-
-    const pins = getPins(limit, offset);
-    const total = getTotalCount();
-    const stats = getStats();
-
-    res.json({
-      success: true,
-      pins,
-      pagination: {
-        limit,
-        offset,
-        total,
-        hasMore: offset + limit < total,
-      },
-      stats: stats.reduce((acc, stat) => {
-        const key = `${stat.type}_${stat.status}`;
-        acc[key] = { count: stat.count, totalSize: stat.total_size };
-        return acc;
-      }, {}),
-    });
-  } catch (err) {
-    console.error("Pins handler error:", err);
-    res.status(500).json({ success: false, error: err.message });
-  }
-};
-
 // Remote upload handler - downloads URL and uploads to IPFS, returns JSON
 const remoteUploadHandler = async (req, res) => {
   const crypto = require("crypto");
@@ -677,88 +632,10 @@ const remoteUploadHandler = async (req, res) => {
   }
 };
 
-// Add Pin Handler (Auth required)
-const pinAddHandler = async (req, res) => {
-  try {
-    const { cids } = req.body;
-    if (!Array.isArray(cids)) {
-      return res.status(400).json({ error: "cids must be an array" });
-    }
-
-    const userId = req.user.id;
-    const results = [];
-
-    for (const cid of cids) {
-      // pinCid handles pinning logic
-      const result = await pinCid(cid);
-
-      // Record in DB
-      recordPin({
-        cid,
-        author: userId,
-        type: 'user_pin',
-        status: result.alreadyPinned ? 'pinned' : 'pending',
-        timestamp: Date.now(),
-        // other fields implicit in recordPin or handled by it
-      });
-
-      results.push({ cid, status: result.message, pinned: result.success || result.alreadyPinned });
-    }
-
-    res.json({ success: true, results });
-  } catch (err) {
-    console.error("Pin add error:", err);
-    res.status(500).json({ error: err.message });
-  }
-};
-
-// List Pins Handler (Auth required)
-const pinListHandler = async (req, res) => {
-  try {
-    const limit = Math.min(parseInt(req.query.limit) || 50, 100);
-    const offset = parseInt(req.query.offset) || 0;
-    const pins = getPinsByAuthor(req.user.id, limit, offset);
-    res.json({ success: true, pins });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-};
-
-// Remove Pin Handler (Auth required)
-const pinRemoveHandler = async (req, res) => {
-  try {
-    const { cid } = req.body;
-    if (!cid) return res.status(400).json({ error: "CID required" });
-
-    // Verify ownership
-    const pin = getPinByCid(cid);
-    if (!pin) {
-      // If not in DB, maybe just try to unpin from IPFS if user claims it?
-      // But for security, we only allow removing tracked pins.
-      return res.status(404).json({ error: "Pin not found" });
-    }
-
-    if (pin.author !== req.user.id) {
-      return res.status(403).json({ error: "Not authorized to remove this pin" });
-    }
-
-    await unpinCid(cid);
-    deletePin(cid);
-    res.json({ success: true, cid });
-  } catch (err) {
-    console.error("Pin remove error:", err);
-    res.status(500).json({ error: err.message });
-  }
-};
-
 module.exports = {
   healthHandler,
   statusHandler,
   uploadHandler,
   uploadZipHandler,
-  pinsHandler,
   remoteUploadHandler,
-  pinAddHandler,
-  pinListHandler,
-  pinRemoveHandler,
 };

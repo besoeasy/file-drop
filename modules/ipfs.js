@@ -16,108 +16,6 @@ const fetchJson = async (url, options = {}, timeoutMs = 10000) => {
 };
 
 /**
- * Check if a CID is pinned in IPFS
- * @param {string} cid - The CID to check
- * @returns {Promise<boolean>} - True if pinned, false otherwise
- */
-const isPinned = async (cid) => {
-  try {
-    const endpoint = `${IPFS_API}/api/v0/pin/ls?arg=${encodeURIComponent(cid)}&type=recursive`;
-    const data = await fetchJson(endpoint, { method: "POST" }, 10000);
-    return data?.Keys && Object.keys(data.Keys).length > 0;
-  } catch (err) {
-    // If error (404, timeout, etc), assume not pinned
-    return false;
-  }
-};
-
-/**
- * Unpin a CID in IPFS
- * @param {string} cid - The CID to unpin
- * @returns {Promise<boolean>} - True if unpinned successfully
- */
-const unpinCid = async (cid) => {
-  try {
-    const endpoint = `${IPFS_API}/api/v0/pin/rm?arg=${encodeURIComponent(cid)}&recursive=true`;
-    await axiosRequest({ url: endpoint, method: "POST" }, 10000);
-    return true;
-  } catch (err) {
-    console.warn(`[IPFS-API] Failed to unpin ${cid}: ${err.message}`);
-    return false;
-  }
-};
-
-/**
- * Pin a CID in IPFS using API (fire-and-forget, non-blocking)
- * @param {string} cid - The CID to pin
- * @returns {Promise<{success: boolean, size: number, message: string, alreadyPinned: boolean, pending: boolean}>}
- */
-const pinCid = async (cid) => {
-  try {
-    // Check if already pinned first (most efficient check)
-    const alreadyPinned = await isPinned(cid);
-    if (alreadyPinned) {
-      const size = await getCidSize(cid);
-      const sizeMB = (size / 1024 / 1024).toFixed(2);
-      return {
-        success: true,
-        size,
-        message: `Already pinned (${sizeMB} MB)`,
-        alreadyPinned: true,
-        pending: false,
-      };
-    }
-
-    // Get peer count before pinning
-    let peerCount = 0;
-    try {
-      const peersResponse = await fetchJson(`${IPFS_API}/api/v0/swarm/peers`, { method: "POST" }, 3000);
-      peerCount = peersResponse.Peers?.length || 0;
-    } catch (err) {
-      console.warn(`[IPFS-API] Failed to get peer count: ${err.message}`);
-    }
-
-    console.log(`[IPFS-API] PIN_STARTING cid=${cid} mode=fire_and_forget peers=${peerCount}`);
-    console.log(`[IPFS] Trying to fetch CID ${cid.slice(0, 12)}..., using ${peerCount} peers`);
-
-    // Fire-and-forget: Start pin in background without waiting
-    const endpoint = `${IPFS_API}/api/v0/pin/add?arg=${encodeURIComponent(cid)}&recursive=true`;
-
-    // Start the pin operation but don't await it (cap body size to avoid buffer growth)
-    axiosRequest({ url: endpoint, method: "POST" }, 3 * 60 * 60 * 1000)
-      .then((res) => {
-        const data = res.data;
-        if (data && data.Pins) {
-          console.log(`[IPFS-API] PIN_COMPLETED cid=${cid}`);
-        } else {
-          console.error(`[IPFS-API] PIN_FAILED cid=${cid} no_pins_in_response`);
-        }
-      })
-      .catch((err) => {
-        console.error(`[IPFS-API] PIN_ERROR cid=${cid} error="${err.message}"`);
-      });
-
-    // Return immediately - pin is now running in background
-    return {
-      success: false,
-      pending: true,
-      size: 0,
-      message: "Pin started in background",
-      alreadyPinned: false,
-    };
-  } catch (err) {
-    console.error(`[IPFS-API] PIN_CHECK_ERROR cid=${cid} error="${err.message}"`);
-    return {
-      success: false,
-      pending: false,
-      size: 0,
-      message: err.message || "Pin check failed",
-      alreadyPinned: false,
-    };
-  }
-};
-
-/**
  * Get the size of a CID
  * @param {string} cid - The CID to get size for
  * @returns {Promise<number>} - Size in bytes
@@ -212,12 +110,8 @@ const getIPFSStats = async () => {
 };
 
 module.exports = {
-  isPinned,
-  pinCid,
   getCidSize,
-  getPinnedSize,
   checkIPFSHealth,
   getIPFSStats,
-  unpinCid,
 };
 

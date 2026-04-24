@@ -118,45 +118,7 @@ The returned `url` points to the root of the directory on IPFS. Append any filen
 
 ---
 
-### 5. Keep a file forever (pin management)
-
-By default uploads are unpinned and may be garbage-collected. To keep content permanently, pin its CID. This requires a Daku auth token.
-
-**Generate a keypair (first time only):**
-
-```bash
-node -e "const {generateKeyPair}=require('daku'); const k=generateKeyPair(); console.log(k);"
-```
-
-Or read the auto-generated keys from the Docker container logs on first start.
-
-**Pin a CID:**
-
-```bash
-curl -X POST https://originless.besoeasy.com/pin/add \
-  -H "daku: <your-token>" \
-  -H "Content-Type: application/json" \
-  -d '{"cids": ["QmX..."]}'
-```
-
-**List pinned CIDs:**
-
-```bash
-curl -H "daku: <your-token>" https://originless.besoeasy.com/pin/list
-```
-
-**Remove a pin:**
-
-```bash
-curl -X POST https://originless.besoeasy.com/pin/remove \
-  -H "daku: <your-token>" \
-  -H "Content-Type: application/json" \
-  -d '{"cid": "QmX..."}'
-```
-
----
-
-### 6. Check node health and storage status
+### 5. Check node health and storage status
 
 ```bash
 # Is the node up?
@@ -178,7 +140,5 @@ Use `/health` to verify the node is reachable before issuing uploads. Use `/stat
 | Host a static site / frontend build       | `POST /uploadzip`                                    |
 | Upload a whole folder                     | `POST /uploadzip` (zip it first)                     |
 | Mirror a remote file to IPFS              | `POST /remoteupload`                                 |
-| Keep a CID permanently                    | `POST /pin/add` (auth required)                      |
-| List / remove pins                        | `GET /pin/list` / `POST /pin/remove` (auth required) |
 | Verify node is running                    | `GET /health`                                        |
 | Check storage usage                       | `GET /status`                                        |

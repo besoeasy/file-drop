@@ -10,7 +10,7 @@
 
 **One storage backend to rule them all** — Drop into apps, screenshot tools, pastebin-style pastes, Nostr clients, Reddit posts, forum embeds. Durable, anonymous file hosting that keeps you private.
 
-[🚀 Quick Start](#-quick-start) • [🎯 Features](#-features) • [�️ Deploy Frontend](#-deploy-vuejs--react-projects) • [�📚 Documentation](api.md) • [🤖 AI Agent Guide](AGENTS.md) • [🌍 Public Gateway](https://originless.besoeasy.com)
+[🚀 Quick Start](#-quick-start) • [🎯 Features](#-features) • [�️ Deploy Frontend](#-deploy-vuejs--react-projects) • [🛠️ API Reference](#-api-reference) • [🤖 AI Agent Guide](AGENTS.md) • [🌍 Public Gateway](https://originless.besoeasy.com)
 
 <img width="1536" src="https://github.com/user-attachments/assets/5014810c-cc51-4ad4-a1b8-6e4db510c09f" alt="Originless Banner" />
 
@@ -80,8 +80,8 @@ Optional client-side encryption for sensitive content. Even the server operator 
 </td>
 <td width="33%" valign="top">
 
-### 📌 Pin Management
-Keep important files forever with authenticated pin management via Daku cryptographic auth.
+### 🧰 Minimal Surface
+Simple upload and hosting workflows without extra auth or admin layers.
 
 </td>
 <td width="33%" valign="top">
@@ -204,18 +204,15 @@ graph LR
     B --> C[🌐 IPFS Network]
     C --> D[👥 Peers Request]
     D --> E[♻️ Content Spreads]
-    E --> F[📌 Optional: Pin Forever]
     
     style A fill:#2563eb,color:#fff
     style B fill:#10b981,color:#fff
     style C fill:#8b5cf6,color:#fff
-    style F fill:#f59e0b,color:#fff
 ```
 
 1. **📤 Upload** — Files stream to your local IPFS node (unpinned by default)
 2. **🌐 Propagate** — Content spreads via IPFS as peers request it
 3. **♻️ Self-Heal** — If garbage collected, your node repopulates content when online
-4. **📌 Pin (Optional)** — Use authenticated pin management to keep content forever
 
 ---
 
@@ -223,7 +220,7 @@ graph LR
 
 | Resource | Description |
 |----------|-------------|
-| **[📖 API Documentation](api.md)** | Complete REST API reference with examples |
+| **[🛠️ API Reference](#-api-reference)** | Complete REST API reference with examples |
 | **[🤖 AI Agent Skills](AGENTS.md)** | Guide for AI agents to integrate Originless |
 | **[🔧 Configuration](#-configuration)** | Environment variables and settings |
 | **[🐳 Docker Hub](https://github.com/besoeasy/Originless/pkgs/container/originless)** | Official container images |
@@ -238,7 +235,6 @@ graph LR
 |----------|---------|-------------|
 | `STORAGE_MAX` | `200GB` | Maximum storage limit for IPFS |
 | `PORT` | `3232` | API server port |
-| `ALLOWED_USERS` | *auto-generated* | Comma-separated Daku public keys for access control |
 
 ### Advanced Setup
 
@@ -247,36 +243,89 @@ graph LR
 docker run -d ... -e STORAGE_MAX=500GB ghcr.io/besoeasy/originless
 ```
 
-**Whitelist specific users:**
+## 🛠️ API Reference
+
+Base URL (local): `http://localhost:3232`
+
+### Overview
+
+- Responses are JSON unless otherwise noted.
+
+### POST /upload
+Upload a file directly from your local system.
+
+**Request**
+
 ```bash
-docker run -d ... -e ALLOWED_USERS="pubkey1,pubkey2" ghcr.io/besoeasy/originless
+curl -X POST -F "file=@yourfile.pdf" http://localhost:3232/upload
 ```
 
----
+**Response**
 
-## 🛠️ API Quick Reference
-
-### Upload File
-```bash
-curl -X POST -F "file=@image.png" http://localhost:3232/upload
+```json
+{
+  "status": "success",
+  "cid": "QmX...",
+  "url": "https://dweb.link/ipfs/QmX...?filename=yourfile.pdf",
+  "size": 12345,
+  "type": "application/pdf",
+  "filename": "yourfile.pdf"
+}
 ```
 
-### Upload from URL
+### POST /uploadzip
+Upload a `.zip` archive. Originless extracts it and stores the entire folder to IPFS as a directory. This is the endpoint to use for static site deploys.
+
+**Request**
+
+```bash
+curl -X POST -F "file=@dist.zip" http://localhost:3232/uploadzip
+```
+
+**Response**
+
+```json
+{
+  "status": "success",
+  "cid": "QmX...",
+  "url": "https://dweb.link/ipfs/QmX.../",
+  "filename": "dist.zip",
+  "fileCount": 12
+}
+```
+
+Open the returned `url` in a browser to view the hosted folder. For single-page apps, append `/index.html` if needed.
+
+### POST /remoteupload
+Download and upload content from any URL to IPFS.
+
+**Request**
+
 ```bash
 curl -X POST http://localhost:3232/remoteupload \
   -H "Content-Type: application/json" \
-  -d '{"url":"https://example.com/file.pdf"}'
+  -d '{"url":"https://example.com/image.png"}'
 ```
 
-### Pin Content (Auth Required)
-```bash
-curl -X POST http://localhost:3232/pin/add \
-  -H "daku: YOUR_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"cids": ["QmHash..."]}'
-```
+**Response**
 
-**[📖 See full API documentation →](api.md)**
+```json
+{
+  "status": "success",
+  "cid": "QmX...",
+  "url": "https://dweb.link/ipfs/QmX...",
+  "filename": "image.png",
+  "size": 12345,
+  "type": "image/png",
+  "sourceUrl": "https://example.com/image.png",
+  "timing": {
+    "download_ms": 1234,
+    "upload_ms": 5678,
+    "total_ms": 6912
+  },
+  "timestamp": "2026-01-07T03:18:00.000Z"
+}
+```
 
 ---
 
@@ -285,7 +334,6 @@ curl -X POST http://localhost:3232/pin/add \
 Originless is **AI-native** with a comprehensive agent skills guide. AI assistants can:
 - Upload files anonymously for users
 - Create encrypted shares with client-side encryption
-- Manage persistent storage with pin operations
 - Build file hosting into any workflow
 
 Teach your AI agents this behavior:
@@ -315,18 +363,6 @@ curl -S https://raw.githubusercontent.com/besoeasy/Originless/refs/heads/main/AG
 - **🎵 Podcast Hosting** — Decentralized RSS feed media
 - **💾 Backup Storage** — Self-healing backup infrastructure
 - **🔗 Link Preservation** — Combat link rot with IPFS archiving
-
----
-
-## 🔐 Authentication
-
-Originless uses **[Daku](https://www.npmjs.com/package/daku)** for decentralized authentication:
-
-✅ **No passwords** — Cryptographic key pairs only  
-✅ **No accounts** — Self-sovereign identity  
-✅ **Nostr-compatible** — Use the same keys as Nostr  
-✅ **Proof-of-work** — Built-in spam protection  
-✅ **Stateless** — No server-side sessions or cookies  
 
 ---
 
@@ -379,7 +415,6 @@ Contributions are welcome! Whether it's:
 - **Docker:** [ghcr.io/besoeasy/originless](https://github.com/besoeasy/Originless/pkgs/container/originless)
 - **Public Gateway:** [originless.besoeasy.com](https://originless.besoeasy.com)
 - **IPFS Docs:** [docs.ipfs.tech](https://docs.ipfs.tech)
-- **Daku Auth:** [npmjs.com/package/daku](https://www.npmjs.com/package/daku)
 
 ---
 
