@@ -200,17 +200,6 @@ graph LR
 
 ---
 
-## 📚 Documentation
-
-| Resource                                                                              | Description                                 |
-| ------------------------------------------------------------------------------------- | ------------------------------------------- |
-| **[🛠️ API Reference](#-api-reference)**                                               | Complete REST API reference with examples   |
-| **[🤖 AI Agent Integration](#-ai-agent-integration)**                                 | Guide for AI agents to integrate Originless |
-| **[🔧 Configuration](#-configuration)**                                               | Environment variables and settings          |
-| **[🐳 Docker Hub](https://github.com/besoeasy/Originless/pkgs/container/originless)** | Official container images                   |
-
----
-
 ## ⚙️ Configuration
 
 ### Environment Variables
