@@ -101,39 +101,6 @@ Simple REST API. Drop it into any app, tool, or platform in minutes.
 
 ---
 
-## 🚀 Deploy Vue.js & React Projects
-
-Originless lets you **instantly host and share your frontend builds** — no server, no domain, no CI/CD required. Build your project, zip the `dist/` folder, and upload. Anyone with the IPFS link can access it.
-
-### One-liner deploy (after build)
-
-**React (Vite / CRA):**
-
-```bash
-npm run build && cd dist && zip -r ../dist.zip . && cd .. && \
-  curl -X POST -F "file=@dist.zip" https://originless.besoeasy.com/uploadzip
-```
-
-**Vue.js:**
-
-```bash
-npm run build && cd dist && zip -r ../dist.zip . && cd .. && \
-  curl -X POST -F "file=@dist.zip" https://originless.besoeasy.com/uploadzip
-```
-
-The response returns an IPFS CID and a shareable gateway URL — paste it anywhere, no hosting required.
-
-### Example response
-
-```json
-{
-  "cid": "QmXyz...",
-  "url": "https://dweb.link/ipfs/QmXyz..."
-}
-```
-
-Open the `url` in any browser to view your live app via the IPFS gateway.
-
 ## �📸 Screenshots
 
 <div align="center">
