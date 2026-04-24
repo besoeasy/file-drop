@@ -155,31 +155,45 @@
         </div>
 
         <div class="p-6 md:p-10">
-          <label for="fileInput" class="dropzone flex flex-col items-center justify-center p-12 text-center cursor-pointer min-h-[300px]" @dragover.prevent="isDragOver = true" @dragleave.prevent="isDragOver = false" @drop.prevent="handleDrop($event)" :class="isDragOver ? 'dropzone-active' : ''">
+          <label for="fileInput" class="dropzone flex flex-col items-center justify-center p-12 text-center cursor-pointer min-h-[300px] relative group" @dragover.prevent="isDragOver = true" @dragleave.prevent="isDragOver = false" @drop.prevent="handleDrop($event)" :class="isDragOver ? 'dropzone-active' : ''">
             
-            <i class="fas fa-arrow-down text-3xl mb-4 text-gray-300" :class="isDragOver ? 'accent-text' : ''"></i>
-            
-            <h2 class="text-xl font-bold mb-2 max-w-full break-words px-4">{{ fileLabel }}</h2>
-            
-            <p class="font-sans text-sm text-gray-500 px-4">
-              {{ uploadMode === 'zip' ? 'Drop a zipped folder or browse.' : 'Drop a file or browse.' }}
-              <br/>Paste is universally supported.
-            </p>
+            <template v-if="!file">
+              <span class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 group-hover:bg-red-50 text-gray-400 group-hover:text-brand transition-colors mb-4">
+                <i class="fas fa-upload text-2xl"></i>
+              </span>
+              
+              <h2 class="text-xl font-bold mb-2 max-w-full break-words px-4">{{ fileLabel }}</h2>
+              
+              <p class="font-sans text-sm text-gray-500 px-4 mb-6">
+                {{ uploadMode === 'zip' ? 'Drop a zipped folder here' : 'Drop a file here' }} or click to browse.
+                <br/>Paste is universally supported.
+              </p>
+
+              <span class="inline-block border border-line px-6 py-2 text-sm font-semibold uppercase tracking-wider text-black group-hover:border-black transition-colors">
+                Browse Files
+              </span>
+            </template>
+
+            <template v-else>
+              <div class="flex flex-col items-center justify-center w-full outline-none" @click.prevent="uploadFile">
+                <i class="fas fa-file-check text-4xl mb-4 accent-text"></i>
+                <div class="font-mono text-xs font-bold uppercase tracking-wider mb-2 text-gray-500">Ready to transmit</div>
+                <h2 class="text-2xl font-bold mb-6 max-w-full break-words px-4">{{ fileLabel }}</h2>
+                
+                <button type="button" @click.stop="uploadFile" :disabled="uploading" class="accent-block w-full max-w-xs text-white font-semibold text-lg uppercase tracking-wide py-4 px-8 transition-all hover:bg-red-600 disabled:opacity-50 flex justify-center items-center gap-3 shadow-lg hover:shadow-xl hover:-translate-y-1">
+                  <i v-if="uploading" class="fas fa-circle-notch fa-spin"></i>
+                  <i v-else class="fas fa-cloud-upload-alt"></i>
+                  {{ uploading ? 'Uploading...' : 'Upload Now' }}
+                </button>
+                <div class="mt-4 text-xs text-gray-400 underline hover:text-black" @click.stop.prevent="file = null; fileLabel = 'Select payload'">Cancel</div>
+              </div>
+            </template>
 
             <input type="file" id="fileInput" class="hidden" :accept="uploadMode === 'zip' ? '.zip' : ''" @change="updateFileLabel" />
           </label>
         </div>
 
-        <div class="p-6 border-t border-line flex justify-end items-center bg-gray-50 bg-opacity-30">
-          <span v-if="uploadMode === 'zip'" class="text-xs text-gray-500 mr-auto max-w-[200px] leading-tight">Archives are extracted server-side into a static web root on IPFS.</span>
-          <button @click="uploadFile" :disabled="uploading || !file" class="accent-block text-white font-semibold text-sm uppercase tracking-wide py-3 px-8 transition-all hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3">
-            <i v-if="uploading" class="fas fa-circle-notch fa-spin"></i>
-            {{ uploading ? 'Publishing...' : 'Publish' }}
-          </button>
-        </div>
-
-        <!-- PROGRESS BAR -->
-        <div v-if="uploading" class="h-1 w-full bg-gray-100 absolute bottom-0 left-0">
+        <div class="h-1 w-full bg-gray-100 absolute bottom-0 left-0">
           <div class="h-full bg-brand transition-all duration-300" :style="{ width: uploadProgress + '%' }"></div>
         </div>
       </section>
