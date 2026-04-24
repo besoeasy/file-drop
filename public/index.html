@@ -10,13 +10,13 @@
       theme: {
         extend: {
           colors: {
-            brand: '#0052ff', // sharp stark blue for accent
+            brand: '#ef4444', /* Swiss vermilion red */
             dark: '#111111',
-            light: '#ffffff'
+            line: '#e5e5e5', /* Hairline dividers */
           },
           fontFamily: {
-            sans: ['Space Grotesk', 'sans-serif'],
-            mono: ['IBM Plex Mono', 'monospace'],
+            sans: ['Inter', 'Helvetica', 'Arial', 'sans-serif'],
+            mono: ['IBM Plex Mono', 'Courier', 'monospace'],
           }
         }
       }
@@ -26,317 +26,316 @@
   <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
   <style>
-    @import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Space+Grotesk:wght@400;600;700&display=swap");
-
-    /* Minimal rounded corners */
-    * {
-      box-sizing: border-box;
-    }
+    @import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap");
 
     body {
       margin: 0;
-      background-color: #f4f4f0;
+      background-color: #ffffff;
       color: var(--dark);
-      font-family: "Space Grotesk", sans-serif;
+      font-family: "Inter", sans-serif;
       -webkit-font-smoothing: antialiased;
     }
 
-    /* Brutalist utility classes */
-    .border-thick {
-      border: 3px solid #111;
-      border-radius: 6px;
+    * {
+      box-sizing: border-box;
+      border-radius: 2px !important; /* Swiss minimal rounding */
     }
-    .border-standard {
-      border: 2px solid #111;
-      border-radius: 4px;
-    }
-    
-    /* Straighten connected edges */
-    .border-t-0 { border-top-left-radius: 0; border-top-right-radius: 0; }
-    .border-b-0 { border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
-    .border-l-0 { border-top-left-radius: 0; border-bottom-left-radius: 0; }
-    .border-r-0 { border-top-right-radius: 0; border-bottom-right-radius: 0; }
-    
-    .rounded-none-l { border-top-left-radius: 0; border-bottom-left-radius: 0; }
-    .rounded-none-r { border-top-right-radius: 0; border-bottom-right-radius: 0; }
 
-    .shadow-hard {
-      box-shadow: 6px 6px 0 0 #111;
+    /* Swiss layout styling */
+    .swiss-grid {
+      display: grid;
+      border: 1px solid var(--line);
     }
-    .shadow-hard-hover {
-      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    
+    .swiss-cell {
+      border: 1px solid var(--line);
+      padding: 1.5rem;
     }
-    .shadow-hard-hover:hover {
-      transform: translate(-2px, -2px);
-      box-shadow: 8px 8px 0 0 #111;
+
+    .swiss-cell-header {
+      border-bottom: 1px solid var(--line);
+      padding-bottom: 1rem;
+      margin-bottom: 1.5rem;
     }
-    .shadow-hard-hover:active {
-      transform: translate(2px, 2px);
-      box-shadow: 4px 4px 0 0 #111;
+
+    .heading-title {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      font-weight: 600;
+      color: #666;
+    }
+
+    .accent-block {
+      background-color: var(--brand);
+      color: white;
+    }
+    
+    .accent-text {
+      color: var(--brand);
+    }
+
+    .dropzone {
+      border: 1px dashed #ccc;
+      transition: all 0.2s ease;
     }
 
     .dropzone-active {
-      background-color: #0052ff !important;
-      color: #fff !important;
-      border-color: #111 !important;
-    }
-    .dropzone-active * {
-      color: #fff !important;
+      border-style: solid;
+      border-color: var(--brand);
+      background-color: #fef2f2; /* Light vermilion wash */
     }
 
-    /* Custom scrollbar to fit the aesthetic */
-    ::-webkit-scrollbar {
-      width: 12px;
-      height: 12px;
-      border-left: 2px solid #111;
-    }
-    ::-webkit-scrollbar-track {
-      background: #f4f4f0;
-    }
-    ::-webkit-scrollbar-thumb {
-      background: #111;
-      border: 2px solid #f4f4f0;
-    }
-    
-    .loading-bar {
-      height: 100%;
-      background-color: #0052ff;
-      border-right: 2px solid #111;
-      transition: width 0.2s linear;
+    .dropzone:hover:not(.dropzone-active) {
+      border-color: #999;
+      background-color: #fafafa;
     }
 
     input:focus, textarea:focus, button:focus {
       outline: none;
-      box-shadow: inset 0 0 0 2px #0052ff;
+      box-shadow: 0 0 0 1px var(--brand);
+    }
+
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #ffffff; 
+      border-left: 1px solid var(--line);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #d4d4d8; 
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #a1a1aa; 
     }
   </style>
 </head>
-<body class="p-4 sm:p-6 md:p-8 min-h-screen flex flex-col gap-6">
+<body class="min-h-screen">
 
-<div id="app" class="max-w-6xl w-full mx-auto outline-none flex flex-col gap-6" tabindex="0" @paste="handlePaste">
+<div id="app" class="max-w-7xl mx-auto p-4 sm:p-8 md:p-12 outline-none flex flex-col gap-8" tabindex="0" @paste="handlePaste">
 
-  <!-- HEADER -->
-  <header class="bg-white border-thick p-5 sm:p-6 flex flex-col md:flex-row justify-between items-start md:items-end shadow-hard">
-    <div>
-      <div class="font-mono text-xs font-bold uppercase tracking-[0.2em] mb-3 text-brand">Decentralized Object Storage</div>
-      <h1 class="text-4xl sm:text-5xl md:text-6xl font-bold uppercase tracking-tighter leading-none">Originless</h1>
+  <!-- HEADER / MASTHEAD -->
+  <header class="swiss-grid grid-cols-1 md:grid-cols-4 lg:grid-cols-5 border-l-0 border-r-0 border-t-0 pb-8 gap-8 items-end">
+    <div class="col-span-1 md:col-span-2 lg:col-span-3">
+      <div class="heading-title mb-2">Besoeasy Publishing</div>
+      <h1 class="text-5xl font-bold tracking-tight">Originless<span class="accent-text">.</span></h1>
     </div>
-    <div class="mt-6 md:mt-0 flex flex-col gap-2 font-mono text-sm w-full md:w-auto">
-      <div class="border-standard bg-white flex justify-between md:justify-start">
-        <span class="bg-dark text-white font-bold px-3 py-1 uppercase object-contain flex items-center justify-center">Peers</span>
-        <span class="px-3 py-1 font-bold">{{ status.peerscount }}</span>
+    
+    <div class="col-span-1 md:col-span-2 lg:col-span-2 grid grid-cols-2 gap-4">
+      <div class="border-l border-line pl-4">
+        <div class="heading-title mb-1">Status</div>
+        <div class="font-mono text-sm">
+          <span class="w-2 h-2 inline-block rounded-full bg-brand mr-1 relative -top-px"></span>
+          {{ status.peerscount }} Peers Online
+        </div>
       </div>
-      <div class="border-standard bg-white flex justify-between md:justify-start">
-        <span class="bg-dark text-white font-bold px-3 py-1 uppercase">Limit</span>
-        <span class="px-3 py-1 font-bold">{{ status.fileLimit }}</span>
+      <div class="border-l border-line pl-4">
+        <div class="heading-title mb-1">Capacity</div>
+        <div class="font-mono text-sm">{{ status.fileLimit }} Max</div>
       </div>
-      <a href="https://github.com/besoeasy/Originless" target="_blank" class="border-standard bg-brand text-white font-bold px-3 py-1 uppercase text-center hover:bg-dark transition-colors">
-        <i class="fab fa-github mr-2"></i>GitHub
-      </a>
     </div>
   </header>
 
-  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+  <!-- MAIN BODY GRID -->
+  <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
     
-    <!-- MAIN WORKSPACE -->
-    <main class="lg:col-span-2 flex flex-col gap-6">
+    <!-- LEFT CONTENT (UPLOAD FORMS) -->
+    <main class="lg:col-span-8 flex flex-col gap-8">
       
-      <!-- CONTROLS -->
-      <div class="bg-white border-thick shadow-hard relative z-10 flex border-b-0">
-        <button @click="setUploadMode('file')" :class="['flex-1 p-4 rounded-none-r text-center font-bold uppercase tracking-wider transition-colors border-r-2 border-dark border-b-2', uploadMode === 'file' ? 'bg-brand text-white border-b-transparent' : 'bg-white hover:bg-gray-100 border-b-dark']">
-          <i class="fas fa-file mr-2"></i>File Target
-        </button>
-        <button @click="setUploadMode('zip')" :class="['flex-1 p-4 rounded-none-l text-center font-bold uppercase tracking-wider transition-colors border-b-2 border-dark', uploadMode === 'zip' ? 'bg-brand text-white border-b-transparent' : 'bg-white hover:bg-gray-100 border-b-dark']">
-          <i class="fas fa-box-archive mr-2"></i>ZIP Directory
-        </button>
-      </div>
-
-      <!-- DROPZONE -->
-      <label for="fileInput" class="bg-white border-thick border-t-0 p-8 sm:p-16 flex flex-col items-center justify-center text-center cursor-pointer shadow-hard transition-colors duration-150 -mt-6 pt-12" @dragover.prevent="isDragOver = true" @dragleave.prevent="isDragOver = false" @drop.prevent="handleDrop($event)" :class="isDragOver ? 'dropzone-active' : 'hover:bg-gray-50'">
-        <div class="border-standard p-4 bg-white mb-6">
-          <i class="fas fa-arrow-down text-4xl text-dark"></i>
+      <section class="border border-line relative">
+        <div class="flex border-b border-line bg-gray-50/50">
+          <button @click="setUploadMode('file')" :class="['flex-1 p-4 text-sm font-semibold uppercase tracking-wider transition-colors', uploadMode === 'file' ? 'bg-white border-b-2 border-b-brand text-black' : 'text-gray-500 hover:text-black']">
+            Payload
+          </button>
+          <div class="w-px bg-line"></div>
+          <button @click="setUploadMode('zip')" :class="['flex-1 p-4 text-sm font-semibold uppercase tracking-wider transition-colors', uploadMode === 'zip' ? 'bg-white border-b-2 border-b-brand text-black' : 'text-gray-500 hover:text-black']">
+            Directory (ZIP)
+          </button>
         </div>
-        <h2 class="text-3xl font-bold tracking-tight mb-4 break-all">{{ fileLabel }}</h2>
-        <p class="font-mono text-sm uppercase font-bold text-gray-500 max-w-md">
-          {{ uploadMode === 'zip' ? 'DROP .ZIP ARCHIVE OR CLICK TO BROWSE' : 'DROP FILE OR CLICK TO BROWSE' }}
-          <br/><span class="mt-2 text-xs">PASTE SUPPORTED</span>
-        </p>
 
-        <input type="file" id="fileInput" class="hidden" :accept="uploadMode === 'zip' ? '.zip' : ''" @change="updateFileLabel" />
-        
-        <div v-if="uploadMode === 'zip'" class="mt-8 border-standard border-l-4 border-l-brand bg-gray-100 p-4 font-mono text-xs text-left max-w-md">
-          Zipped archives will be recursively extracted and hosted as a static web directory on IPFS.
+        <div class="p-6 md:p-10">
+          <label for="fileInput" class="dropzone flex flex-col items-center justify-center p-12 text-center cursor-pointer min-h-[300px]" @dragover.prevent="isDragOver = true" @dragleave.prevent="isDragOver = false" @drop.prevent="handleDrop($event)" :class="isDragOver ? 'dropzone-active' : ''">
+            
+            <i class="fas fa-arrow-down text-3xl mb-4 text-gray-300" :class="isDragOver ? 'accent-text' : ''"></i>
+            
+            <h2 class="text-xl font-bold mb-2 max-w-full break-words px-4">{{ fileLabel }}</h2>
+            
+            <p class="font-sans text-sm text-gray-500 px-4">
+              {{ uploadMode === 'zip' ? 'Drop a zipped folder or browse.' : 'Drop a file or browse.' }}
+              <br/>Paste is universally supported.
+            </p>
+
+            <input type="file" id="fileInput" class="hidden" :accept="uploadMode === 'zip' ? '.zip' : ''" @change="updateFileLabel" />
+          </label>
         </div>
-      </label>
 
-      <!-- UPLOAD ACTION -->
-      <button @click="uploadFile" :disabled="uploading || !file" class="bg-dark text-white border-thick font-bold text-xl uppercase tracking-widest py-5 px-6 shadow-hard-hover disabled:opacity-50 disabled:pointer-events-none disabled:shadow-none flex justify-center items-center gap-4">
-        <i v-if="uploading" class="fas fa-spinner fa-spin"></i>
-        <i v-else class="fas fa-upload"></i>
-        {{ uploading ? 'TRANSMITTING...' : 'INITIATE UPLOAD' }}
-      </button>
-
-      <!-- PROGRESS & RESULT -->
-      <div v-if="uploading" class="bg-white border-thick shadow-hard p-1 relative h-10 mt-2">
-        <div class="loading-bar flex items-center justify-end px-2 font-mono text-xs font-bold text-white overflow-hidden whitespace-nowrap" :style="{ width: uploadProgress + '%' }">
-          {{ uploadProgress.toFixed(1) }}%
+        <div class="p-6 border-t border-line flex justify-end items-center bg-gray-50 bg-opacity-30">
+          <span v-if="uploadMode === 'zip'" class="text-xs text-gray-500 mr-auto max-w-[200px] leading-tight">Archives are extracted server-side into a static web root on IPFS.</span>
+          <button @click="uploadFile" :disabled="uploading || !file" class="accent-block text-white font-semibold text-sm uppercase tracking-wide py-3 px-8 transition-all hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3">
+            <i v-if="uploading" class="fas fa-circle-notch fa-spin"></i>
+            {{ uploading ? 'Publishing...' : 'Publish' }}
+          </button>
         </div>
-      </div>
 
-      <div v-if="result" class="bg-white border-thick shadow-hard p-6 md:p-8 mt-2">
-        <template v-if="result.success">
-          <div class="mb-8">
-            <span class="bg-black text-white font-mono text-xs px-2 py-1 uppercase font-bold tracking-widest">Success</span>
-            <h3 class="text-3xl font-bold mt-4 break-words">Payload Delivered</h3>
-          </div>
+        <!-- PROGRESS BAR -->
+        <div v-if="uploading" class="h-1 w-full bg-gray-100 absolute bottom-0 left-0">
+          <div class="h-full bg-brand transition-all duration-300" :style="{ width: uploadProgress + '%' }"></div>
+        </div>
+      </section>
+
+      <!-- RESULTS SECTION -->
+      <section v-if="result" class="border border-line animate-fade-in">
+        <div v-if="result.success" class="p-0">
           
-          <div class="flex flex-wrap border-standard border-b-0 rounded-t-md">
-            <button @click="activeTab = 'details'" :class="['flex-1 p-3 rounded-tl-md font-mono text-xs md:text-sm font-bold uppercase transition-colors border-b-2 border-dark border-r-2', activeTab === 'details' ? 'bg-dark text-white border-b-transparent' : 'bg-gray-100 hover:bg-gray-200']">Details</button>
-            <button @click="activeTab = 'urls'" :class="['flex-1 p-3 font-mono text-xs md:text-sm font-bold uppercase transition-colors border-b-2 border-dark', activeTab === 'urls' ? 'bg-dark text-white border-b-transparent' : 'bg-gray-100 hover:bg-gray-200']">Access</button>
-            <button v-if="result.fileType" @click="activeTab = 'embed'" :class="['flex-1 p-3 rounded-tr-md font-mono text-xs md:text-sm font-bold uppercase transition-colors border-b-2 border-dark border-l-2', activeTab === 'embed' ? 'bg-dark text-white border-b-transparent' : 'bg-gray-100 hover:bg-gray-200']">Embed</button>
+          <div class="p-6 md:p-8 border-b border-line flex justify-between items-start">
+            <div>
+              <div class="heading-title mb-1 accent-text">Receipt</div>
+              <h3 class="text-2xl font-bold">{{ result.fileName }}</h3>
+              <p class="text-gray-500 text-sm mt-1">Successfully anchored to IPFS.</p>
+            </div>
+            <div class="text-right">
+              <div class="font-mono text-xl font-bold">{{ result.size }}</div>
+              <div class="heading-title mt-1">{{ result.mimeType || result.fileType }}</div>
+            </div>
           </div>
 
-          <div class="border-standard p-5 md:p-6 bg-white min-h-[250px] rounded-b-md">
-            <!-- DETAILS TAB -->
-            <div v-if="activeTab === 'details'" class="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-6">
+          <div class="flex border-b border-line bg-gray-50/50">
+            <button @click="activeTab = 'urls'" :class="['px-6 py-3 text-xs font-semibold uppercase tracking-wider border-r border-line transition-colors', activeTab === 'urls' ? 'bg-white border-b-2 border-b-brand text-black' : 'text-gray-500 hover:text-black']">Routing</button>
+            <button @click="activeTab = 'details'" :class="['px-6 py-3 text-xs font-semibold uppercase tracking-wider border-r border-line transition-colors', activeTab === 'details' ? 'bg-white border-b-2 border-b-brand text-black' : 'text-gray-500 hover:text-black']">Metadata</button>
+            <button v-if="result.fileType" @click="activeTab = 'embed'" :class="['px-6 py-3 text-xs font-semibold uppercase tracking-wider border-r border-line transition-colors', activeTab === 'embed' ? 'bg-white border-b-2 border-b-brand text-black' : 'text-gray-500 hover:text-black']">Embed Codes</button>
+          </div>
+
+          <div class="p-6 md:p-8 bg-white min-h-[200px]">
+            
+            <!-- URLS TAB -->
+            <div v-if="activeTab === 'urls'" class="space-y-6">
               <div>
-                <label class="font-mono text-xs text-gray-500 font-bold uppercase block mb-1">Target</label>
-                <div class="font-bold break-words">{{ result.fileName }}</div>
+                <label class="heading-title block mb-2">Public Gateway URL</label>
+                <div class="flex">
+                  <input type="text" :value="getGatewayUrlForResult(result)" readonly class="flex-1 border border-line p-3 font-mono text-sm bg-gray-50" @click="$event.target.select()" />
+                  <a :href="getGatewayUrlForResult(result)" target="_blank" class="border border-line border-l-0 px-4 flex items-center justify-center hover:bg-gray-50 text-gray-600 transition-colors">
+                    <i class="fas fa-external-link-alt"></i>
+                  </a>
+                </div>
               </div>
               <div>
-                <label class="font-mono text-xs text-gray-500 font-bold uppercase block mb-1">MIME</label>
-                <div class="font-bold uppercase">{{ result.mimeType || result.fileType }}</div>
-              </div>
-              <div>
-                <label class="font-mono text-xs text-gray-500 font-bold uppercase block mb-1">Size</label>
-                <div class="font-bold text-2xl tracking-tighter">{{ result.size }}</div>
-              </div>
-              <div v-if="result.files">
-                <label class="font-mono text-xs text-gray-500 font-bold uppercase block mb-1">Contents</label>
-                <div class="font-bold text-2xl tracking-tighter">{{ result.files }} <span class="text-sm">files</span></div>
-              </div>
-              <div class="sm:col-span-2 mt-2">
-                <label class="font-mono text-xs text-brand font-bold uppercase block mb-2"><i class="fas fa-fingerprint mr-2"></i>CID HASH</label>
-                <div class="border-standard bg-gray-50 p-4 font-mono text-xs break-all selection:bg-brand selection:text-white">{{ result.cid }}</div>
+                <label class="heading-title block mb-2">IPFS Protocol URI</label>
+                <input type="text" :value="getIpfsUrlWithFilename(result.cid, result.fileName)" readonly class="w-full border border-line p-3 font-mono text-sm bg-gray-50" @click="$event.target.select()" />
               </div>
             </div>
 
-            <!-- URLS TAB -->
-            <div v-if="activeTab === 'urls'" class="flex flex-col gap-6">
+            <!-- DETAILS TAB -->
+            <div v-if="activeTab === 'details'" class="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div>
-                <label class="font-mono text-xs font-bold uppercase block mb-2 flex justify-between">
-                  <span>Public Gateway</span>
-                  <a :href="getGatewayUrlForResult(result)" target="_blank" class="text-brand hover:underline">OPEN <i class="fas fa-external-link-alt ml-1"></i></a>
-                </label>
-                <input type="text" :value="getGatewayUrlForResult(result)" readonly class="w-full border-standard p-4 font-mono text-sm bg-gray-50 text-dark" @click="$event.target.select()" />
+                <div class="heading-title mb-1">Content ID (CID)</div>
+                <div class="font-mono text-xs break-all bg-gray-50 p-3 border border-line">{{ result.cid }}</div>
               </div>
-              <div>
-                <label class="font-mono text-xs font-bold uppercase block mb-2">Native IPFS URI</label>
-                <input type="text" :value="getIpfsUrlWithFilename(result.cid, result.fileName)" readonly class="w-full border-standard p-4 font-mono text-sm bg-gray-50 text-dark" @click="$event.target.select()" />
+              <div v-if="result.files">
+                <div class="heading-title mb-1">Object Count</div>
+                <div class="font-mono text-lg">{{ result.files }} <span class="text-xs text-gray-500">items</span></div>
               </div>
             </div>
 
             <!-- EMBED TAB -->
-            <div v-if="activeTab === 'embed' && result.fileType" class="flex flex-col gap-6">
+            <div v-if="activeTab === 'embed' && result.fileType" class="space-y-6">
               <div>
-                <label class="font-mono text-xs font-bold uppercase block mb-2">HTML RAW</label>
-                <textarea :value="getHtmlEmbed(result.cid, result.fileType, result.fileName)" readonly rows="3" class="w-full border-standard p-4 font-mono text-sm bg-gray-50 resize-none text-dark" @click="$event.target.select()"></textarea>
-              </div>
-              <div>
-                <label class="font-mono text-xs font-bold uppercase block mb-2">BBCODE</label>
-                <textarea :value="getBBCodeEmbed(result.cid, result.fileType, result.fileName)" readonly rows="2" class="w-full border-standard p-4 font-mono text-sm bg-gray-50 resize-none text-dark" @click="$event.target.select()"></textarea>
+                <label class="heading-title block mb-2">HTML Snippet</label>
+                <textarea :value="getHtmlEmbed(result.cid, result.fileType, result.fileName)" readonly rows="3" class="w-full border border-line p-3 font-mono text-sm bg-gray-50 resize-none" @click="$event.target.select()"></textarea>
               </div>
             </div>
+
           </div>
-        </template>
+        </div>
         
-        <template v-else>
-          <!-- ERROR STATE -->
-          <div class="border-thick border-red-600 bg-red-50 p-6 flex items-start gap-4">
-            <i class="fas fa-exclamation-triangle text-3xl text-red-600"></i>
-            <div>
-              <h3 class="text-xl font-bold text-red-600 uppercase mb-2">Operation Failed</h3>
-              <p class="font-mono text-sm">{{ result.message }}</p>
-            </div>
-          </div>
-        </template>
-      </div>
+        <div v-else class="p-6 md:p-8 bg-red-50 border-l-4 border-brand">
+          <div class="heading-title accent-text mb-2">Exception Thrown</div>
+          <h3 class="text-lg font-semibold text-red-900">{{ result.message }}</h3>
+        </div>
+      </section>
 
     </main>
 
-    <!-- SIDEBAR -->
-    <aside class="flex flex-col gap-6">
+    <!-- RIGHT CONTENT (SIDEBAR/TELEMETRY) -->
+    <aside class="lg:col-span-4 flex flex-col gap-8">
       
-      <!-- CLI PANEL -->
-      <div class="bg-dark text-white border-thick border-dark shadow-hard p-6">
-        <h3 class="font-bold text-xl uppercase tracking-tighter mb-1 border-b-2 border-white pb-3 flex justify-between items-center">
-          Terminal API
-          <button @click="showCli = !showCli" class="text-sm bg-white text-dark px-2 border border-white hover:bg-dark hover:text-white transition-colors">
-            {{ showCli ? 'HIDE' : 'SHOW' }}
-          </button>
-        </h3>
-        
-        <div v-if="showCli" class="mt-4 flex flex-col gap-5">
-          <div>
-            <div class="flex justify-between items-end mb-2">
-              <span class="font-mono text-xs text-brand font-bold uppercase">Single File</span>
-              <button @click="copyCurlCommand('file')" class="text-xs hover:text-brand font-mono font-bold">
-                <i :class="copied ? 'fas fa-check text-brand' : 'fas fa-copy'"></i> COPY
-              </button>
-            </div>
-            <code class="block w-full bg-black border border-gray-700 p-3 font-mono text-xs break-all selection:bg-brand">
-              curl -X POST -F "file=@file.ext" {{ currentUrl }}/upload
-            </code>
-          </div>
-          <div>
-            <div class="flex justify-between items-end mb-2">
-              <span class="font-mono text-xs text-brand font-bold uppercase">ZIP Directory</span>
-              <button @click="copyCurlCommand('zip')" class="text-xs hover:text-brand font-mono font-bold">
-                <i :class="copied ? 'fas fa-check text-brand' : 'fas fa-copy'"></i> COPY
-              </button>
-            </div>
-            <code class="block w-full bg-black border border-gray-700 p-3 font-mono text-xs break-all selection:bg-brand">
-              curl -X POST -F "file=@dir.zip" {{ currentUrl }}/uploadzip
-            </code>
-          </div>
-        </div>
-        <p v-else class="text-sm font-mono mt-4 text-gray-400">
-          CLI syntax for direct interactions.
-        </p>
-      </div>
-
       <!-- NODE TELEMETRY -->
-      <div class="bg-white border-thick shadow-hard p-6">
-        <h3 class="font-bold text-xl uppercase tracking-tighter mb-4 border-b-2 border-dark pb-3">Telemetry</h3>
+      <section class="border border-line">
+        <div class="p-5 border-b border-line bg-gray-50">
+          <h2 class="heading-title text-black">Network Telemetry</h2>
+        </div>
+        <div class="p-6 space-y-4">
+          
+          <div class="flex justify-between items-baseline border-b border-line border-dashed pb-2">
+            <span class="heading-title">Peer ID</span>
+            <span class="font-mono text-xs">{{ status.nodeId }}</span>
+          </div>
+          
+          <div class="flex justify-between items-baseline border-b border-line border-dashed pb-2">
+            <span class="heading-title">Repository</span>
+            <span class="font-mono text-xs">{{ status.repoSize }}</span>
+          </div>
+          
+          <div class="flex justify-between items-baseline border-b border-line border-dashed pb-2">
+            <span class="heading-title">Object Map</span>
+            <span class="font-mono text-xs">{{ status.repoObjects }} keys</span>
+          </div>
+          
+          <div class="flex justify-between items-baseline border-b border-line border-dashed pb-2">
+            <span class="heading-title">Bandwidth (I/O)</span>
+            <span class="font-mono text-[10px] break-all text-right w-1/2 leading-tight">
+              {{ status.bandwidth }}
+            </span>
+          </div>
+          
+          <div class="flex justify-between items-baseline pb-2">
+            <span class="heading-title">Client Ver.</span>
+            <span class="font-mono text-[10px] text-gray-500">{{ status.version }}</span>
+          </div>
+
+          <div class="pt-4 text-xs text-right font-mono text-gray-400">
+            SYNC: {{ status.timestamp }}
+          </div>
+        </div>
+      </section>
+
+      <!-- TERMINAL API DICTIONARY -->
+      <section class="swiss-cell p-0">
+        <div class="p-5 border-b border-line flex justify-between items-center cursor-pointer hover:bg-gray-50 transition-colors" @click="showCli = !showCli">
+          <h2 class="heading-title text-black m-0">Terminal API</h2>
+          <i class="fas text-gray-400 text-xs" :class="showCli ? 'fa-minus' : 'fa-plus'"></i>
+        </div>
         
-        <div class="flex flex-col gap-0 border-standard font-mono text-xs">
-          <div class="flex border-b-2 border-dark">
-            <div class="w-1/3 bg-gray-100 p-2 font-bold uppercase border-r-2 border-dark flex items-center">ID</div>
-            <div class="w-2/3 p-2 bg-white break-all">{{ status.nodeId }}</div>
-          </div>
-          <div class="flex border-b-2 border-dark">
-            <div class="w-1/3 bg-gray-100 p-2 font-bold uppercase border-r-2 border-dark flex items-center">Repo</div>
-            <div class="w-2/3 p-2 bg-white">{{ status.repoSize }}</div>
-          </div>
-          <div class="flex border-b-2 border-dark">
-            <div class="w-1/3 bg-gray-100 p-2 font-bold uppercase border-r-2 border-dark flex items-center">Objects</div>
-            <div class="w-2/3 p-2 bg-white">{{ status.repoObjects }}</div>
-          </div>
-          <div class="flex border-b-2 border-dark">
-            <div class="w-1/3 bg-gray-100 p-2 font-bold uppercase border-r-2 border-dark flex items-center">Traffic</div>
-            <div class="w-2/3 p-2 bg-white text-[10px]">{{ status.bandwidth }}</div>
-          </div>
-          <div class="flex">
-            <div class="w-1/3 bg-gray-100 p-2 font-bold uppercase border-r-2 border-dark flex items-center">Protocol</div>
-            <div class="w-2/3 p-2 bg-white">{{ status.version }}</div>
+        <div v-show="showCli" class="p-6 bg-gray-50 border-line">
+          <div class="space-y-6">
+            <div>
+              <div class="flex justify-between items-baseline mb-2">
+                <span class="heading-title">File Endpoint</span>
+                <button @click="copyCurlCommand('file')" class="text-[10px] uppercase font-bold text-gray-500 hover:text-black"><i class="fas fa-copy mr-1"></i> Copy</button>
+              </div>
+              <code class="block w-full bg-white border border-line p-3 font-mono text-xs text-gray-800 break-all selection:bg-gray-200">curl -X POST -F "file=@demo.pdf" {{ currentUrl }}/upload</code>
+            </div>
+            
+            <div>
+              <div class="flex justify-between items-baseline mb-2">
+                <span class="heading-title">ZIP Endpoint</span>
+                <button @click="copyCurlCommand('zip')" class="text-[10px] uppercase font-bold text-gray-500 hover:text-black"><i class="fas fa-copy mr-1"></i> Copy</button>
+              </div>
+              <code class="block w-full bg-white border border-line p-3 font-mono text-xs text-gray-800 break-all selection:bg-gray-200">curl -X POST -F "file=@build.zip" {{ currentUrl }}/uploadzip</code>
+            </div>
           </div>
         </div>
-        <div class="mt-4 text-right font-mono text-[10px] text-gray-500 uppercase font-bold">
-          SYNC <span class="bg-black text-white px-1 ml-1">{{ status.timestamp }}</span>
-        </div>
-      </div>
+      </section>
+      
+      <!-- FOOTER LINKS -->
+      <footer class="flex justify-between items-center pt-2">
+        <a href="https://github.com/besoeasy/Originless" target="_blank" class="heading-title hover:text-black transition-colors"><i class="fab fa-github mr-1"></i> Source Code</a>
+        <span class="heading-title">v{{ status.appver }}</span>
+      </footer>
 
     </aside>
+
   </div>
 </div>
 
@@ -347,29 +346,29 @@
     data() {
       return {
         file: null,
-        fileLabel: "AWAITING PAYLOAD",
+        fileLabel: "Select payload",
         uploading: false,
         uploadProgress: 0,
         result: null,
         isDragOver: false,
         isPasted: false,
-        activeTab: "details",
+        activeTab: "urls",
         showCli: false,
         copied: false,
         currentUrl: window.location.origin,
         gatewayBase: "https://dweb.link/ipfs/",
         uploadMode: "file",
         status: {
-          nodeId: "-------",
-          bandwidth: "IN 0B / OUT 0B",
-          repoSize: "0B / 0B",
-          repoObjects: "0",
-          version: "-------",
-          appver: "---",
-          timestamp: "00:00:00",
+          nodeId: "...",
+          bandwidth: "0B / 0B",
+          repoSize: "...",
+          repoObjects: "...",
+          version: "...",
+          appver: "...",
+          timestamp: "...",
           peerscount: 0,
-          storageLimit: "---",
-          fileLimit: "---",
+          storageLimit: "...",
+          fileLimit: "...",
         },
       };
     },
@@ -383,7 +382,7 @@
       setUploadMode(mode) {
         this.uploadMode = mode;
         this.file = null;
-        this.fileLabel = "AWAITING PAYLOAD";
+        this.fileLabel = "Select payload";
       },
       isZipFile(file) {
         return Boolean(file && file.name && file.name.toLowerCase().endsWith(".zip"));
@@ -391,20 +390,20 @@
       applySelectedFile(file) {
         if (!file) {
           this.file = null;
-          this.fileLabel = "AWAITING PAYLOAD";
+          this.fileLabel = "Select payload";
           return;
         }
 
         if (this.uploadMode === "zip" && !this.isZipFile(file)) {
           this.file = null;
-          this.fileLabel = "ERROR: ARCHIVE REQUIRED";
-          this.result = { success: false, message: "Only .zip archives can be processed in this mode." };
+          this.fileLabel = "Invalid format: .zip required";
+          this.result = { success: false, message: "Directory mapping requires a .zip archive." };
           return;
         }
 
         this.file = file;
-        this.fileLabel = file.name.toUpperCase() || (this.uploadMode === "zip" ? "ZIP ARCHIVE" : "SELECTED FILE");
-        this.result = null; // clear errors
+        this.fileLabel = file.name || "Selected file";
+        this.result = null;
       },
       updateFileLabel(event) {
         const fileInput = event.target;
@@ -451,26 +450,13 @@
         const url = this.getGatewayUrlForCid(cid, filename);
         switch (fileType) {
           case "audio":
-            return `<audio controls>\n  <source src="${url}" type="audio/mpeg">\n  NO AUDIO SUPPORT\n</audio>`;
+            return `<audio controls src="${url}"></audio>`;
           case "video":
-            return `<video controls width="640" height="360">\n  <source src="${url}" type="video/mp4">\n  NO VIDEO SUPPORT\n</video>`;
+            return `<video controls src="${url}" width="100%"></video>`;
           case "image":
-            return `<img src="${url}" alt="IPFS ASSET" />`;
+            return `<img src="${url}" alt="IPFS Asset" style="max-width:100%;height:auto;" />`;
           default:
-            return `<a href="${url}">DOWNLOAD PAYLOAD</a>`;
-        }
-      },
-      getBBCodeEmbed(cid, fileType, filename) {
-        const url = this.getGatewayUrlForCid(cid, filename);
-        switch (fileType) {
-          case "audio":
-            return `[audio]${url}[/audio]`;
-          case "video":
-            return `[video]${url}[/video]`;
-          case "image":
-            return `[img]${url}[/img]`;
-          default:
-            return `[url=${url}]DOWNLOAD PAYLOAD[/url]`;
+            return `<a href="${url}'" download>Download Asset</a>`;
         }
       },
       getIpfsUrlWithFilename(cid, filename, gateway = "") {
@@ -482,10 +468,7 @@
         return `ipfs://${cid}?filename=${encodedFilename}`;
       },
       async uploadFile() {
-        if (!this.file) {
-          this.result = { success: false, message: "NO FILE SOURCE" };
-          return;
-        }
+        if (!this.file) return;
 
         this.uploading = true;
         this.uploadProgress = 0;
@@ -505,7 +488,6 @@
           this.uploadProgress = 100;
           this.result = {
             success: true,
-            message: "UPLOAD CONFIRMED",
             cid: response.data.cid,
             size: this.formatBytes(response.data.size),
             files: response.data.files,
@@ -516,13 +498,13 @@
           };
 
           this.file = null;
-          this.fileLabel = "AWAITING PAYLOAD";
-          this.activeTab = "details";
+          this.fileLabel = "Select payload";
+          this.activeTab = "urls";
         } catch (error) {
           this.uploadProgress = 0;
           this.result = {
             success: false,
-            message: error.response?.data?.message || error.message || "TRANSMISSION FAILED",
+            message: error.response?.data?.message || error.message || "Network transmission failed.",
           };
         } finally {
           this.uploading = false;
@@ -530,19 +512,12 @@
       },
       copyCurlCommand(type = "file") {
         const route = type === "zip" ? "/uploadzip" : "/upload";
-        const filename = type === "zip" ? "archive.zip" : "file.ext";
+        const filename = type === "zip" ? "build.zip" : "demo.pdf";
         const command = `curl -X POST -F "file=@${filename}" ${this.currentUrl}${route}`;
-        navigator.clipboard
-          .writeText(command)
-          .then(() => {
-            this.copied = true;
-            setTimeout(() => {
-              this.copied = false;
-            }, 2000);
-          })
-          .catch((err) => {
-            console.error("CLI COPY FAILED:", err);
-          });
+        navigator.clipboard.writeText(command).then(() => {
+          this.copied = true;
+          setTimeout(() => { this.copied = false; }, 2000);
+        });
       },
       async fetchStatus() {
         try {
@@ -551,31 +526,20 @@
 
           if (data.status === "success") {
             this.status = {
-              nodeId: data.node.id.slice(0, 8) + "..." + data.node.id.slice(-8),
-              bandwidth: `IN ${this.formatBytes(data.bandwidth.totalIn)} / OUT ${this.formatBytes(data.bandwidth.totalOut)}`,
+              nodeId: data.node.id.slice(0, 8) + "…" + data.node.id.slice(-8),
+              bandwidth: `IN: ${this.formatBytes(data.bandwidth.totalIn)}\nOUT: ${this.formatBytes(data.bandwidth.totalOut)}`,
               repoSize: `${this.formatBytes(data.repository.size)} / ${this.formatBytes(data.repository.storageMax)}`,
               repoObjects: `${data.repository.numObjects}`,
               version: `${data.node.agentVersion}`,
               appver: `${data.appVersion}`,
               timestamp: new Date(data.timestamp).toLocaleTimeString('en-US', { hour12: false }),
               peerscount: data.peers.count,
-              storageLimit: data.storageLimit?.configured || "UNKNOWN",
-              fileLimit: data.fileLimit?.formatted || data.fileLimit?.configured || "UNKNOWN",
+              storageLimit: data.storageLimit?.configured || "Unknown",
+              fileLimit: data.fileLimit?.formatted || data.fileLimit?.configured || "Unknown",
             };
           }
         } catch (error) {
-          this.status = {
-            nodeId: "ERROR",
-            bandwidth: "ERROR",
-            repoSize: "ERROR",
-            repoObjects: "ERROR",
-            version: "ERROR",
-            appver: "ERROR",
-            timestamp: "ERROR",
-            peerscount: "0",
-            storageLimit: "ERROR",
-            fileLimit: "ERROR",
-          };
+          console.error(error);
         }
       },
     },
