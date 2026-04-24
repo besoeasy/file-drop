@@ -28,9 +28,8 @@
   <style>
     @import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Space+Grotesk:wght@400;600;700&display=swap");
 
-    /* NO ROUNDED CORNERS, PERIOD. */
+    /* Minimal rounded corners */
     * {
-      border-radius: 0 !important;
       box-sizing: border-box;
     }
 
@@ -45,10 +44,22 @@
     /* Brutalist utility classes */
     .border-thick {
       border: 3px solid #111;
+      border-radius: 6px;
     }
     .border-standard {
       border: 2px solid #111;
+      border-radius: 4px;
     }
+    
+    /* Straighten connected edges */
+    .border-t-0 { border-top-left-radius: 0; border-top-right-radius: 0; }
+    .border-b-0 { border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
+    .border-l-0 { border-top-left-radius: 0; border-bottom-left-radius: 0; }
+    .border-r-0 { border-top-right-radius: 0; border-bottom-right-radius: 0; }
+    
+    .rounded-none-l { border-top-left-radius: 0; border-bottom-left-radius: 0; }
+    .rounded-none-r { border-top-right-radius: 0; border-bottom-right-radius: 0; }
+
     .shadow-hard {
       box-shadow: 6px 6px 0 0 #111;
     }
@@ -132,10 +143,10 @@
       
       <!-- CONTROLS -->
       <div class="bg-white border-thick shadow-hard relative z-10 flex border-b-0">
-        <button @click="setUploadMode('file')" :class="['flex-1 p-4 text-center font-bold uppercase tracking-wider transition-colors border-r-2 border-dark border-b-2', uploadMode === 'file' ? 'bg-brand text-white border-b-transparent' : 'bg-white hover:bg-gray-100 border-b-dark']">
+        <button @click="setUploadMode('file')" :class="['flex-1 p-4 rounded-none-r text-center font-bold uppercase tracking-wider transition-colors border-r-2 border-dark border-b-2', uploadMode === 'file' ? 'bg-brand text-white border-b-transparent' : 'bg-white hover:bg-gray-100 border-b-dark']">
           <i class="fas fa-file mr-2"></i>File Target
         </button>
-        <button @click="setUploadMode('zip')" :class="['flex-1 p-4 text-center font-bold uppercase tracking-wider transition-colors border-b-2 border-dark', uploadMode === 'zip' ? 'bg-brand text-white border-b-transparent' : 'bg-white hover:bg-gray-100 border-b-dark']">
+        <button @click="setUploadMode('zip')" :class="['flex-1 p-4 rounded-none-l text-center font-bold uppercase tracking-wider transition-colors border-b-2 border-dark', uploadMode === 'zip' ? 'bg-brand text-white border-b-transparent' : 'bg-white hover:bg-gray-100 border-b-dark']">
           <i class="fas fa-box-archive mr-2"></i>ZIP Directory
         </button>
       </div>
@@ -179,13 +190,13 @@
             <h3 class="text-3xl font-bold mt-4 break-words">Payload Delivered</h3>
           </div>
           
-          <div class="flex flex-wrap border-standard border-b-0">
-            <button @click="activeTab = 'details'" :class="['flex-1 p-3 font-mono text-xs md:text-sm font-bold uppercase transition-colors border-b-2 border-dark border-r-2', activeTab === 'details' ? 'bg-dark text-white border-b-transparent' : 'bg-gray-100 hover:bg-gray-200']">Details</button>
+          <div class="flex flex-wrap border-standard border-b-0 rounded-t-md">
+            <button @click="activeTab = 'details'" :class="['flex-1 p-3 rounded-tl-md font-mono text-xs md:text-sm font-bold uppercase transition-colors border-b-2 border-dark border-r-2', activeTab === 'details' ? 'bg-dark text-white border-b-transparent' : 'bg-gray-100 hover:bg-gray-200']">Details</button>
             <button @click="activeTab = 'urls'" :class="['flex-1 p-3 font-mono text-xs md:text-sm font-bold uppercase transition-colors border-b-2 border-dark', activeTab === 'urls' ? 'bg-dark text-white border-b-transparent' : 'bg-gray-100 hover:bg-gray-200']">Access</button>
-            <button v-if="result.fileType" @click="activeTab = 'embed'" :class="['flex-1 p-3 font-mono text-xs md:text-sm font-bold uppercase transition-colors border-b-2 border-dark border-l-2', activeTab === 'embed' ? 'bg-dark text-white border-b-transparent' : 'bg-gray-100 hover:bg-gray-200']">Embed</button>
+            <button v-if="result.fileType" @click="activeTab = 'embed'" :class="['flex-1 p-3 rounded-tr-md font-mono text-xs md:text-sm font-bold uppercase transition-colors border-b-2 border-dark border-l-2', activeTab === 'embed' ? 'bg-dark text-white border-b-transparent' : 'bg-gray-100 hover:bg-gray-200']">Embed</button>
           </div>
 
-          <div class="border-standard p-5 md:p-6 bg-white min-h-[250px]">
+          <div class="border-standard p-5 md:p-6 bg-white min-h-[250px] rounded-b-md">
             <!-- DETAILS TAB -->
             <div v-if="activeTab === 'details'" class="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-6">
               <div>
