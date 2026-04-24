@@ -134,35 +134,6 @@ The response returns an IPFS CID and a shareable gateway URL — paste it anywhe
 
 Open the `url` in any browser to view your live app via the IPFS gateway.
 
-### Helper script (`deploy.sh`)
-
-Drop this in your project root for a repeatable deploy:
-
-```bash
-#!/bin/bash
-set -e
-
-echo "Building project..."
-npm run build
-
-echo "Zipping dist..."
-cd dist && zip -r ../dist.zip . && cd ..
-
-echo "Uploading to Originless..."
-RESPONSE=$(curl -s -X POST -F "file=@dist.zip" https://originless.besoeasy.com/uploadzip)
-echo "$RESPONSE"
-
-URL=$(echo "$RESPONSE" | grep -o '"url":"[^"]*"' | cut -d'"' -f4)
-echo ""
-echo "✅ Live at: $URL"
-
-rm dist.zip
-```
-
-> **Tip:** Replace `https://originless.besoeasy.com` with `http://localhost:3232` if you are running a self-hosted instance.
-
----
-
 ## �📸 Screenshots
 
 <div align="center">
