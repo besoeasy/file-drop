@@ -1,979 +1,583 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Originless</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: '#0052ff', // sharp stark blue for accent
+            dark: '#111111',
+            light: '#ffffff'
+          },
+          fontFamily: {
+            sans: ['Space Grotesk', 'sans-serif'],
+            mono: ['IBM Plex Mono', 'monospace'],
+          }
+        }
+      }
+    }
+  </script>
   <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
   <style>
-    /* Import modern font */
-    @import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap");
+    @import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Space+Grotesk:wght@400;600;700&display=swap");
+
+    /* NO ROUNDED CORNERS, PERIOD. */
+    * {
+      border-radius: 0 !important;
+      box-sizing: border-box;
+    }
 
     body {
-      font-family: "Inter", sans-serif;
+      margin: 0;
+      background-color: #f4f4f0;
+      color: var(--dark);
+      font-family: "Space Grotesk", sans-serif;
+      -webkit-font-smoothing: antialiased;
     }
 
-    /* Enhanced animations */
-    @keyframes fadeIn {
-      from {
-        opacity: 0;
-        transform: translateY(20px);
-      }
-
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
+    /* Brutalist utility classes */
+    .border-thick {
+      border: 3px solid #111;
+    }
+    .border-standard {
+      border: 2px solid #111;
+    }
+    .shadow-hard {
+      box-shadow: 6px 6px 0 0 #111;
+    }
+    .shadow-hard-hover {
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .shadow-hard-hover:hover {
+      transform: translate(-2px, -2px);
+      box-shadow: 8px 8px 0 0 #111;
+    }
+    .shadow-hard-hover:active {
+      transform: translate(2px, 2px);
+      box-shadow: 4px 4px 0 0 #111;
     }
 
-    @keyframes slideInLeft {
-      from {
-        opacity: 0;
-        transform: translateX(-30px);
-          gatewayBase: "https://dweb.link/ipfs/",
-      }
-
-      to {
-        opacity: 1;
-        transform: translateX(0);
-      }
+    .dropzone-active {
+      background-color: #0052ff !important;
+      color: #fff !important;
+      border-color: #111 !important;
+    }
+    .dropzone-active * {
+      color: #fff !important;
     }
 
-    @keyframes pulse {
-
-      0%,
-      100% {
-        transform: scale(1);
-      }
-
-      50% {
-        transform: scale(1.05);
-      }
-    }
-
-    @keyframes shimmer {
-      0% {
-        background-position: -200px 0;
-      }
-
-      100% {
-        background-position: calc(200px + 100%) 0;
-      }
-    }
-
-    @keyframes bounce {
-
-      0%,
-      100% {
-        transform: translateY(0);
-      }
-
-      50% {
-        transform: translateY(-10px);
-      }
-    }
-
-    @keyframes scalePulse {
-
-      0%,
-      100% {
-        transform: scale(1);
-      }
-
-      50% {
-        transform: scale(1.05);
-      }
-    }
-
-    @keyframes glow {
-
-      0%,
-      100% {
-        box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
-      }
-
-      50% {
-        box-shadow: 0 0 40px rgba(0, 0, 0, 0.4), 0 0 60px rgba(0, 0, 0, 0.2);
-      }
-    }
-
-    @keyframes slideDown {
-      from {
-        opacity: 0;
-        transform: translateY(-20px);
-      }
-
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
-
-    .animate-fade-in {
-      animation: fadeIn 0.6s ease-out;
-    }
-
-    .animate-slide-in-left {
-      animation: slideInLeft 0.5s ease-out;
-    }
-
-    .animate-pulse-gentle {
-      animation: pulse 2s ease-in-out infinite;
-    }
-
-    .shimmer {
-      background: linear-gradient(90deg, #000 25%, #333 37%, #000 63%);
-      background-size: 400% 100%;
-      animation: shimmer 1.5s ease-in-out infinite;
-    }
-
-    /* Enhanced glassmorphism */
-    .glassmorphism {
-      background: rgba(255, 255, 255, 0.95);
-      backdrop-filter: blur(20px);
-      border: 1px solid rgba(0, 0, 0, 0.1);
-    }
-
-    .glassmorphism-dark {
-      background: rgba(0, 0, 0, 0.95);
-      backdrop-filter: blur(20px);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-    }
-
-    /* Tab styles */
-    .tab-button {
-      transition: all 0.3s ease;
-      border-bottom: 2px solid transparent;
-    }
-
-    .tab-button.active {
-      border-bottom-color: #000;
-      background: #f9f9f9;
-    }
-
-    .tab-button:hover:not(.active) {
-      background: #f5f5f5;
-    }
-
-    /* Custom scrollbar */
+    /* Custom scrollbar to fit the aesthetic */
     ::-webkit-scrollbar {
-      width: 8px;
+      width: 12px;
+      height: 12px;
+      border-left: 2px solid #111;
     }
-
     ::-webkit-scrollbar-track {
-      background: #f1f1f1;
-      border-radius: 4px;
+      background: #f4f4f0;
     }
-
     ::-webkit-scrollbar-thumb {
-      background: #888;
-      border-radius: 4px;
+      background: #111;
+      border: 2px solid #f4f4f0;
+    }
+    
+    .loading-bar {
+      height: 100%;
+      background-color: #0052ff;
+      border-right: 2px solid #111;
+      transition: width 0.2s linear;
     }
 
-    ::-webkit-scrollbar-thumb:hover {
-      background: #555;
-    }
-
-    /* Enhanced hover effects */
-    .hover-lift {
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-
-    .hover-lift:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-    }
-
-    /* Status indicators */
-    .status-indicator {
-      position: relative;
-    }
-
-    .status-indicator::before {
-      content: "";
-      position: absolute;
-      top: 0;
-      right: 0;
-      width: 8px;
-      height: 8px;
-      background: #10b981;
-      border-radius: 50%;
-      animation: pulse 2s ease-in-out infinite;
-    }
-
-    /* Enhanced Drag and Drop Styles */
-    .drop-zone {
-      position: relative;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-
-    .drop-zone.drag-over {
-      transform: scale(1.02);
-      animation: scalePulse 1s ease-in-out infinite, glow 1.5s ease-in-out infinite;
-    }
-
-    .drop-zone.drag-over::before {
-      content: "";
-      position: absolute;
-      inset: -4px;
-      background: linear-gradient(45deg, #000, #333, #000, #333);
-      background-size: 300% 300%;
-      animation: shimmer 2s linear infinite;
-      border-radius: 0.75rem;
-      z-index: -1;
-      opacity: 0.5;
-    }
-
-    .drop-zone.drag-over .drop-icon {
-      animation: bounce 0.6s ease-in-out infinite;
-      color: #000 !important;
-      transform: scale(1.3);
-    }
-
-    .drop-zone.drag-over .drop-text {
-      color: #000 !important;
-      font-weight: 700;
-    }
-
-    .drop-overlay {
-      position: absolute;
-      inset: 0;
-      background: linear-gradient(135deg, rgba(0, 0, 0, 0.05) 0%, rgba(0, 0, 0, 0.1) 100%);
-      border-radius: 0.75rem;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.3s ease;
-      z-index: 10;
-    }
-
-    .drop-zone.drag-over .drop-overlay {
-      opacity: 1;
-      animation: slideDown 0.3s ease-out;
-    }
-
-    .drop-indicator {
-      background: rgba(255, 255, 255, 0.95);
-      backdrop-filter: blur(10px);
-      border: 3px dashed #000;
-      border-radius: 1rem;
-      padding: 2rem;
-      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
-    }
-
-    .drop-indicator-icon {
-      font-size: 3rem;
-      color: #000;
-      margin-bottom: 1rem;
-      animation: bounce 0.6s ease-in-out infinite;
-    }
-
-    .drop-indicator-text {
-      font-size: 1.25rem;
-      font-weight: 700;
-      color: #000;
-      text-align: center;
-    }
-
-    /* Pulsing border effect */
-    @keyframes borderPulse {
-
-      0%,
-      100% {
-        border-color: #000;
-        border-width: 2px;
-      }
-
-      50% {
-        border-color: #333;
-        border-width: 4px;
-      }
-    }
-
-    .drop-zone.drag-over {
-      animation: borderPulse 1s ease-in-out infinite;
+    input:focus, textarea:focus, button:focus {
+      outline: none;
+      box-shadow: inset 0 0 0 2px #0052ff;
     }
   </style>
 </head>
+<body class="p-4 sm:p-6 md:p-8 min-h-screen flex flex-col gap-6">
 
-<body class="min-h-screen bg-gray-100 flex items-center justify-center p-4">
-  <div id="app" class="w-full max-w-6xl glassmorphism rounded-2xl shadow-xl overflow-hidden hover-lift" tabindex="0"
-    @paste="handlePaste" @keydown.prevent>
-    <!-- Header -->
-    <header class="bg-black p-6 text-white text-center relative">
-      <div class="flex items-center justify-center gap-3">
-        <h1 class="text-3xl font-bold">Originless</h1>
-        <span class="text-gray-500 font-mono text-sm self-end mb-1">v{{ status.appver }}</span>
-      </div>
-    </header>
+<div id="app" class="max-w-6xl w-full mx-auto outline-none flex flex-col gap-6" tabindex="0" @paste="handlePaste">
 
-    <div class="flex flex-col md:flex-row">
-      <!-- Sidebar: Status Panel -->
-      <aside class="w-full md:w-80 bg-gray-50 p-6 border-r border-gray-200">
-        <div class="flex items-center gap-2 mb-6">
-          <div class="status-indicator">
-            <i class="fas fa-server text-xl text-black"></i>
-          </div>
-          <h2 class="text-xl font-semibold text-black">Node Status</h2>
-        </div>
-        <div class="space-y-4 text-sm">
-          <div class="bg-white rounded-lg p-3 shadow-sm border border-gray-200">
-            <p class="text-gray-500 font-medium text-xs uppercase">Node ID</p>
-            <p class="text-black truncate font-mono text-sm">{{ status.nodeId }}</p>
-          </div>
-          <div class="bg-white rounded-lg p-3 shadow-sm border border-gray-200">
-            <p class="text-gray-500 font-medium text-xs uppercase">Connected Peers</p>
-            <p class="text-black font-semibold">{{ status.peerscount }} Nodes</p>
-          </div>
-          <div class="bg-white rounded-lg p-3 shadow-sm border border-gray-200">
-            <p class="text-gray-500 font-medium text-xs uppercase">Bandwidth (1h)</p>
-            <p class="text-black font-mono text-sm">{{ status.bandwidth }}</p>
-          </div>
-          <div class="bg-white rounded-lg p-3 shadow-sm border border-gray-200">
-            <p class="text-gray-500 font-medium text-xs uppercase">Repository Size</p>
-            <p class="text-black font-semibold">{{ status.repoSize }}</p>
-          </div>
-          <div class="bg-white rounded-lg p-3 shadow-sm border border-gray-200">
-            <p class="text-gray-500 font-medium text-xs uppercase">Objects</p>
-            <p class="text-black font-semibold">{{ status.repoObjects }}</p>
-          </div>
-          <div class="bg-white rounded-lg p-3 shadow-sm border border-gray-200">
-            <p class="text-gray-500 font-medium text-xs uppercase">Version</p>
-            <p class="text-black font-mono text-sm">{{ status.version }}</p>
-          </div>
-
-          <div class="bg-white rounded-lg p-3 shadow-sm border border-gray-200">
-            <p class="text-gray-500 font-medium text-xs uppercase">Storage Limit</p>
-            <p class="text-black font-semibold">{{ status.storageLimit }}</p>
-          </div>
-          <div class="bg-white rounded-lg p-3 shadow-sm border border-gray-200">
-            <p class="text-gray-500 font-medium text-xs uppercase">File Size Limit</p>
-            <p class="text-black font-semibold">{{ status.fileLimit }}</p>
-          </div>
-
-          <div class="bg-white rounded-lg p-3 mt-4 border border-gray-200">
-            <p class="text-gray-500 text-xs font-medium">Last updated: {{ status.timestamp }}</p>
-          </div>
-        </div>
-      </aside>
-
-      <!-- Main Content -->
-      <main class="flex-1 p-8">
-        <div class="space-y-6">
-          <!-- Originless Zone -->
-          <div class="relative">
-            <label for="fileInput"
-              class="drop-zone block w-full bg-gray-50 rounded-xl p-12 text-center cursor-pointer border-2 border-dashed border-gray-300 transition-all duration-300 hover:bg-gray-100 hover:border-black group"
-              @dragover.prevent="isDragOver = true" @dragleave.prevent="isDragOver = false"
-              @drop.prevent="handleDrop($event)" :class="{ 
-                  'drag-over': isDragOver,
-                  'bg-green-50 border-green-500': isPasted
-                }">
-              <div class="flex flex-col items-center gap-4">
-                <i
-                  class="drop-icon fas fa-cloud-upload-alt text-4xl text-gray-400 group-hover:text-black transition-colors duration-300"></i>
-                <div>
-                  <span
-                    class="drop-text text-lg font-semibold text-gray-700 group-hover:text-black transition-colors duration-300">
-                    {{ fileLabel }} </span>
-                  <p class="text-sm text-gray-500 mt-2">{{
-                    uploadMode === 'zip'
-                      ? 'Drag and drop a .zip archive here, click to browse, or paste anywhere on the page'
-                      : 'Drag and drop your file here, click to browse, or paste anywhere on the page'
-                  }}</p>
-                </div>
-              </div>
-
-              <!-- Drag Overlay Indicator -->
-              <div class="drop-overlay">
-                <div class="drop-indicator">
-                  <i class="drop-indicator-icon fas fa-file-import"></i>
-                  <div class="drop-indicator-text">Drop your file here!</div>
-                </div>
-              </div>
-            </label>
-            <input type="file" id="fileInput" class="hidden" :accept="uploadMode === 'zip' ? '.zip' : ''"
-              @change="updateFileLabel" />
-          </div>
-
-          <!-- Upload Mode Toggle -->
-          <div class="bg-gray-50 rounded-xl p-4 border border-gray-200">
-            <div class="flex items-center justify-center gap-4">
-              <button @click="setUploadMode('file')" :class="[
-                  'px-4 py-2 rounded-lg font-semibold transition-all duration-300',
-                  uploadMode === 'file' 
-                    ? 'bg-black text-white' 
-                    : 'bg-white text-gray-600 hover:bg-gray-100'
-                ]">
-                <i class="fas fa-file-upload mr-2"></i>
-                File Upload
-              </button>
-              <button @click="setUploadMode('zip')" :class="[
-                  'px-4 py-2 rounded-lg font-semibold transition-all duration-300',
-                  uploadMode === 'zip' 
-                    ? 'bg-black text-white' 
-                    : 'bg-white text-gray-600 hover:bg-gray-100'
-                ]">
-                <i class="fas fa-folder-open mr-2"></i>
-                ZIP Folder
-              </button>
-            </div>
-          </div>
-
-          <!-- ZIP Upload Section -->
-          <div v-if="uploadMode === 'zip'" class="bg-gray-50 rounded-xl p-6 border border-gray-200 animate-fade-in">
-            <div class="space-y-3">
-              <p class="text-sm text-gray-700 font-semibold">
-                <i class="fas fa-archive mr-2"></i>Upload a .zip to create a folder on IPFS
-              </p>
-              <p class="text-xs text-gray-500">
-                <i class="fas fa-info-circle mr-1"></i>
-                The archive will be extracted and uploaded as a directory (max {{ status.fileLimit }})
-              </p>
-            </div>
-          </div>
-
-          <button @click="uploadFile" :disabled="uploading || !file"
-            class="w-full bg-black text-white py-3 rounded-xl font-semibold transition-all duration-300 hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed">
-            <div class="flex items-center justify-center gap-2">
-              <i class="fas fa-upload" :class="{ 'animate-pulse': uploading }"></i>
-              <span v-if="!uploading">{{
-                uploadMode === 'zip'
-                    ? 'Upload ZIP'
-                    : 'Upload File'
-              }}</span>
-              <span v-else>{{
-                uploadMode === 'zip'
-                    ? 'Uploading ZIP...'
-                    : 'Uploading...'
-              }}</span>
-            </div>
-          </button>
-
-          <!-- CLI Usage Section -->
-          <div class="bg-gray-50 rounded-xl p-4 border border-gray-200">
-            <button @click="showCli = !showCli" class="w-full flex items-center justify-between text-left group">
-              <div class="flex items-center gap-2">
-                <i class="fas fa-terminal text-black"></i>
-                <span class="font-semibold text-black">Upload via Command Line</span>
-              </div>
-              <i class="fas fa-chevron-down text-gray-400 transition-transform duration-300"
-                :class="{ 'rotate-180': showCli }"></i>
-            </button>
-
-            <div v-if="showCli" class="mt-4 space-y-4 animate-fade-in">
-              <p class="text-sm text-gray-600">Use curl to upload files from your terminal:</p>
-
-              <div class="bg-white rounded-lg p-4 border border-gray-200">
-                <p class="text-sm font-semibold text-black">
-                  Teach AI agents to use Originless for anonymous file uploads
-                </p>
-                <p class="text-xs text-gray-600 mt-1">
-                  Agent rule: self-hosted first with Docker (`http://localhost:3232`), and use the public instance only if Docker is not available.
-                </p>
-              </div>
-
-              <div class="bg-black rounded-lg p-4">
-                <div class="flex items-start justify-between gap-2 mb-2">
-                  <code
-                    class="text-green-400 text-xs flex-1 font-mono break-all">curl -X POST -F "file=@yourfile.pdf" {{ currentUrl }}/upload</code>
-                  <button @click="copyCurlCommand('file')"
-                    class="flex-shrink-0 text-gray-400 hover:text-white transition-colors">
-                    <i :class="copied ? 'fas fa-check' : 'fas fa-copy'"></i>
-                  </button>
-                </div>
-                <p class="text-gray-400 text-xs">Replace <span class="text-yellow-400">yourfile.pdf</span> with your
-                  file path</p>
-              </div>
-
-              <div class="bg-black rounded-lg p-4">
-                <div class="flex items-start justify-between gap-2 mb-2">
-                  <code
-                    class="text-green-400 text-xs flex-1 font-mono break-all">curl -X POST -F "file=@archive.zip" {{ currentUrl }}/uploadzip</code>
-                  <button @click="copyCurlCommand('zip')"
-                    class="flex-shrink-0 text-gray-400 hover:text-white transition-colors">
-                    <i :class="copied ? 'fas fa-check' : 'fas fa-copy'"></i>
-                  </button>
-                </div>
-                <p class="text-gray-400 text-xs">Replace <span class="text-yellow-400">archive.zip</span> with your zip
-                  path</p>
-              </div>
-            </div>
-          </div>
-
-          <div v-if="uploading" class="text-center animate-fade-in">
-            <div class="bg-white rounded-lg p-6 shadow-lg border border-gray-200">
-              <div class="flex items-center justify-center gap-3 mb-4">
-                <div class="animate-spin">
-                  <i class="fas fa-circle-notch text-2xl text-black"></i>
-                </div>
-                <p class="text-black font-semibold text-lg">Uploading to IPFS...</p>
-              </div>
-              <div class="w-full bg-gray-200 rounded-full h-3 mb-4">
-                <div class="bg-black h-3 rounded-full transition-all duration-300 ease-out"
-                  :style="{ width: uploadProgress + '%' }"></div>
-              </div>
-              <div class="flex justify-between items-center text-sm text-gray-600 mb-2">
-                <span>{{ uploadProgress.toFixed(1) }}% complete</span>
-                <span v-if="uploadProgress < 100">Uploading...</span>
-                <span v-else>Processing...</span>
-              </div>
-              <p class="text-gray-600 text-sm">Your file is being distributed across the anonymous network</p>
-            </div>
-          </div>
-
-          <div v-if="result" class="mt-6 animate-fade-in">
-            <div :class="[
-                  'p-6 rounded-xl shadow-lg border',
-                  result.success ? 'bg-white border-gray-200' : 'bg-gray-50 border-gray-300'
-                ]">
-              <template v-if="result.success">
-                <div class="flex items-center gap-3 mb-6 bg-green-50 border border-green-200 rounded-lg p-4">
-                  <div class="flex-shrink-0">
-                    <i class="fas fa-check-circle text-green-600 text-2xl"></i>
-                  </div>
-                  <div>
-                    <p class="font-semibold text-lg text-green-800">{{ result.message }}</p>
-                    <p class="text-sm text-green-600 mt-1">Your file has been successfully uploaded to IPFS</p>
-                  </div>
-                </div>
-
-                <div class="flex border-b border-gray-200 mb-4">
-                  <button @click="activeTab = 'details'"
-                    :class="['tab-button px-4 py-2 text-sm font-medium', activeTab === 'details' ? 'active' : 'text-gray-600 hover:text-gray-800']">
-                    File Details
-                  </button>
-                  <button @click="activeTab = 'urls'"
-                    :class="['tab-button px-4 py-2 text-sm font-medium', activeTab === 'urls' ? 'active' : 'text-gray-600 hover:text-gray-800']">
-                    Access URLs
-                  </button>
-                  <button v-if="result.fileType" @click="activeTab = 'embed'"
-                    :class="['tab-button px-4 py-2 text-sm font-medium', activeTab === 'embed' ? 'active' : 'text-gray-600 hover:text-gray-800']">
-                    Embed Codes
-                  </button>
-                </div>
-
-                <div class="min-h-[200px]" v-if="result.fileName">
-                  <div v-if="activeTab === 'details'" class="space-y-3">
-                    <div class="grid grid-cols-2 gap-3 text-sm">
-                      <div class="bg-gray-50 rounded p-3">
-                        <p class="text-gray-500 text-xs font-medium uppercase">File Name</p>
-                        <p class="text-black font-mono text-sm truncate" :title="result.fileName">{{ result.fileName }}
-                        </p>
-                      </div>
-                      <div class="bg-gray-50 rounded p-3">
-                        <p class="text-gray-500 text-xs font-medium uppercase">File Size</p>
-                        <p class="text-black font-semibold">{{ result.size }}</p>
-                      </div>
-                      <div class="bg-gray-50 rounded p-3" v-if="result.files">
-                        <p class="text-gray-500 text-xs font-medium uppercase">Files in Folder</p>
-                        <p class="text-black font-semibold">{{ result.files }}</p>
-                      </div>
-                      <div class="bg-gray-50 rounded p-3">
-                        <p class="text-gray-500 text-xs font-medium uppercase">MIME Type</p>
-                        <p class="text-black font-mono text-sm">{{ result.mimeType }}</p>
-                      </div>
-                      <div class="bg-gray-50 rounded p-3">
-                        <p class="text-gray-500 text-xs font-medium uppercase">Media Type</p>
-                        <p class="text-black font-semibold">
-                          <span v-if="result.fileType"
-                            class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-gray-200 text-black">
-                            {{ result.fileType }}
-                          </span>
-                          <span v-else
-                            class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-gray-200 text-black">
-                            file </span>
-                        </p>
-                      </div>
-                      <div class="col-span-2 bg-gray-50 rounded p-3">
-                        <p class="text-gray-500 text-xs font-medium uppercase">Content Identifier (CID)</p>
-                        <p
-                          class="text-black font-mono text-sm break-all bg-white rounded px-2 py-1 border border-gray-200 mt-1">
-                          {{ result.cid }}</p>
-                      </div>
-                      <div class="col-span-2 bg-gray-50 rounded p-3" v-if="result.sha256">
-                        <p class="text-gray-500 text-xs font-medium uppercase">SHA-256 Hash</p>
-                        <p
-                          class="text-black font-mono text-sm break-all bg-white rounded px-2 py-1 border border-gray-200 mt-1">
-                          {{ result.sha256 }}</p>
-                      </div>
-                      <div class="bg-gray-50 rounded p-3" v-if="result.uploaded">
-                        <p class="text-gray-500 text-xs font-medium uppercase">Upload Time</p>
-                        <p class="text-black font-semibold">{{ new Date(result.uploaded * 1000).toLocaleString() }}</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <!-- Access URLs Tab -->
-                  <div v-if="activeTab === 'urls'" class="space-y-3">
-                    <div class="space-y-3">
-                      <div>
-                        <label class="text-xs text-gray-600 font-medium block mb-1">IPFS Protocol</label>
-                        <input type="text" :value="getIpfsUrlWithFilename(result.cid, result.fileName)" readonly
-                          class="w-full px-3 py-2 text-sm border border-gray-300 rounded bg-gray-50 font-mono text-black cursor-pointer hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-black"
-                          @click="$event.target.select()" />
-                      </div>
-                      <div>
-                        <label class="text-xs text-gray-600 font-medium block mb-1">Gateway URL</label>
-                        <input type="text" :value="getGatewayUrlForResult(result)" readonly
-                          class="w-full px-3 py-2 text-sm border border-gray-300 rounded bg-gray-50 font-mono text-black cursor-pointer hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-black"
-                          @click="$event.target.select()" />
-                      </div>
-                      <div>
-                        <label class="text-xs text-gray-600 font-medium block mb-1">Network Status</label>
-                        <div class="flex gap-2">
-                          <a :href="`https://check.ipfs.network/?cid=${result.cid}`" target="_blank"
-                            class="inline-flex items-center gap-2 px-4 py-2 bg-black text-white rounded font-medium text-sm hover:bg-gray-800 transition-colors duration-300">
-                            Check Network Propagation
-                          </a>
-                          <a :href="getGatewayUrlForResult(result)"
-                            target="_blank"
-                            class="inline-flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded font-medium text-sm hover:bg-gray-700 transition-colors duration-300">
-                            <i class="fas fa-external-link-alt"></i>
-                            Open in Gateway
-                          </a>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div v-if="activeTab === 'embed' && result.fileType" class="space-y-4">
-                    <div>
-                      <label class="text-xs text-gray-600 font-medium block mb-1">HTML</label>
-                      <textarea :value="getHtmlEmbed(result.cid, result.fileType, result.fileName)" readonly rows="3"
-                        class="w-full px-3 py-2 text-sm border border-gray-300 rounded bg-gray-50 font-mono text-black cursor-pointer hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-black resize-none"
-                        @click="$event.target.select()"></textarea>
-                    </div>
-                    <div>
-                      <label class="text-xs text-gray-600 font-medium block mb-1">BBCode</label>
-                      <textarea :value="getBBCodeEmbed(result.cid, result.fileType, result.fileName)" readonly rows="2"
-                        class="w-full px-3 py-2 text-sm border border-gray-300 rounded bg-gray-50 font-mono text-black cursor-pointer hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-black resize-none"
-                        @click="$event.target.select()"></textarea>
-                    </div>
-                  </div>
-                </div>
-              </template>
-
-              <template v-else>
-                <div class="flex items-center gap-3 bg-red-50 border border-red-200 rounded-lg p-4">
-                  <div class="flex-shrink-0">
-                    <i class="fas fa-exclamation-circle text-red-600 text-2xl"></i>
-                  </div>
-                  <div>
-                    <p class="font-semibold text-lg text-red-800">{{ result.message }}</p>
-                    <p class="text-sm text-red-600 mt-1">Please try uploading your file again</p>
-                  </div>
-                </div>
-              </template>
-            </div>
-          </div>
-        </div>
-      </main>
+  <!-- HEADER -->
+  <header class="bg-white border-thick p-5 sm:p-6 flex flex-col md:flex-row justify-between items-start md:items-end shadow-hard">
+    <div>
+      <div class="font-mono text-xs font-bold uppercase tracking-[0.2em] mb-3 text-brand">Decentralized Object Storage</div>
+      <h1 class="text-4xl sm:text-5xl md:text-6xl font-bold uppercase tracking-tighter leading-none">Originless</h1>
     </div>
-
-    <footer class="bg-black p-4 text-center">
-      <div class="flex items-center justify-center gap-4">
-        <a href="https://github.com/besoeasy/Originless" target="_blank"
-          class="flex items-center gap-2 bg-white text-black px-3 py-1.5 rounded-lg font-semibold hover:bg-gray-200 transition-all duration-300 text-sm">
-          <i class="fab fa-github"></i>
-          <span class="font-semibold">GitHub</span>
-        </a>
+    <div class="mt-6 md:mt-0 flex flex-col gap-2 font-mono text-sm w-full md:w-auto">
+      <div class="border-standard bg-white flex justify-between md:justify-start">
+        <span class="bg-dark text-white font-bold px-3 py-1 uppercase object-contain flex items-center justify-center">Peers</span>
+        <span class="px-3 py-1 font-bold">{{ status.peerscount }}</span>
       </div>
-    </footer>
+      <div class="border-standard bg-white flex justify-between md:justify-start">
+        <span class="bg-dark text-white font-bold px-3 py-1 uppercase">Limit</span>
+        <span class="px-3 py-1 font-bold">{{ status.fileLimit }}</span>
+      </div>
+      <a href="https://github.com/besoeasy/Originless" target="_blank" class="border-standard bg-brand text-white font-bold px-3 py-1 uppercase text-center hover:bg-dark transition-colors">
+        <i class="fab fa-github mr-2"></i>GitHub
+      </a>
+    </div>
+  </header>
+
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    
+    <!-- MAIN WORKSPACE -->
+    <main class="lg:col-span-2 flex flex-col gap-6">
+      
+      <!-- CONTROLS -->
+      <div class="bg-white border-thick shadow-hard relative z-10 flex border-b-0">
+        <button @click="setUploadMode('file')" :class="['flex-1 p-4 text-center font-bold uppercase tracking-wider transition-colors border-r-2 border-dark border-b-2', uploadMode === 'file' ? 'bg-brand text-white border-b-transparent' : 'bg-white hover:bg-gray-100 border-b-dark']">
+          <i class="fas fa-file mr-2"></i>File Target
+        </button>
+        <button @click="setUploadMode('zip')" :class="['flex-1 p-4 text-center font-bold uppercase tracking-wider transition-colors border-b-2 border-dark', uploadMode === 'zip' ? 'bg-brand text-white border-b-transparent' : 'bg-white hover:bg-gray-100 border-b-dark']">
+          <i class="fas fa-box-archive mr-2"></i>ZIP Directory
+        </button>
+      </div>
+
+      <!-- DROPZONE -->
+      <label for="fileInput" class="bg-white border-thick border-t-0 p-8 sm:p-16 flex flex-col items-center justify-center text-center cursor-pointer shadow-hard transition-colors duration-150 -mt-6 pt-12" @dragover.prevent="isDragOver = true" @dragleave.prevent="isDragOver = false" @drop.prevent="handleDrop($event)" :class="isDragOver ? 'dropzone-active' : 'hover:bg-gray-50'">
+        <div class="border-standard p-4 bg-white mb-6">
+          <i class="fas fa-arrow-down text-4xl text-dark"></i>
+        </div>
+        <h2 class="text-3xl font-bold tracking-tight mb-4 break-all">{{ fileLabel }}</h2>
+        <p class="font-mono text-sm uppercase font-bold text-gray-500 max-w-md">
+          {{ uploadMode === 'zip' ? 'DROP .ZIP ARCHIVE OR CLICK TO BROWSE' : 'DROP FILE OR CLICK TO BROWSE' }}
+          <br/><span class="mt-2 text-xs">PASTE SUPPORTED</span>
+        </p>
+
+        <input type="file" id="fileInput" class="hidden" :accept="uploadMode === 'zip' ? '.zip' : ''" @change="updateFileLabel" />
+        
+        <div v-if="uploadMode === 'zip'" class="mt-8 border-standard border-l-4 border-l-brand bg-gray-100 p-4 font-mono text-xs text-left max-w-md">
+          Zipped archives will be recursively extracted and hosted as a static web directory on IPFS.
+        </div>
+      </label>
+
+      <!-- UPLOAD ACTION -->
+      <button @click="uploadFile" :disabled="uploading || !file" class="bg-dark text-white border-thick font-bold text-xl uppercase tracking-widest py-5 px-6 shadow-hard-hover disabled:opacity-50 disabled:pointer-events-none disabled:shadow-none flex justify-center items-center gap-4">
+        <i v-if="uploading" class="fas fa-spinner fa-spin"></i>
+        <i v-else class="fas fa-upload"></i>
+        {{ uploading ? 'TRANSMITTING...' : 'INITIATE UPLOAD' }}
+      </button>
+
+      <!-- PROGRESS & RESULT -->
+      <div v-if="uploading" class="bg-white border-thick shadow-hard p-1 relative h-10 mt-2">
+        <div class="loading-bar flex items-center justify-end px-2 font-mono text-xs font-bold text-white overflow-hidden whitespace-nowrap" :style="{ width: uploadProgress + '%' }">
+          {{ uploadProgress.toFixed(1) }}%
+        </div>
+      </div>
+
+      <div v-if="result" class="bg-white border-thick shadow-hard p-6 md:p-8 mt-2">
+        <template v-if="result.success">
+          <div class="mb-8">
+            <span class="bg-black text-white font-mono text-xs px-2 py-1 uppercase font-bold tracking-widest">Success</span>
+            <h3 class="text-3xl font-bold mt-4 break-words">Payload Delivered</h3>
+          </div>
+          
+          <div class="flex flex-wrap border-standard border-b-0">
+            <button @click="activeTab = 'details'" :class="['flex-1 p-3 font-mono text-xs md:text-sm font-bold uppercase transition-colors border-b-2 border-dark border-r-2', activeTab === 'details' ? 'bg-dark text-white border-b-transparent' : 'bg-gray-100 hover:bg-gray-200']">Details</button>
+            <button @click="activeTab = 'urls'" :class="['flex-1 p-3 font-mono text-xs md:text-sm font-bold uppercase transition-colors border-b-2 border-dark', activeTab === 'urls' ? 'bg-dark text-white border-b-transparent' : 'bg-gray-100 hover:bg-gray-200']">Access</button>
+            <button v-if="result.fileType" @click="activeTab = 'embed'" :class="['flex-1 p-3 font-mono text-xs md:text-sm font-bold uppercase transition-colors border-b-2 border-dark border-l-2', activeTab === 'embed' ? 'bg-dark text-white border-b-transparent' : 'bg-gray-100 hover:bg-gray-200']">Embed</button>
+          </div>
+
+          <div class="border-standard p-5 md:p-6 bg-white min-h-[250px]">
+            <!-- DETAILS TAB -->
+            <div v-if="activeTab === 'details'" class="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-6">
+              <div>
+                <label class="font-mono text-xs text-gray-500 font-bold uppercase block mb-1">Target</label>
+                <div class="font-bold break-words">{{ result.fileName }}</div>
+              </div>
+              <div>
+                <label class="font-mono text-xs text-gray-500 font-bold uppercase block mb-1">MIME</label>
+                <div class="font-bold uppercase">{{ result.mimeType || result.fileType }}</div>
+              </div>
+              <div>
+                <label class="font-mono text-xs text-gray-500 font-bold uppercase block mb-1">Size</label>
+                <div class="font-bold text-2xl tracking-tighter">{{ result.size }}</div>
+              </div>
+              <div v-if="result.files">
+                <label class="font-mono text-xs text-gray-500 font-bold uppercase block mb-1">Contents</label>
+                <div class="font-bold text-2xl tracking-tighter">{{ result.files }} <span class="text-sm">files</span></div>
+              </div>
+              <div class="sm:col-span-2 mt-2">
+                <label class="font-mono text-xs text-brand font-bold uppercase block mb-2"><i class="fas fa-fingerprint mr-2"></i>CID HASH</label>
+                <div class="border-standard bg-gray-50 p-4 font-mono text-xs break-all selection:bg-brand selection:text-white">{{ result.cid }}</div>
+              </div>
+            </div>
+
+            <!-- URLS TAB -->
+            <div v-if="activeTab === 'urls'" class="flex flex-col gap-6">
+              <div>
+                <label class="font-mono text-xs font-bold uppercase block mb-2 flex justify-between">
+                  <span>Public Gateway</span>
+                  <a :href="getGatewayUrlForResult(result)" target="_blank" class="text-brand hover:underline">OPEN <i class="fas fa-external-link-alt ml-1"></i></a>
+                </label>
+                <input type="text" :value="getGatewayUrlForResult(result)" readonly class="w-full border-standard p-4 font-mono text-sm bg-gray-50 text-dark" @click="$event.target.select()" />
+              </div>
+              <div>
+                <label class="font-mono text-xs font-bold uppercase block mb-2">Native IPFS URI</label>
+                <input type="text" :value="getIpfsUrlWithFilename(result.cid, result.fileName)" readonly class="w-full border-standard p-4 font-mono text-sm bg-gray-50 text-dark" @click="$event.target.select()" />
+              </div>
+            </div>
+
+            <!-- EMBED TAB -->
+            <div v-if="activeTab === 'embed' && result.fileType" class="flex flex-col gap-6">
+              <div>
+                <label class="font-mono text-xs font-bold uppercase block mb-2">HTML RAW</label>
+                <textarea :value="getHtmlEmbed(result.cid, result.fileType, result.fileName)" readonly rows="3" class="w-full border-standard p-4 font-mono text-sm bg-gray-50 resize-none text-dark" @click="$event.target.select()"></textarea>
+              </div>
+              <div>
+                <label class="font-mono text-xs font-bold uppercase block mb-2">BBCODE</label>
+                <textarea :value="getBBCodeEmbed(result.cid, result.fileType, result.fileName)" readonly rows="2" class="w-full border-standard p-4 font-mono text-sm bg-gray-50 resize-none text-dark" @click="$event.target.select()"></textarea>
+              </div>
+            </div>
+          </div>
+        </template>
+        
+        <template v-else>
+          <!-- ERROR STATE -->
+          <div class="border-thick border-red-600 bg-red-50 p-6 flex items-start gap-4">
+            <i class="fas fa-exclamation-triangle text-3xl text-red-600"></i>
+            <div>
+              <h3 class="text-xl font-bold text-red-600 uppercase mb-2">Operation Failed</h3>
+              <p class="font-mono text-sm">{{ result.message }}</p>
+            </div>
+          </div>
+        </template>
+      </div>
+
+    </main>
+
+    <!-- SIDEBAR -->
+    <aside class="flex flex-col gap-6">
+      
+      <!-- CLI PANEL -->
+      <div class="bg-dark text-white border-thick border-dark shadow-hard p-6">
+        <h3 class="font-bold text-xl uppercase tracking-tighter mb-1 border-b-2 border-white pb-3 flex justify-between items-center">
+          Terminal API
+          <button @click="showCli = !showCli" class="text-sm bg-white text-dark px-2 border border-white hover:bg-dark hover:text-white transition-colors">
+            {{ showCli ? 'HIDE' : 'SHOW' }}
+          </button>
+        </h3>
+        
+        <div v-if="showCli" class="mt-4 flex flex-col gap-5">
+          <div>
+            <div class="flex justify-between items-end mb-2">
+              <span class="font-mono text-xs text-brand font-bold uppercase">Single File</span>
+              <button @click="copyCurlCommand('file')" class="text-xs hover:text-brand font-mono font-bold">
+                <i :class="copied ? 'fas fa-check text-brand' : 'fas fa-copy'"></i> COPY
+              </button>
+            </div>
+            <code class="block w-full bg-black border border-gray-700 p-3 font-mono text-xs break-all selection:bg-brand">
+              curl -X POST -F "file=@file.ext" {{ currentUrl }}/upload
+            </code>
+          </div>
+          <div>
+            <div class="flex justify-between items-end mb-2">
+              <span class="font-mono text-xs text-brand font-bold uppercase">ZIP Directory</span>
+              <button @click="copyCurlCommand('zip')" class="text-xs hover:text-brand font-mono font-bold">
+                <i :class="copied ? 'fas fa-check text-brand' : 'fas fa-copy'"></i> COPY
+              </button>
+            </div>
+            <code class="block w-full bg-black border border-gray-700 p-3 font-mono text-xs break-all selection:bg-brand">
+              curl -X POST -F "file=@dir.zip" {{ currentUrl }}/uploadzip
+            </code>
+          </div>
+        </div>
+        <p v-else class="text-sm font-mono mt-4 text-gray-400">
+          CLI syntax for direct interactions.
+        </p>
+      </div>
+
+      <!-- NODE TELEMETRY -->
+      <div class="bg-white border-thick shadow-hard p-6">
+        <h3 class="font-bold text-xl uppercase tracking-tighter mb-4 border-b-2 border-dark pb-3">Telemetry</h3>
+        
+        <div class="flex flex-col gap-0 border-standard font-mono text-xs">
+          <div class="flex border-b-2 border-dark">
+            <div class="w-1/3 bg-gray-100 p-2 font-bold uppercase border-r-2 border-dark flex items-center">ID</div>
+            <div class="w-2/3 p-2 bg-white break-all">{{ status.nodeId }}</div>
+          </div>
+          <div class="flex border-b-2 border-dark">
+            <div class="w-1/3 bg-gray-100 p-2 font-bold uppercase border-r-2 border-dark flex items-center">Repo</div>
+            <div class="w-2/3 p-2 bg-white">{{ status.repoSize }}</div>
+          </div>
+          <div class="flex border-b-2 border-dark">
+            <div class="w-1/3 bg-gray-100 p-2 font-bold uppercase border-r-2 border-dark flex items-center">Objects</div>
+            <div class="w-2/3 p-2 bg-white">{{ status.repoObjects }}</div>
+          </div>
+          <div class="flex border-b-2 border-dark">
+            <div class="w-1/3 bg-gray-100 p-2 font-bold uppercase border-r-2 border-dark flex items-center">Traffic</div>
+            <div class="w-2/3 p-2 bg-white text-[10px]">{{ status.bandwidth }}</div>
+          </div>
+          <div class="flex">
+            <div class="w-1/3 bg-gray-100 p-2 font-bold uppercase border-r-2 border-dark flex items-center">Protocol</div>
+            <div class="w-2/3 p-2 bg-white">{{ status.version }}</div>
+          </div>
+        </div>
+        <div class="mt-4 text-right font-mono text-[10px] text-gray-500 uppercase font-bold">
+          SYNC <span class="bg-black text-white px-1 ml-1">{{ status.timestamp }}</span>
+        </div>
+      </div>
+
+    </aside>
   </div>
+</div>
 
-  <script>
-    const { createApp } = Vue;
+<script>
+  const { createApp } = Vue;
 
-    createApp({
-      data() {
-        return {
-          file: null,
-          fileLabel: "Drop or Choose File",
-          uploading: false,
-          uploadProgress: 0,
-          result: null,
-          isDragOver: false,
-          isPasted: false,
-          activeTab: "details",
-          showCli: false,
-          copied: false,
-          currentUrl: window.location.origin,
-          uploadMode: "file", // 'file' | 'zip'
-          status: {
-            nodeId: "Loading...",
-            bandwidth: "Loading...",
-            repoSize: "Loading...",
-            repoObjects: "Loading...",
-            version: "Loading...",
-            appver: "Loading...",
-            timestamp: "Loading...",
-            peerscount: 0,
-            storageLimit: "Loading...",
-            fileLimit: "Loading...",
-          },
-        };
-      },
-      methods: {
-        formatBytes(bytes) {
-          const sizes = ["Bytes", "KB", "MB", "GB", "TB"];
-          if (bytes === 0) return "0 Bytes";
-          const i = Math.floor(Math.log(bytes) / Math.log(1024));
-          return (bytes / Math.pow(1024, i)).toFixed(2) + " " + sizes[i];
+  createApp({
+    data() {
+      return {
+        file: null,
+        fileLabel: "AWAITING PAYLOAD",
+        uploading: false,
+        uploadProgress: 0,
+        result: null,
+        isDragOver: false,
+        isPasted: false,
+        activeTab: "details",
+        showCli: false,
+        copied: false,
+        currentUrl: window.location.origin,
+        gatewayBase: "https://dweb.link/ipfs/",
+        uploadMode: "file",
+        status: {
+          nodeId: "-------",
+          bandwidth: "IN 0B / OUT 0B",
+          repoSize: "0B / 0B",
+          repoObjects: "0",
+          version: "-------",
+          appver: "---",
+          timestamp: "00:00:00",
+          peerscount: 0,
+          storageLimit: "---",
+          fileLimit: "---",
         },
-        setUploadMode(mode) {
-          this.uploadMode = mode;
+      };
+    },
+    methods: {
+      formatBytes(bytes) {
+        const sizes = ["Bytes", "KB", "MB", "GB", "TB"];
+        if (bytes === 0) return "0 Bytes";
+        const i = Math.floor(Math.log(bytes) / Math.log(1024));
+        return (bytes / Math.pow(1024, i)).toFixed(2) + " " + sizes[i];
+      },
+      setUploadMode(mode) {
+        this.uploadMode = mode;
+        this.file = null;
+        this.fileLabel = "AWAITING PAYLOAD";
+      },
+      isZipFile(file) {
+        return Boolean(file && file.name && file.name.toLowerCase().endsWith(".zip"));
+      },
+      applySelectedFile(file) {
+        if (!file) {
           this.file = null;
-          this.fileLabel = mode === "zip" ? "Drop or Choose Zip" : "Drop or Choose File";
-        },
-        isZipFile(file) {
-          return Boolean(file && file.name && file.name.toLowerCase().endsWith(".zip"));
-        },
-        applySelectedFile(file) {
-          if (!file) {
-            this.file = null;
-            this.fileLabel = this.uploadMode === "zip" ? "Drop or Choose Zip" : "Drop or Choose File";
-            return;
-          }
+          this.fileLabel = "AWAITING PAYLOAD";
+          return;
+        }
 
-          if (this.uploadMode === "zip" && !this.isZipFile(file)) {
-            this.file = null;
-            this.fileLabel = "Drop or Choose Zip";
-            this.result = { success: false, message: "Please select a .zip archive" };
-            return;
-          }
+        if (this.uploadMode === "zip" && !this.isZipFile(file)) {
+          this.file = null;
+          this.fileLabel = "ERROR: ARCHIVE REQUIRED";
+          this.result = { success: false, message: "Only .zip archives can be processed in this mode." };
+          return;
+        }
 
-          this.file = file;
-          this.fileLabel = file.name || (this.uploadMode === "zip" ? "Zip Archive" : "Selected File");
-        },
-        updateFileLabel(event) {
-          const fileInput = event.target;
-          this.applySelectedFile(fileInput.files[0]);
-        },
-        handleDrop(event) {
-          this.isDragOver = false;
-          this.applySelectedFile(event.dataTransfer.files[0]);
-        },
-        handlePaste(event) {
-          console.log("Paste event triggered", event);
+        this.file = file;
+        this.fileLabel = file.name.toUpperCase() || (this.uploadMode === "zip" ? "ZIP ARCHIVE" : "SELECTED FILE");
+        this.result = null; // clear errors
+      },
+      updateFileLabel(event) {
+        const fileInput = event.target;
+        this.applySelectedFile(fileInput.files[0]);
+      },
+      handleDrop(event) {
+        this.isDragOver = false;
+        this.applySelectedFile(event.dataTransfer.files[0]);
+      },
+      handlePaste(event) {
+        const items = event.clipboardData?.items;
+        if (!items) return;
 
-          // Check if clipboard contains files
-          const items = event.clipboardData?.items;
-          if (!items) {
-            console.log("No clipboard items found");
-            return;
-          }
+        for (let index = 0; index < items.length; index += 1) {
+          const item = items[index];
+          if (item.kind !== "file") continue;
 
-          console.log("Clipboard items:", items.length);
+          event.preventDefault();
+          const file = item.getAsFile();
+          if (!file) continue;
 
-          for (let i = 0; i < items.length; i++) {
-            const item = items[i];
-            console.log("Item", i, ":", item.kind, item.type);
+          this.applySelectedFile(file);
+          this.isPasted = true;
+          setTimeout(() => {
+            this.isPasted = false;
+          }, 1000);
+          break;
+        }
+      },
+      getFileType(mimeType) {
+        if (mimeType.startsWith("audio/")) return "audio";
+        if (mimeType.startsWith("video/")) return "video";
+        if (mimeType.startsWith("image/")) return "image";
+        return null;
+      },
+      getGatewayUrlForCid(cid, filename) {
+        return this.getIpfsUrlWithFilename(cid, filename, this.gatewayBase);
+      },
+      getGatewayUrlForResult(result) {
+        if (!result) return "";
+        return result.url || this.getGatewayUrlForCid(result.cid, result.fileName);
+      },
+      getHtmlEmbed(cid, fileType, filename) {
+        const url = this.getGatewayUrlForCid(cid, filename);
+        switch (fileType) {
+          case "audio":
+            return `<audio controls>\n  <source src="${url}" type="audio/mpeg">\n  NO AUDIO SUPPORT\n</audio>`;
+          case "video":
+            return `<video controls width="640" height="360">\n  <source src="${url}" type="video/mp4">\n  NO VIDEO SUPPORT\n</video>`;
+          case "image":
+            return `<img src="${url}" alt="IPFS ASSET" />`;
+          default:
+            return `<a href="${url}">DOWNLOAD PAYLOAD</a>`;
+        }
+      },
+      getBBCodeEmbed(cid, fileType, filename) {
+        const url = this.getGatewayUrlForCid(cid, filename);
+        switch (fileType) {
+          case "audio":
+            return `[audio]${url}[/audio]`;
+          case "video":
+            return `[video]${url}[/video]`;
+          case "image":
+            return `[img]${url}[/img]`;
+          default:
+            return `[url=${url}]DOWNLOAD PAYLOAD[/url]`;
+        }
+      },
+      getIpfsUrlWithFilename(cid, filename, gateway = "") {
+        if (!filename) return gateway ? `${gateway}${cid}` : `ipfs://${cid}`;
+        const encodedFilename = encodeURIComponent(filename);
+        if (gateway) {
+          return `${gateway}${cid}?filename=${encodedFilename}`;
+        }
+        return `ipfs://${cid}?filename=${encodedFilename}`;
+      },
+      async uploadFile() {
+        if (!this.file) {
+          this.result = { success: false, message: "NO FILE SOURCE" };
+          return;
+        }
 
-            if (item.kind === "file") {
-              event.preventDefault();
-              const file = item.getAsFile();
-              console.log("File pasted:", file);
+        this.uploading = true;
+        this.uploadProgress = 0;
+        this.result = null;
 
-              if (file) {
-                this.applySelectedFile(file);
+        try {
+          const formData = new FormData();
+          formData.append("file", this.file);
 
-                // Show visual feedback for paste
-                this.isPasted = true;
-                setTimeout(() => {
-                  this.isPasted = false;
-                }, 1000);
+          const uploadEndpoint = this.uploadMode === "zip" ? "/uploadzip" : "/upload";
+          const response = await axios.post(uploadEndpoint, formData, {
+            onUploadProgress: (progressEvent) => {
+              this.uploadProgress = (progressEvent.loaded / progressEvent.total) * 100;
+            },
+          });
 
-                if (this.file) {
-                  console.log("File set successfully:", this.file.name);
-                }
-                break;
-              }
-            }
-          }
-        },
-        getFileTypeIcon(fileType) {
-          switch (fileType) {
-            case "audio":
-              return "fas fa-music";
-            case "video":
-              return "fas fa-video";
-            case "image":
-              return "fas fa-image";
-            default:
-              return "fas fa-file";
-          }
-        },
-        getFileType(mimeType) {
-          if (mimeType.startsWith("audio/")) return "audio";
-          if (mimeType.startsWith("video/")) return "video";
-          if (mimeType.startsWith("image/")) return "image";
-          return null;
-        },
-        getGatewayUrlForCid(cid, filename) {
-          return this.getIpfsUrlWithFilename(cid, filename, this.gatewayBase);
-        },
-        getGatewayUrlForResult(result) {
-          if (!result) return "";
-          return result.url || this.getGatewayUrlForCid(result.cid, result.fileName);
-        },
-        getHtmlEmbed(cid, fileType, filename) {
-          const url = this.getGatewayUrlForCid(cid, filename);
-          switch (fileType) {
-            case "audio":
-              return `<audio controls>\n  <source src="${url}" type="audio/mpeg">\n  Your browser does not support the audio element.\n</audio>`;
-            case "video":
-              return `<video controls width="640" height="360">\n  <source src="${url}" type="video/mp4">\n  Your browser does not support the video element.\n</video>`;
-            case "image":
-              return `<img src="${url}" alt="IPFS Image" />`;
-            default:
-              return `<a href="${url}">Download File</a>`;
-          }
-        },
-        getBBCodeEmbed(cid, fileType, filename) {
-          const url = this.getGatewayUrlForCid(cid, filename);
-          switch (fileType) {
-            case "audio":
-              return `[audio]${url}[/audio]`;
-            case "video":
-              return `[video]${url}[/video]`;
-            case "image":
-              return `[img]${url}[/img]`;
-            default:
-              return `[url=${url}]Download File[/url]`;
-          }
-        },
-        getIpfsUrlWithFilename(cid, filename, gateway = "") {
-          if (!filename) return gateway ? `${gateway}${cid}` : `ipfs://${cid}`;
+          this.uploadProgress = 100;
+          this.result = {
+            success: true,
+            message: "UPLOAD CONFIRMED",
+            cid: response.data.cid,
+            size: this.formatBytes(response.data.size),
+            files: response.data.files,
+            fileType: this.getFileType(this.uploadMode === "zip" ? "application/zip" : response.data.type),
+            fileName: response.data.filename,
+            mimeType: this.uploadMode === "zip" ? "application/zip" : response.data.type,
+            url: response.data.url,
+          };
 
-          const encodedFilename = encodeURIComponent(filename);
-          if (gateway) {
-            return `${gateway}${cid}?filename=${encodedFilename}`;
-          }
-          return `ipfs://${cid}?filename=${encodedFilename}`;
-        },
-        async uploadFile() {
-          if (!this.file) {
-            this.result = { success: false, message: "Please select a file" };
-            return;
-          }
-
-          this.uploading = true;
+          this.file = null;
+          this.fileLabel = "AWAITING PAYLOAD";
+          this.activeTab = "details";
+        } catch (error) {
           this.uploadProgress = 0;
-          this.result = null;
+          this.result = {
+            success: false,
+            message: error.response?.data?.message || error.message || "TRANSMISSION FAILED",
+          };
+        } finally {
+          this.uploading = false;
+        }
+      },
+      copyCurlCommand(type = "file") {
+        const route = type === "zip" ? "/uploadzip" : "/upload";
+        const filename = type === "zip" ? "archive.zip" : "file.ext";
+        const command = `curl -X POST -F "file=@${filename}" ${this.currentUrl}${route}`;
+        navigator.clipboard
+          .writeText(command)
+          .then(() => {
+            this.copied = true;
+            setTimeout(() => {
+              this.copied = false;
+            }, 2000);
+          })
+          .catch((err) => {
+            console.error("CLI COPY FAILED:", err);
+          });
+      },
+      async fetchStatus() {
+        try {
+          const response = await fetch("/status");
+          const data = await response.json();
 
-          try {
-            const formData = new FormData();
-            formData.append("file", this.file);
-
-            const uploadEndpoint = this.uploadMode === 'zip' ? "/uploadzip" : "/upload";
-            const response = await axios.post(uploadEndpoint, formData, {
-              onUploadProgress: (progressEvent) => {
-                this.uploadProgress = (progressEvent.loaded / progressEvent.total) * 100;
-              }
-            });
-
-            this.uploadProgress = 100;
-            this.result = {
-              success: true,
-              message: "Upload Successful",
-              cid: response.data.cid,
-              size: this.formatBytes(response.data.size),
-              files: response.data.files,
-              fileType: this.getFileType(this.uploadMode === 'zip' ? "application/zip" : response.data.type),
-              fileName: response.data.filename,
-              mimeType: this.uploadMode === 'zip' ? "application/zip" : response.data.type,
-              url: response.data.url,
-            };
-
-            // Clear inputs after successful upload
-            this.file = null;
-            this.fileLabel = this.uploadMode === "zip" ? "Drop or Choose Zip" : "Drop or Choose File";
-          } catch (error) {
-            this.uploadProgress = 0;
-            this.result = {
-              success: false,
-              message: error.response?.data?.message || error.message || "Upload failed",
-            };
-            console.error("Upload error:", error);
-          } finally {
-            this.uploading = false;
-          }
-        },
-        copyCurlCommand(type = "file") {
-          const route = type === "zip" ? "/uploadzip" : "/upload";
-          const filename = type === "zip" ? "archive.zip" : "yourfile.pdf";
-          const command = `curl -X POST -F "file=@${filename}" ${this.currentUrl}${route}`;
-          navigator.clipboard
-            .writeText(command)
-            .then(() => {
-              this.copied = true;
-              setTimeout(() => {
-                this.copied = false;
-              }, 2000);
-            })
-            .catch((err) => {
-              console.error("Failed to copy:", err);
-            });
-        },
-        async fetchStatus() {
-          try {
-            const response = await fetch("/status");
-            const data = await response.json();
-
-            if (data.status === "success") {
-              this.status = {
-                nodeId: data.node.id.slice(0, 6) + "..." + data.node.id.slice(-6),
-                bandwidth: `In: ${this.formatBytes(data.bandwidth.totalIn)} | Out: ${this.formatBytes(data.bandwidth.totalOut)}`,
-                repoSize: `${this.formatBytes(data.repository.size)} / ${this.formatBytes(data.repository.storageMax)}`,
-                repoObjects: `${data.repository.numObjects}`,
-                version: `${data.node.agentVersion}`,
-                appver: `${data.appVersion}`,
-                timestamp: new Date(data.timestamp).toLocaleTimeString(),
-                peerscount: data.peers.count,
-                storageLimit: data.storageLimit?.configured || "Unknown",
-                fileLimit: data.fileLimit?.formatted || data.fileLimit?.configured || "Unknown",
-              };
-            }
-          } catch (error) {
+          if (data.status === "success") {
             this.status = {
-              nodeId: "Error",
-              bandwidth: "Error loading",
-              repoSize: "Error loading",
-              repoObjects: "Error",
-              version: "Error",
-              appver: "Error",
-              timestamp: "Error",
-              peerscount: 0,
-              storageLimit: "Error",
-              fileLimit: "Error",
+              nodeId: data.node.id.slice(0, 8) + "..." + data.node.id.slice(-8),
+              bandwidth: `IN ${this.formatBytes(data.bandwidth.totalIn)} / OUT ${this.formatBytes(data.bandwidth.totalOut)}`,
+              repoSize: `${this.formatBytes(data.repository.size)} / ${this.formatBytes(data.repository.storageMax)}`,
+              repoObjects: `${data.repository.numObjects}`,
+              version: `${data.node.agentVersion}`,
+              appver: `${data.appVersion}`,
+              timestamp: new Date(data.timestamp).toLocaleTimeString('en-US', { hour12: false }),
+              peerscount: data.peers.count,
+              storageLimit: data.storageLimit?.configured || "UNKNOWN",
+              fileLimit: data.fileLimit?.formatted || data.fileLimit?.configured || "UNKNOWN",
             };
           }
-        },
+        } catch (error) {
+          this.status = {
+            nodeId: "ERROR",
+            bandwidth: "ERROR",
+            repoSize: "ERROR",
+            repoObjects: "ERROR",
+            version: "ERROR",
+            appver: "ERROR",
+            timestamp: "ERROR",
+            peerscount: "0",
+            storageLimit: "ERROR",
+            fileLimit: "ERROR",
+          };
+        }
       },
-      mounted() {
-        this.fetchStatus();
-        setInterval(this.fetchStatus, 10000);
-
-        // Add global paste event listener
-        document.addEventListener("paste", this.handlePaste);
-
-        // Focus the app to enable paste events
-        this.$el.focus();
-      },
-      beforeUnmount() {
-        // Clean up event listener
-        document.removeEventListener("paste", this.handlePaste);
-      },
-    }).mount("#app");
-  </script>
+    },
+    mounted() {
+      this.fetchStatus();
+      setInterval(this.fetchStatus, 10000);
+      document.addEventListener("paste", this.handlePaste);
+      document.getElementById("app")?.focus();
+    },
+    beforeUnmount() {
+      document.removeEventListener("paste", this.handlePaste);
+    },
+  }).mount("#app");
+</script>
 </body>
-
 </html>
