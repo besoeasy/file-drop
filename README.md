@@ -38,11 +38,11 @@ docker run -d --restart unless-stopped --name originless \
 
 Don't want to self-host? Use one of the community-run public gateways:
 
-| Gateway | URL |
-|---------|-----|
+| Gateway  | URL                              |
+| -------- | -------------------------------- |
 | besoeasy | https://originless.besoeasy.com/ |
-| gupt.app | https://originless.gupt.app/ |
-| 0xchat | https://originless.0xchat.com/ |
+| gupt.app | https://originless.gupt.app/     |
+| 0xchat   | https://originless.0xchat.com/   |
 
 Simply replace `http://localhost:3232` with any public gateway URL in API calls.
 
@@ -55,18 +55,21 @@ Simply replace `http://localhost:3232` with any public gateway URL in API calls.
 <td width="33%" valign="top">
 
 ### 🕶️ Anonymous
+
 No accounts, no tracking, no logs. Upload files completely anonymously without leaving a trace.
 
 </td>
 <td width="33%" valign="top">
 
 ### 🌍 Decentralized
+
 Built on IPFS. Content persists across the network even if your node goes offline.
 
 </td>
 <td width="33%" valign="top">
 
 ### 🔄 Self-Healing
+
 Content automatically repopulates when your node comes back online. Set it and forget it.
 
 </td>
@@ -75,18 +78,21 @@ Content automatically repopulates when your node comes back online. Set it and f
 <td width="33%" valign="top">
 
 ### 🔐 Privacy-First
+
 Optional client-side encryption for sensitive content. Even the server operator can't read your data.
 
 </td>
 <td width="33%" valign="top">
 
 ### 🧰 Minimal Surface
+
 Simple upload and hosting workflows without extra auth or admin layers.
 
 </td>
 <td width="33%" valign="top">
 
 ### 🚀 Easy Integration
+
 Simple REST API. Drop it into any app, tool, or platform in minutes.
 
 </td>
@@ -102,12 +108,14 @@ Originless lets you **instantly host and share your frontend builds** — no ser
 ### One-liner deploy (after build)
 
 **React (Vite / CRA):**
+
 ```bash
 npm run build && cd dist && zip -r ../dist.zip . && cd .. && \
   curl -X POST -F "file=@dist.zip" https://originless.besoeasy.com/uploadzip
 ```
 
 **Vue.js:**
+
 ```bash
 npm run build && cd dist && zip -r ../dist.zip . && cd .. && \
   curl -X POST -F "file=@dist.zip" https://originless.besoeasy.com/uploadzip
@@ -116,6 +124,7 @@ npm run build && cd dist && zip -r ../dist.zip . && cd .. && \
 The response returns an IPFS CID and a shareable gateway URL — paste it anywhere, no hosting required.
 
 ### Example response
+
 ```json
 {
   "cid": "QmXyz...",
@@ -126,6 +135,7 @@ The response returns an IPFS CID and a shareable gateway URL — paste it anywhe
 Open the `url` in any browser to view your live app via the IPFS gateway.
 
 ### Helper script (`deploy.sh`)
+
 Drop this in your project root for a repeatable deploy:
 
 ```bash
@@ -170,6 +180,7 @@ Originless is already powering file storage for these platforms:
 <td align="center" width="33%">
 
 ### 💬 0xchat
+
 Private, decentralized Nostr chat
 
 [Visit 0xchat.com →](https://0xchat.com/)
@@ -178,6 +189,7 @@ Private, decentralized Nostr chat
 <td align="center" width="33%">
 
 ### 📝 ZeroNote
+
 Anonymous encrypted notes sharing
 
 [Visit zeronote.js.org →](https://zeronote.js.org/)
@@ -186,6 +198,7 @@ Anonymous encrypted notes sharing
 <td align="center" width="33%">
 
 ### 🌐 gupt.app
+
 Private, anonymous file sharing
 
 [Visit gupt.app →](https://gupt.app/)
@@ -204,7 +217,7 @@ graph LR
     B --> C[🌐 IPFS Network]
     C --> D[👥 Peers Request]
     D --> E[♻️ Content Spreads]
-    
+
     style A fill:#2563eb,color:#fff
     style B fill:#10b981,color:#fff
     style C fill:#8b5cf6,color:#fff
@@ -218,12 +231,12 @@ graph LR
 
 ## 📚 Documentation
 
-| Resource | Description |
-|----------|-------------|
-| **[🛠️ API Reference](#-api-reference)** | Complete REST API reference with examples |
-| **[🤖 AI Agent Integration](#-ai-agent-integration)** | Guide for AI agents to integrate Originless |
-| **[🔧 Configuration](#-configuration)** | Environment variables and settings |
-| **[🐳 Docker Hub](https://github.com/besoeasy/Originless/pkgs/container/originless)** | Official container images |
+| Resource                                                                              | Description                                 |
+| ------------------------------------------------------------------------------------- | ------------------------------------------- |
+| **[🛠️ API Reference](#-api-reference)**                                               | Complete REST API reference with examples   |
+| **[🤖 AI Agent Integration](#-ai-agent-integration)**                                 | Guide for AI agents to integrate Originless |
+| **[🔧 Configuration](#-configuration)**                                               | Environment variables and settings          |
+| **[🐳 Docker Hub](https://github.com/besoeasy/Originless/pkgs/container/originless)** | Official container images                   |
 
 ---
 
@@ -231,14 +244,15 @@ graph LR
 
 ### Environment Variables
 
-| Variable | Default | Description |
-|----------|---------|-------------|
+| Variable      | Default | Description                    |
+| ------------- | ------- | ------------------------------ |
 | `STORAGE_MAX` | `200GB` | Maximum storage limit for IPFS |
-| `PORT` | `3232` | API server port |
+| `PORT`        | `3232`  | API server port                |
 
 ### Advanced Setup
 
 **Custom storage limit:**
+
 ```bash
 docker run -d ... -e STORAGE_MAX=500GB ghcr.io/besoeasy/originless
 ```
@@ -252,6 +266,7 @@ Base URL (local): `http://localhost:3232`
 - Responses are JSON unless otherwise noted.
 
 ### POST /upload
+
 Upload a file directly from your local system.
 
 **Request**
@@ -274,6 +289,7 @@ curl -X POST -F "file=@yourfile.pdf" http://localhost:3232/upload
 ```
 
 ### POST /uploadzip
+
 Upload a `.zip` archive. Originless extracts it and stores the entire folder to IPFS as a directory. This is the endpoint to use for static site deploys.
 
 **Request**
@@ -308,14 +324,15 @@ By giving your agents access to the Originless API, they can instantly share art
 
 Try giving these tasks to an agent or coding assistant (like Cursor or GitHub Copilot) that has terminal access:
 
-- *"What's the current Bitcoin price and what recent news do we have on Bitcoin? Create a beautiful `index.html` report with this data and upload it to Originless (https://originless.besoeasy.com/upload) so I can share it."*
-- *"Write a python script that generates a complex 3D fractal image, save it as a PNG, and upload it anonymously to my local Originless node (http://localhost:3232/upload)."*
-- *"Build a small React app for a Pomodoro timer, build it to the `dist` folder, zip the output, and publish it as a live website to IPFS using `https://originless.besoeasy.com/uploadzip`."*
+- _"What's the current Bitcoin price and what recent news do we have on Bitcoin? Create a beautiful `index.html` report with this data and upload it to Originless (https://originless.besoeasy.com/upload) so I can share it."_
+- _"Write a python script that generates a complex 3D fractal image, save it as a PNG, and upload it anonymously to my local Originless node (http://localhost:3232/upload)."_
+- _"Build a small React app for a Pomodoro timer, build it to the `dist` folder, zip the output, and publish it as a live website to IPFS using `https://originless.besoeasy.com/uploadzip`."_
 
 ---
 
 ## 🌟 Use Cases
 
+- **🌍 Decentralized Apps** — Build your frontend and upload the `dist` folder to host your live DApp
 - **🖼️ Screenshot Tools** — Anonymous image hosting for screenshots
 - **📝 Pastebin Alternative** — Decentralized paste sharing
 - **💬 Nostr Clients** — Media attachments for decentralized social
@@ -324,65 +341,3 @@ Try giving these tasks to an agent or coding assistant (like Cursor or GitHub Co
 - **🎵 Podcast Hosting** — Decentralized RSS feed media
 - **💾 Backup Storage** — Self-healing backup infrastructure
 - **🔗 Link Preservation** — Combat link rot with IPFS archiving
-
----
-
-## 🧑‍💻 Development
-
-**Clone the repository:**
-```bash
-git clone https://github.com/besoeasy/Originless.git
-cd Originless
-```
-
-**Install dependencies:**
-```bash
-npm install
-```
-
-**Run locally:**
-```bash
-npm start
-```
-
-**Build Docker image:**
-```bash
-docker build -t originless .
-```
-
----
-
-## 🤝 Contributing
-
-Contributions are welcome! Whether it's:
-- 🐛 Bug reports
-- 💡 Feature requests
-- 📖 Documentation improvements
-- 🔧 Code contributions
-
-**[Open an issue](https://github.com/besoeasy/Originless/issues)** or submit a pull request.
-
----
-
-## 📜 License
-
-**ISC License** — See [LICENSE](LICENSE) for details.
-
----
-
-## 🔗 Links
-
-- **GitHub:** [github.com/besoeasy/Originless](https://github.com/besoeasy/Originless)
-- **Docker:** [ghcr.io/besoeasy/originless](https://github.com/besoeasy/Originless/pkgs/container/originless)
-- **Public Gateway:** [originless.besoeasy.com](https://originless.besoeasy.com)
-- **IPFS Docs:** [docs.ipfs.tech](https://docs.ipfs.tech)
-
----
-
-<div align="center">
-
-**Built with ❤️ by [besoeasy](https://github.com/besoeasy)**
-
-*One Originless to rule them all and keep you anonymous* 🕶️
-
-</div>
