@@ -424,15 +424,6 @@
                 <i class="fas fa-folder-open mr-2"></i>
                 ZIP Folder
               </button>
-              <button @click="setUploadMode('url')" :class="[
-                  'px-4 py-2 rounded-lg font-semibold transition-all duration-300',
-                  uploadMode === 'url' 
-                    ? 'bg-black text-white' 
-                    : 'bg-white text-gray-600 hover:bg-gray-100'
-                ]">
-                <i class="fas fa-link mr-2"></i>
-                URL Upload
-              </button>
             </div>
           </div>
 
@@ -449,40 +440,17 @@
             </div>
           </div>
 
-          <!-- URL Upload Section -->
-          <div v-if="uploadMode === 'url'" class="bg-gray-50 rounded-xl p-6 border border-gray-200 animate-fade-in">
-            <div class="space-y-3">
-              <label class="block">
-                <span class="text-sm font-semibold text-gray-700 mb-2 block">
-                  <i class="fas fa-globe mr-2"></i>Enter URL to upload
-                </span>
-                <input type="url" v-model="remoteUrl" placeholder="https://example.com/file.pdf"
-                  class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-black transition-all duration-300"
-                  @keyup.enter="uploadFile" />
-              </label>
-              <p class="text-xs text-gray-500">
-                <i class="fas fa-info-circle mr-1"></i>
-                Download content from any URL and upload to IPFS (max {{ status.remoteFileLimit }})
-              </p>
-            </div>
-          </div>
-
-
-          <button @click="uploadFile" :disabled="uploading || (uploadMode === 'url' ? !remoteUrl : !file)"
+          <button @click="uploadFile" :disabled="uploading || !file"
             class="w-full bg-black text-white py-3 rounded-xl font-semibold transition-all duration-300 hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed">
             <div class="flex items-center justify-center gap-2">
               <i class="fas fa-upload" :class="{ 'animate-pulse': uploading }"></i>
               <span v-if="!uploading">{{
-                uploadMode === 'url'
-                  ? 'Upload from URL'
-                  : uploadMode === 'zip'
+                uploadMode === 'zip'
                     ? 'Upload ZIP'
                     : 'Upload File'
               }}</span>
               <span v-else>{{
-                uploadMode === 'url'
-                  ? 'Downloading & Uploading...'
-                  : uploadMode === 'zip'
+                uploadMode === 'zip'
                     ? 'Uploading ZIP...'
                     : 'Uploading...'
               }}</span>
@@ -743,8 +711,7 @@
           showCli: false,
           copied: false,
           currentUrl: window.location.origin,
-          uploadMode: "file", // 'file' | 'zip' | 'url'
-          remoteUrl: "",
+          uploadMode: "file", // 'file' | 'zip'
           status: {
             nodeId: "Loading...",
             bandwidth: "Loading...",
@@ -756,7 +723,6 @@
             peerscount: 0,
             storageLimit: "Loading...",
             fileLimit: "Loading...",
-            remoteFileLimit: "Loading...",
           },
         };
       },
@@ -769,7 +735,6 @@
         },
         setUploadMode(mode) {
           this.uploadMode = mode;
-          this.remoteUrl = "";
           this.file = null;
           this.fileLabel = mode === "zip" ? "Drop or Choose Zip" : "Drop or Choose File";
         },
@@ -900,14 +865,8 @@
           return `ipfs://${cid}?filename=${encodedFilename}`;
         },
         async uploadFile() {
-          // Validate based on upload mode
-          if ((this.uploadMode === 'file' || this.uploadMode === 'zip') && !this.file) {
+          if (!this.file) {
             this.result = { success: false, message: "Please select a file" };
-            return;
-          }
-
-          if (this.uploadMode === 'url' && !this.remoteUrl) {
-            this.result = { success: false, message: "Please enter a URL" };
             return;
           }
 
@@ -916,29 +875,15 @@
           this.result = null;
 
           try {
-            let response;
+            const formData = new FormData();
+            formData.append("file", this.file);
 
-            if (this.uploadMode === 'file' || this.uploadMode === 'zip') {
-              // File upload mode
-              const formData = new FormData();
-              formData.append("file", this.file);
-
-              const uploadEndpoint = this.uploadMode === 'zip' ? "/uploadzip" : "/upload";
-              response = await axios.post(uploadEndpoint, formData, {
-                onUploadProgress: (progressEvent) => {
-                  this.uploadProgress = (progressEvent.loaded / progressEvent.total) * 100;
-                }
-              });
-            } else {
-              // URL upload mode
-              this.uploadProgress = 50; // Show progress for URL download
-
-              response = await axios.post("/remoteupload", {
-                url: this.remoteUrl
-              });
-
-              this.uploadProgress = 90;
-            }
+            const uploadEndpoint = this.uploadMode === 'zip' ? "/uploadzip" : "/upload";
+            const response = await axios.post(uploadEndpoint, formData, {
+              onUploadProgress: (progressEvent) => {
+                this.uploadProgress = (progressEvent.loaded / progressEvent.total) * 100;
+              }
+            });
 
             this.uploadProgress = 100;
             this.result = {
@@ -954,12 +899,8 @@
             };
 
             // Clear inputs after successful upload
-            if (this.uploadMode === 'url') {
-              this.remoteUrl = "";
-            } else {
-              this.file = null;
-              this.fileLabel = this.uploadMode === "zip" ? "Drop or Choose Zip" : "Drop or Choose File";
-            }
+            this.file = null;
+            this.fileLabel = this.uploadMode === "zip" ? "Drop or Choose Zip" : "Drop or Choose File";
           } catch (error) {
             this.uploadProgress = 0;
             this.result = {
@@ -1004,7 +945,6 @@
                 peerscount: data.peers.count,
                 storageLimit: data.storageLimit?.configured || "Unknown",
                 fileLimit: data.fileLimit?.formatted || data.fileLimit?.configured || "Unknown",
-                remoteFileLimit: data.remoteFileLimit?.formatted || data.remoteFileLimit?.configured || "Unknown",
               };
             }
           } catch (error) {

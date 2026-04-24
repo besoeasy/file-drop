@@ -1,6 +1,6 @@
 # Originless — Agent Guide
 
-Originless is a self-hosted, anonymous, decentralized file storage backend built on IPFS. As an agent you can upload files, host static sites, mirror remote assets, and manage persistent pins — all via a simple REST API and without accounts or API keys for public operations.
+Originless is a self-hosted, anonymous, decentralized file storage backend built on IPFS. As an agent you can upload files and host static sites via a simple REST API and without accounts or API keys for public operations.
 
 ---
 
@@ -74,38 +74,7 @@ Share the `url` — it opens as a live web app accessible to anyone, no server r
 
 ---
 
-### 3. Mirror a remote URL to IPFS
-
-Fetch any HTTP/HTTPS resource and get a permanent IPFS link for it — useful when you need a stable, cacheable copy of an external asset.
-
-```bash
-curl -X POST https://originless.besoeasy.com/remoteupload \
-  -H "Content-Type: application/json" \
-  -d '{"url":"https://example.com/dataset.csv"}'
-```
-
-**Response:**
-
-```json
-{
-  "status": "success",
-  "cid": "QmX...",
-  "url": "https://dweb.link/ipfs/QmX...",
-  "filename": "dataset.csv",
-  "size": 512000,
-  "type": "text/csv",
-  "sourceUrl": "https://example.com/dataset.csv",
-  "timing": {
-    "download_ms": 800,
-    "upload_ms": 300,
-    "total_ms": 1100
-  }
-}
-```
-
----
-
-### 4. Upload a folder or multi-file project
+### 3. Upload a folder or multi-file project
 
 Zip any directory and use `/uploadzip`. Originless extracts it and stores the full folder structure on IPFS.
 
@@ -118,7 +87,7 @@ The returned `url` points to the root of the directory on IPFS. Append any filen
 
 ---
 
-### 5. Check node health and storage status
+### 4. Check node health and storage status
 
 ```bash
 # Is the node up?
@@ -139,6 +108,5 @@ Use `/health` to verify the node is reachable before issuing uploads. Use `/stat
 | Upload a single file                      | `POST /upload`                                       |
 | Host a static site / frontend build       | `POST /uploadzip`                                    |
 | Upload a whole folder                     | `POST /uploadzip` (zip it first)                     |
-| Mirror a remote file to IPFS              | `POST /remoteupload`                                 |
 | Verify node is running                    | `GET /health`                                        |
 | Check storage usage                       | `GET /status`                                        |

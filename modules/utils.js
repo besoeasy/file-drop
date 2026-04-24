@@ -34,27 +34,4 @@ const axiosRequest = async (config, timeoutMs = 10000) => {
   return res;
 };
 
-/**
- * Make an axios request with responseType "stream" and throw on non-2xx responses.
- */
-const axiosStream = async (config, timeoutMs = 10000) => {
-  const res = await axios({
-    responseType: "stream",
-    timeout: timeoutMs,
-    validateStatus: () => true,
-    ...config,
-  });
-
-  if (res.status < 200 || res.status >= 300) {
-    const error = new Error(`Remote server returned ${res.status}: ${res.statusText}`);
-    error.status = res.status;
-    if (res.data && res.data.destroy) {
-      res.data.destroy();
-    }
-    throw error;
-  }
-
-  return res;
-};
-
-module.exports = { axiosRequest, axiosStream };
+module.exports = { axiosRequest };

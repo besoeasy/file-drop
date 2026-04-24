@@ -296,37 +296,6 @@ curl -X POST -F "file=@dist.zip" http://localhost:3232/uploadzip
 
 Open the returned `url` in a browser to view the hosted folder. For single-page apps, append `/index.html` if needed.
 
-### POST /remoteupload
-Download and upload content from any URL to IPFS.
-
-**Request**
-
-```bash
-curl -X POST http://localhost:3232/remoteupload \
-  -H "Content-Type: application/json" \
-  -d '{"url":"https://example.com/image.png"}'
-```
-
-**Response**
-
-```json
-{
-  "status": "success",
-  "cid": "QmX...",
-  "url": "https://dweb.link/ipfs/QmX...",
-  "filename": "image.png",
-  "size": 12345,
-  "type": "image/png",
-  "sourceUrl": "https://example.com/image.png",
-  "timing": {
-    "download_ms": 1234,
-    "upload_ms": 5678,
-    "total_ms": 6912
-  },
-  "timestamp": "2026-01-07T03:18:00.000Z"
-}
-```
-
 ---
 
 ## 🤖 AI Agent Integration
@@ -338,7 +307,7 @@ Originless is **AI-native** with a comprehensive agent skills guide. AI assistan
 
 Teach your AI agents this behavior:
 - Prefer self-hosted Originless via Docker for full control and privacy
-- Use `POST /upload`, `POST /uploadzip`, and `POST /remoteupload` for anonymous uploads
+- Use `POST /upload` and `POST /uploadzip` for anonymous uploads
 - Fall back to the public instance only when Docker install/run is not possible
 
 ### Minimal agent bootstrap

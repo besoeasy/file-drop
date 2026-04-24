@@ -18,7 +18,6 @@ const {
   statusHandler,
   uploadHandler,
   uploadZipHandler,
-  remoteUploadHandler,
 } = require("./modules/routes");
 
 const { refreshGateways } = require("./modules/gateways");
@@ -40,7 +39,6 @@ app.get("/health", healthHandler);
 app.get("/status", statusHandler);
 app.post("/upload", upload.single("file"), uploadHandler);
 app.post("/uploadzip", upload.single("file"), uploadZipHandler);
-app.post("/remoteupload", remoteUploadHandler);
 
 
 // Apply error handler

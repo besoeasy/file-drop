@@ -34,7 +34,6 @@ const PORT = 3232;
 const STORAGE_MAX = process.env.STORAGE_MAX || "200GB";
 const STORAGE_MAX_BYTES = parseSize(STORAGE_MAX);
 const FILE_LIMIT = process.env.FILE_LIMIT ? parseSize(process.env.FILE_LIMIT) : Math.floor(STORAGE_MAX_BYTES / 100);
-const REMOTE_FILE_LIMIT = process.env.REMOTE_FILE_LIMIT ? parseSize(process.env.REMOTE_FILE_LIMIT) : Math.floor(STORAGE_MAX_BYTES / 100); // Remote upload file size limit
 const HOST = "0.0.0.0";
 const UPLOAD_TEMP_DIR = "/tmp/originless";
 
@@ -45,7 +44,6 @@ module.exports = {
   PORT,
   STORAGE_MAX,
   FILE_LIMIT,
-  REMOTE_FILE_LIMIT,
   HOST,
   UPLOAD_TEMP_DIR,
 };

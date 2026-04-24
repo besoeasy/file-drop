@@ -5,8 +5,8 @@ const mime = require("mime-types");
 const FormData = require("form-data");
 const unzipper = require("unzipper");
 
-const { IPFS_API, STORAGE_MAX, FILE_LIMIT, REMOTE_FILE_LIMIT, formatBytes, UPLOAD_TEMP_DIR } = require("./config");
-const { axiosRequest, axiosStream } = require("./utils");
+const { IPFS_API, STORAGE_MAX, FILE_LIMIT, formatBytes, UPLOAD_TEMP_DIR } = require("./config");
+const { axiosRequest } = require("./utils");
 const { checkIPFSHealth, getIPFSStats } = require("./ipfs");
 const { getGatewayUrl, refreshGateways } = require("./gateways");
 
@@ -108,10 +108,6 @@ const removeDirSafe = async (dirPath, context) => {
   }
 };
 
-// Concurrency control for remote uploads
-const MAX_CONCURRENT_DOWNLOADS = 3;
-let activeDownloads = 0;
-
 // Health check endpoint
 const healthHandler = async (req, res) => {
   try {
@@ -148,11 +144,6 @@ const statusHandler = async (req, res) => {
         configured: process.env.FILE_LIMIT || "5GB",
         bytes: FILE_LIMIT,
         formatted: formatBytes(FILE_LIMIT),
-      },
-      remoteFileLimit: {
-        configured: process.env.REMOTE_FILE_LIMIT || "2GB",
-        bytes: REMOTE_FILE_LIMIT,
-        formatted: formatBytes(REMOTE_FILE_LIMIT),
       },
       appVersion,
     });
@@ -419,223 +410,9 @@ const uploadZipHandler = async (req, res) => {
   }
 };
 
-// Remote upload handler - downloads URL and uploads to IPFS, returns JSON
-const remoteUploadHandler = async (req, res) => {
-  const crypto = require("crypto");
-  const path = require("path");
-  let tempFilePath = null;
-
-  // Check concurrency limit
-  if (activeDownloads >= MAX_CONCURRENT_DOWNLOADS) {
-    return res.status(429).json({
-      error: "Too many concurrent downloads",
-      status: "error",
-      message: `Maximum ${MAX_CONCURRENT_DOWNLOADS} concurrent downloads in progress. Please try again later.`,
-      activeDownloads: activeDownloads,
-      maxConcurrent: MAX_CONCURRENT_DOWNLOADS,
-      timestamp: new Date().toISOString(),
-    });
-  }
-
-  // Increment active downloads counter
-  activeDownloads++;
-  console.log(`[REMOTE-UPLOAD] Active downloads: ${activeDownloads}/${MAX_CONCURRENT_DOWNLOADS}`);
-
-  try {
-    // Extract URL from request body
-    const { url: targetUrl } = req.body;
-
-    if (!targetUrl) {
-      return res.status(400).json({
-        error: "No URL provided",
-        status: "error",
-        message: "Request body must contain 'url' field",
-        timestamp: new Date().toISOString(),
-      });
-    }
-
-    // Validate URL format
-    let url;
-    try {
-      url = new URL(targetUrl);
-      if (!["http:", "https:"].includes(url.protocol)) {
-        throw new Error("Only HTTP and HTTPS protocols are supported");
-      }
-    } catch (err) {
-      return res.status(400).json({
-        error: "Invalid URL",
-        status: "error",
-        message: err.message,
-        timestamp: new Date().toISOString(),
-      });
-    }
-
-    console.log(`[REMOTE-UPLOAD] Starting download from: ${targetUrl}`);
-
-    // Download the file with fetch streaming support
-    const downloadStart = Date.now();
-    const response = await axiosStream({
-      url: targetUrl,
-      method: "GET",
-      maxRedirects: 5,
-    }, 1800000);
-
-    const contentLength = Number(response.headers["content-length"]) || 0;
-    if (contentLength && contentLength > REMOTE_FILE_LIMIT) {
-      const error = new Error(`File size exceeds limit of ${formatBytes(REMOTE_FILE_LIMIT)}`);
-      error.code = "FILE_TOO_LARGE";
-      throw error;
-    }
-
-    // Get filename from URL or Content-Disposition header
-    let filename = path.basename(url.pathname) || "download";
-    let mimeType = "application/octet-stream";
-
-    // Get headers from response
-    const contentDisposition = response.headers["content-disposition"];
-    if (contentDisposition) {
-      const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
-      if (filenameMatch && filenameMatch[1]) {
-        filename = filenameMatch[1].replace(/['"]/g, "");
-      }
-    }
-
-    // Detect MIME type from Content-Type header
-    const contentType = response.headers["content-type"];
-    mimeType = contentType?.split(";")[0] || mime.lookup(filename) || "application/octet-stream";
-
-    // Generate temp file path
-    const randomName = crypto.randomBytes(16).toString("hex");
-    tempFilePath = path.join(UPLOAD_TEMP_DIR, randomName);
-
-    // Create write stream
-    const downloadedSize = await streamToFileWithLimit(response.data, tempFilePath, REMOTE_FILE_LIMIT);
-
-    const downloadDuration = Date.now() - downloadStart;
-    console.log(`[REMOTE-UPLOAD] Downloaded ${formatBytes(downloadedSize)} in ${downloadDuration}ms`);
-
-    // Upload to IPFS
-    const formData = new FormData();
-    formData.append("file", fs.createReadStream(tempFilePath), { filename });
-
-    const uploadStart = Date.now();
-    console.log(`[REMOTE-UPLOAD] Starting IPFS upload for ${filename}...`);
-
-    const ipfsResponse = await axiosRequest({
-      url: `${IPFS_API}/api/v0/add?pin=false`,
-      method: "POST",
-      data: formData,
-      headers: formData.getHeaders(),
-      maxContentLength: Infinity,
-      maxBodyLength: Infinity,
-    }, 3600000);
-
-    const ipfsJson = ipfsResponse.data;
-
-    const uploadDuration = Date.now() - uploadStart;
-    const cid = ipfsJson.Hash;
-
-    console.log(`[REMOTE-UPLOAD] Upload complete: CID=${cid}, duration=${uploadDuration}ms`);
-
-    // Clean up temp file
-    await unlinkSafe(tempFilePath, "[REMOTE-UPLOAD] Failed to delete temp file");
-    tempFilePath = null;
-
-    // Return JSON response with detailed information
-    const uploadDetails = {
-      status: "success",
-      cid: cid,
-      url: await getGatewayUrl(cid, filename),
-      filename: filename,
-      size: downloadedSize,
-      type: mimeType,
-      sourceUrl: targetUrl,
-      timing: {
-        download_ms: downloadDuration,
-        upload_ms: uploadDuration,
-        total_ms: downloadDuration + uploadDuration,
-      },
-      timestamp: new Date().toISOString(),
-    };
-
-    console.log(`[REMOTE-UPLOAD] Success:`, uploadDetails);
-
-    res.json(uploadDetails);
-
-  } catch (err) {
-    // Clean up temp file on error
-    await unlinkSafe(tempFilePath, "[REMOTE-UPLOAD] Failed to delete temp file on error");
-
-    console.error("[REMOTE-UPLOAD] Error:", {
-      message: err.message,
-      code: err.code,
-      name: err.name,
-      timestamp: new Date().toISOString(),
-    });
-
-    // Handle specific error types
-
-    // File size limit error
-    if (err.code === "FILE_TOO_LARGE") {
-      return res.status(413).json({
-        error: "File too large",
-        status: "error",
-        message: err.message,
-        limit: formatBytes(REMOTE_FILE_LIMIT),
-        timestamp: new Date().toISOString(),
-      });
-    }
-
-    // Timeout
-    if (err.code === "ECONNABORTED" || err.message?.toLowerCase().includes("timeout")) {
-      return res.status(504).json({
-        error: "Download timeout",
-        status: "error",
-        message: "Timeout during download",
-        details: err.message || "Request timeout",
-        timestamp: new Date().toISOString(),
-      });
-    }
-
-    // HTTP error
-    if (err.status) {
-      return res.status(err.status).json({
-        error: "HTTP error",
-        status: "error",
-        message: err.message,
-        timestamp: new Date().toISOString(),
-      });
-    }
-
-    // Network errors
-    if (err.name === "TypeError" || err.code === "ENOTFOUND" || err.code === "ECONNREFUSED") {
-      return res.status(502).json({
-        error: "Failed to download URL",
-        status: "error",
-        message: "Could not connect to the remote server",
-        details: err.message,
-        timestamp: new Date().toISOString(),
-      });
-    }
-
-    // Fallback for any other errors
-    res.status(500).json({
-      error: "Remote upload failed",
-      status: "error",
-      message: err.message,
-      timestamp: new Date().toISOString(),
-    });
-  } finally {
-    // Always decrement the counter, even on errors
-    activeDownloads--;
-    console.log(`[REMOTE-UPLOAD] Download complete. Active downloads: ${activeDownloads}/${MAX_CONCURRENT_DOWNLOADS}`);
-  }
-};
-
 module.exports = {
   healthHandler,
   statusHandler,
   uploadHandler,
   uploadZipHandler,
-  remoteUploadHandler,
 };
