@@ -10,7 +10,7 @@
 
 **One storage backend to rule them all** — Drop into apps, screenshot tools, pastebin-style pastes, Nostr clients, Reddit posts, forum embeds. Durable, anonymous file hosting that keeps you private.
 
-[🚀 Quick Start](#-quick-start) • [🎯 Features](#-features) • [�️ Deploy Frontend](#-deploy-vuejs--react-projects) • [🛠️ API Reference](#-api-reference) • [🤖 AI Agent Guide](AGENTS.md) • [🌍 Public Gateway](https://originless.besoeasy.com)
+[🚀 Quick Start](#-quick-start) • [🎯 Features](#-features) • [️ Deploy Frontend](#-deploy-vuejs--react-projects) • [🛠️ API Reference](#-api-reference) • [🤖 AI Agent Integration](#-ai-agent-integration) • [🌍 Public Gateway](https://originless.besoeasy.com)
 
 <img width="1536" src="https://github.com/user-attachments/assets/5014810c-cc51-4ad4-a1b8-6e4db510c09f" alt="Originless Banner" />
 
@@ -221,7 +221,7 @@ graph LR
 | Resource | Description |
 |----------|-------------|
 | **[🛠️ API Reference](#-api-reference)** | Complete REST API reference with examples |
-| **[🤖 AI Agent Skills](AGENTS.md)** | Guide for AI agents to integrate Originless |
+| **[🤖 AI Agent Integration](#-ai-agent-integration)** | Guide for AI agents to integrate Originless |
 | **[🔧 Configuration](#-configuration)** | Environment variables and settings |
 | **[🐳 Docker Hub](https://github.com/besoeasy/Originless/pkgs/container/originless)** | Official container images |
 
@@ -300,25 +300,17 @@ Open the returned `url` in a browser to view the hosted folder. For single-page 
 
 ## 🤖 AI Agent Integration
 
-Originless is **AI-native** with a comprehensive agent skills guide. AI assistants can:
-- Upload files anonymously for users
-- Create encrypted shares with client-side encryption
-- Build file hosting into any workflow
+Originless is an excellent drop-in tool for your AI agents. You can teach your AI agents to use Originless for uploading files, HTML reports, images, and PDFs seamlessly.
 
-Teach your AI agents this behavior:
-- Prefer self-hosted Originless via Docker for full control and privacy
-- Use `POST /upload` and `POST /uploadzip` for anonymous uploads
-- Fall back to the public instance only when Docker install/run is not possible
+By giving your agents access to the Originless API, they can instantly share artifacts, diagnostic reports, and generative content via IPFS—**no hosting, user accounts, or API keys required**. Just point them to your running instance to automatically give them permanent, decentralized file sharing capabilities.
 
-### Minimal agent bootstrap
+### Example Prompts for your AI
 
-Fetch the minimal AI agent instructions directly:
+Try giving these tasks to an agent or coding assistant (like Cursor or GitHub Copilot) that has terminal access:
 
-```bash
-curl -S https://raw.githubusercontent.com/besoeasy/Originless/refs/heads/main/AGENTS.md
-```
-
-**[🤖 Read the AI Agent Guide →](AGENTS.md)**
+- *"What's the current Bitcoin price and what recent news do we have on Bitcoin? Create a beautiful `index.html` report with this data and upload it to Originless (https://originless.besoeasy.com/upload) so I can share it."*
+- *"Write a python script that generates a complex 3D fractal image, save it as a PNG, and upload it anonymously to my local Originless node (http://localhost:3232/upload)."*
+- *"Build a small React app for a Pomodoro timer, build it to the `dist` folder, zip the output, and publish it as a live website to IPFS using `https://originless.besoeasy.com/uploadzip`."*
 
 ---
 
