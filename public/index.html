@@ -17,6 +17,20 @@
           fontFamily: {
             sans: ['Inter', 'Helvetica', 'Arial', 'sans-serif'],
             mono: ['IBM Plex Mono', 'Courier', 'monospace'],
+          },
+          keyframes: {
+            'fade-in': {
+              '0%': { opacity: '0', transform: 'translateY(12px)' },
+              '100%': { opacity: '1', transform: 'translateY(0)' },
+            },
+            'soft-bob': {
+              '0%, 100%': { transform: 'translateY(0)' },
+              '50%': { transform: 'translateY(-4px)' },
+            },
+          },
+          animation: {
+            'fade-in': 'fade-in 0.5s ease-out',
+            'soft-bob': 'soft-bob 2.8s ease-in-out infinite',
           }
         }
       }
@@ -80,6 +94,15 @@
       transition: all 0.2s ease;
     }
 
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+      }
+    }
+
     .dropzone-active {
       border-style: solid;
       border-color: var(--brand);
@@ -119,18 +142,18 @@
   <!-- HEADER / MASTHEAD -->
   <header class="swiss-grid grid-cols-1 md:grid-cols-4 lg:grid-cols-5 border-l-0 border-r-0 border-t-0 pb-8 gap-8 items-end">
     <div class="col-span-1 md:col-span-2 lg:col-span-3">
-      <h1 class="text-5xl font-bold tracking-tight">Originless<span class="accent-text">.</span></h1>
+      <h1 class="text-5xl font-bold tracking-tight transition-transform duration-300 hover:-translate-y-1">Originless<span class="accent-text inline-block transition-transform duration-300 hover:translate-x-1 hover:-translate-y-1">.</span></h1>
     </div>
     
     <div class="col-span-1 md:col-span-2 lg:col-span-2 grid grid-cols-2 gap-4">
-      <div class="border-l border-line pl-4">
+      <div class="border-l border-line pl-4 transition-all duration-300 hover:-translate-y-1 hover:border-brand/50 hover:text-black">
         <div class="heading-title mb-1">Status</div>
         <div class="font-mono text-sm">
-          <span class="w-2 h-2 inline-block rounded-full bg-brand mr-1 relative -top-px"></span>
+          <span class="w-2 h-2 inline-block rounded-full bg-brand mr-1 relative -top-px animate-soft-bob"></span>
           {{ status.peerscount }} Peers Online
         </div>
       </div>
-      <div class="border-l border-line pl-4">
+      <div class="border-l border-line pl-4 transition-all duration-300 hover:-translate-y-1 hover:border-brand/50 hover:text-black">
         <div class="heading-title mb-1">Capacity</div>
         <div class="font-mono text-sm">{{ status.fileLimit }} Max</div>
       </div>
@@ -143,43 +166,43 @@
     <!-- LEFT CONTENT (UPLOAD FORMS) -->
     <main class="lg:col-span-8 flex flex-col gap-8">
       
-      <section class="border border-line relative">
+      <section class="border border-line relative transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-brand/5">
         <div class="flex border-b border-line bg-gray-50/50">
-          <button @click="setUploadMode('file')" :class="['flex-1 p-4 text-sm font-semibold uppercase tracking-wider transition-colors', uploadMode === 'file' ? 'bg-white border-b-2 border-b-brand text-black' : 'text-gray-500 hover:text-black']">
+          <button @click="setUploadMode('file')" :class="['flex-1 p-4 text-sm font-semibold uppercase tracking-wider transition-all duration-300', uploadMode === 'file' ? 'bg-white border-b-2 border-b-brand text-black' : 'text-gray-500 hover:bg-white hover:text-black hover:-translate-y-px']">
             Payload
           </button>
           <div class="w-px bg-line"></div>
-          <button @click="setUploadMode('zip')" :class="['flex-1 p-4 text-sm font-semibold uppercase tracking-wider transition-colors', uploadMode === 'zip' ? 'bg-white border-b-2 border-b-brand text-black' : 'text-gray-500 hover:text-black']">
+          <button @click="setUploadMode('zip')" :class="['flex-1 p-4 text-sm font-semibold uppercase tracking-wider transition-all duration-300', uploadMode === 'zip' ? 'bg-white border-b-2 border-b-brand text-black' : 'text-gray-500 hover:bg-white hover:text-black hover:-translate-y-px']">
             Directory (ZIP)
           </button>
         </div>
 
         <div class="p-6 md:p-10">
-          <label v-if="!file" for="fileInput" class="dropzone flex flex-col items-center justify-center p-12 text-center cursor-pointer min-h-[300px] relative group" @dragover.prevent="isDragOver = true" @dragleave.prevent="isDragOver = false" @drop.prevent="handleDrop($event)" :class="isDragOver ? 'dropzone-active' : ''">
-            <span class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 group-hover:bg-red-50 text-gray-400 group-hover:text-brand transition-colors mb-4">
-              <i class="fas fa-upload text-2xl"></i>
+          <label v-if="!file" for="fileInput" class="dropzone flex flex-col items-center justify-center p-12 text-center cursor-pointer min-h-[300px] relative group hover:-translate-y-1 hover:shadow-xl hover:shadow-brand/10" @dragover.prevent="isDragOver = true" @dragleave.prevent="isDragOver = false" @drop.prevent="handleDrop($event)" :class="isDragOver ? 'dropzone-active scale-[1.01] shadow-xl shadow-brand/10' : ''">
+            <span class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 group-hover:bg-red-50 text-gray-400 group-hover:text-brand transition-all duration-300 mb-4 group-hover:-translate-y-1 group-hover:scale-110">
+              <i class="fas fa-upload text-2xl group-hover:animate-soft-bob"></i>
             </span>
-            <h2 class="text-xl font-bold mb-2 max-w-full break-words px-4">{{ fileLabel }}</h2>
-            <p class="font-sans text-sm text-gray-500 px-4 mb-6">
+            <h2 class="text-xl font-bold mb-2 max-w-full break-words px-4 transition-transform duration-300 group-hover:-translate-y-1">{{ fileLabel }}</h2>
+            <p class="font-sans text-sm text-gray-500 px-4 mb-6 transition-colors duration-300 group-hover:text-gray-700">
               {{ uploadMode === 'zip' ? 'Drop a zipped folder here' : 'Drop a file here' }} or click to browse.
               <br/>Paste is universally supported.
             </p>
-            <span class="inline-block border border-line px-6 py-2 text-sm font-semibold uppercase tracking-wider text-black group-hover:border-black transition-colors">
+            <span class="inline-block border border-line px-6 py-2 text-sm font-semibold uppercase tracking-wider text-black group-hover:border-black transition-all duration-300 group-hover:-translate-y-1 group-hover:shadow-lg">
               Browse Files
             </span>
             <input type="file" id="fileInput" class="hidden" :accept="uploadMode === 'zip' ? '.zip' : ''" @change="updateFileLabel" />
-          </label><div v-else class="border border-line p-8 flex flex-col items-start">
+          </label><div v-else class="border border-line p-8 flex flex-col items-start transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:shadow-brand/5">
             <div class="heading-title mb-4 accent-text"><i class="fas fa-file-check mr-2"></i> Payload acquired</div>
             <h2 class="text-2xl font-bold mb-8 break-all max-w-full text-black">{{ fileLabel }}</h2>
 
             <div class="flex flex-col sm:flex-row w-full gap-4 items-center border-t border-line pt-6 mt-2">
-              <button type="button" @click="uploadFile" :disabled="uploading" class="bg-brand text-white font-semibold text-sm uppercase tracking-wider py-4 px-10 transition-all hover:bg-red-600 disabled:opacity-50 flex justify-center items-center gap-3 w-full sm:w-auto">
+              <button type="button" @click="uploadFile" :disabled="uploading" class="bg-brand text-white font-semibold text-sm uppercase tracking-wider py-4 px-10 transition-all duration-300 hover:-translate-y-1 hover:bg-red-600 hover:shadow-xl hover:shadow-brand/20 disabled:opacity-50 flex justify-center items-center gap-3 w-full sm:w-auto">
                 <i v-if="uploading" class="fas fa-circle-notch fa-spin"></i>
                 <i v-else class="fas fa-upload"></i>
                 {{ uploading ? 'Transmitting...' : 'Upload Payload' }}
               </button>
 
-              <button type="button" @click="file = null; fileLabel = 'Select payload'" class="text-xs font-semibold uppercase tracking-widest text-gray-500 hover:text-black border border-transparent hover:border-line px-4 py-3 transition-colors w-full sm:w-auto">
+              <button type="button" @click="file = null; fileLabel = 'Select payload'" class="text-xs font-semibold uppercase tracking-widest text-gray-500 hover:text-black border border-transparent hover:border-line px-4 py-3 transition-all duration-300 hover:-translate-y-1 w-full sm:w-auto">
                 Dispose Selection
               </button>
             </div>
@@ -198,7 +221,7 @@
       </section>
 
       <!-- RESULTS SECTION -->
-      <section v-if="result" class="border border-line animate-fade-in">
+      <section v-if="result" class="border border-line animate-fade-in transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-brand/5">
         <div v-if="result.success" class="p-0">
           
           <div class="p-6 md:p-8 border-b border-line flex justify-between items-start">
@@ -214,9 +237,9 @@
           </div>
 
           <div class="flex border-b border-line bg-gray-50/50">
-            <button @click="activeTab = 'urls'" :class="['px-6 py-3 text-xs font-semibold uppercase tracking-wider border-r border-line transition-colors', activeTab === 'urls' ? 'bg-white border-b-2 border-b-brand text-black' : 'text-gray-500 hover:text-black']">Routing</button>
-            <button @click="activeTab = 'details'" :class="['px-6 py-3 text-xs font-semibold uppercase tracking-wider border-r border-line transition-colors', activeTab === 'details' ? 'bg-white border-b-2 border-b-brand text-black' : 'text-gray-500 hover:text-black']">Metadata</button>
-            <button v-if="result.fileType" @click="activeTab = 'embed'" :class="['px-6 py-3 text-xs font-semibold uppercase tracking-wider border-r border-line transition-colors', activeTab === 'embed' ? 'bg-white border-b-2 border-b-brand text-black' : 'text-gray-500 hover:text-black']">Embed Codes</button>
+            <button @click="activeTab = 'urls'" :class="['px-6 py-3 text-xs font-semibold uppercase tracking-wider border-r border-line transition-all duration-300', activeTab === 'urls' ? 'bg-white border-b-2 border-b-brand text-black' : 'text-gray-500 hover:bg-white hover:text-black hover:-translate-y-px']">Routing</button>
+            <button @click="activeTab = 'details'" :class="['px-6 py-3 text-xs font-semibold uppercase tracking-wider border-r border-line transition-all duration-300', activeTab === 'details' ? 'bg-white border-b-2 border-b-brand text-black' : 'text-gray-500 hover:bg-white hover:text-black hover:-translate-y-px']">Metadata</button>
+            <button v-if="result.fileType" @click="activeTab = 'embed'" :class="['px-6 py-3 text-xs font-semibold uppercase tracking-wider border-r border-line transition-all duration-300', activeTab === 'embed' ? 'bg-white border-b-2 border-b-brand text-black' : 'text-gray-500 hover:bg-white hover:text-black hover:-translate-y-px']">Embed Codes</button>
           </div>
 
           <div class="p-6 md:p-8 bg-white min-h-[200px]">
@@ -227,7 +250,7 @@
                 <label class="heading-title block mb-2">Public Gateway URL</label>
                 <div class="flex">
                   <input type="text" :value="getGatewayUrlForResult(result)" readonly class="flex-1 border border-line p-3 font-mono text-sm bg-gray-50" @click="$event.target.select()" />
-                  <a :href="getGatewayUrlForResult(result)" target="_blank" class="border border-line border-l-0 px-4 flex items-center justify-center hover:bg-gray-50 text-gray-600 transition-colors">
+                  <a :href="getGatewayUrlForResult(result)" target="_blank" class="border border-line border-l-0 px-4 flex items-center justify-center hover:bg-gray-50 hover:text-black text-gray-600 transition-all duration-300 hover:-translate-y-px">
                     <i class="fas fa-external-link-alt"></i>
                   </a>
                 </div>
@@ -242,11 +265,11 @@
             <div v-if="activeTab === 'details'" class="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div>
                 <div class="heading-title mb-1">Content ID (CID)</div>
-                <div class="font-mono text-xs break-all bg-gray-50 p-3 border border-line">{{ result.cid }}</div>
+                <div class="font-mono text-xs break-all bg-gray-50 p-3 border border-line transition-all duration-300 hover:-translate-y-1 hover:border-brand/40 hover:shadow-lg hover:shadow-brand/5">{{ result.cid }}</div>
               </div>
               <div v-if="result.files">
                 <div class="heading-title mb-1">Object Count</div>
-                <div class="font-mono text-lg">{{ result.files }} <span class="text-xs text-gray-500">items</span></div>
+                <div class="font-mono text-lg transition-transform duration-300 hover:-translate-y-1">{{ result.files }} <span class="text-xs text-gray-500">items</span></div>
               </div>
             </div>
 
@@ -273,7 +296,7 @@
     <aside class="lg:col-span-4 flex flex-col gap-8">
       
       <!-- NODE TELEMETRY -->
-      <section class="border border-line">
+      <section class="border border-line transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-brand/5">
         <div class="p-5 border-b border-line bg-gray-50">
           <h2 class="heading-title text-black">Network Telemetry</h2>
         </div>
@@ -313,10 +336,10 @@
       </section>
 
       <!-- TERMINAL API DICTIONARY -->
-      <section class="swiss-cell p-0">
-        <div class="p-5 border-b border-line flex justify-between items-center cursor-pointer hover:bg-gray-50 transition-colors" @click="showCli = !showCli">
+      <section class="swiss-cell p-0 transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-brand/5">
+        <div class="p-5 border-b border-line flex justify-between items-center cursor-pointer hover:bg-gray-50 transition-all duration-300 hover:pl-6" @click="showCli = !showCli">
           <h2 class="heading-title text-black m-0">Terminal API</h2>
-          <i class="fas text-gray-400 text-xs" :class="showCli ? 'fa-minus' : 'fa-plus'"></i>
+          <i class="fas text-gray-400 text-xs transition-transform duration-300" :class="[showCli ? 'fa-minus rotate-180' : 'fa-plus', showCli ? 'text-brand' : '']"></i>
         </div>
         
         <div v-show="showCli" class="p-6 bg-gray-50 border-line">
@@ -324,7 +347,7 @@
             <div>
               <div class="flex justify-between items-baseline mb-2">
                 <span class="heading-title">File Endpoint</span>
-                <button @click="copyCurlCommand('file')" class="text-[10px] uppercase font-bold text-gray-500 hover:text-black"><i class="fas fa-copy mr-1"></i> Copy</button>
+                <button @click="copyCurlCommand('file')" class="text-[10px] uppercase font-bold text-gray-500 hover:text-black transition-all duration-300 hover:-translate-y-px"><i class="fas fa-copy mr-1"></i> Copy</button>
               </div>
               <code class="block w-full bg-white border border-line p-3 font-mono text-xs text-gray-800 break-all selection:bg-gray-200">curl -X POST -F "file=@demo.pdf" {{ currentUrl }}/upload</code>
             </div>
@@ -332,7 +355,7 @@
             <div>
               <div class="flex justify-between items-baseline mb-2">
                 <span class="heading-title">ZIP Endpoint</span>
-                <button @click="copyCurlCommand('zip')" class="text-[10px] uppercase font-bold text-gray-500 hover:text-black"><i class="fas fa-copy mr-1"></i> Copy</button>
+                <button @click="copyCurlCommand('zip')" class="text-[10px] uppercase font-bold text-gray-500 hover:text-black transition-all duration-300 hover:-translate-y-px"><i class="fas fa-copy mr-1"></i> Copy</button>
               </div>
               <code class="block w-full bg-white border border-line p-3 font-mono text-xs text-gray-800 break-all selection:bg-gray-200">curl -X POST -F "file=@build.zip" {{ currentUrl }}/uploadzip</code>
             </div>
@@ -342,7 +365,7 @@
       
       <!-- FOOTER LINKS -->
       <footer class="flex justify-between items-center pt-2">
-        <a href="https://github.com/besoeasy/Originless" target="_blank" class="heading-title hover:text-black transition-colors"><i class="fab fa-github mr-1"></i> Source Code</a>
+        <a href="https://github.com/besoeasy/Originless" target="_blank" class="heading-title hover:text-black transition-all duration-300 hover:-translate-y-px"><i class="fab fa-github mr-1"></i> Source Code</a>
         <span class="heading-title">v{{ status.appver }}</span>
       </footer>
 
