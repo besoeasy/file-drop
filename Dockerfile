@@ -1,32 +1,34 @@
-FROM golang:1.24-bookworm AS builder
+FROM golang:1.24-alpine AS builder
 
 WORKDIR /app
 
-COPY go.mod go.sum ./
+COPY go.mod ./
 RUN go mod download
 
 COPY . .
 RUN CGO_ENABLED=0 go build -ldflags="-s -w" -o /originless .
 
-FROM debian:bookworm-slim
+FROM alpine:3.20 AS kubo
+
+RUN apk add --no-cache curl tar && \
+  ARCH="$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')" && \
+  curl -fsSL "https://dist.ipfs.tech/kubo/v0.42.0/kubo_v0.42.0_linux-${ARCH}.tar.gz" | \
+  tar -xz -C /tmp && \
+  mv /tmp/kubo/ipfs /ipfs && \
+  rm -rf /tmp/kubo
+
+FROM alpine:3.20
 
 ENV STORAGE_MAX=200GB
 ENV FILE_LIMIT=5GB
 ENV IPFS_PATH=/data
 
-RUN apt-get update && \
-  apt-get install -y --no-install-recommends curl ca-certificates tar && \
-  rm -rf /var/lib/apt/lists/*
-
-RUN curl -fsSL "https://dist.ipfs.tech/kubo/v0.42.0/kubo_v0.42.0_linux-$(dpkg --print-architecture).tar.gz" | \
-  tar -xz -C /tmp && \
-  mv /tmp/kubo/ipfs /usr/local/bin/ipfs && \
-  rm -rf /tmp/kubo
-
-RUN useradd --system --home /app --create-home originless
+RUN apk add --no-cache ca-certificates gcompat && \
+  adduser -D -h /app originless
 
 WORKDIR /app
 
+COPY --from=kubo /ipfs /usr/local/bin/ipfs
 COPY --from=builder /originless /app/originless
 COPY public ./public
 
@@ -42,7 +44,7 @@ STOPSIGNAL SIGTERM
 LABEL com.docker.compose.stop-grace-period="15s"
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=7m --retries=5 \
-  CMD curl -f http://localhost:3232/health || exit 1
+  CMD ["/app/originless", "-health"]
 
 CMD ["sh", "-c", "\
   if [ ! -f \"$IPFS_PATH/config\" ]; then ipfs init --profile=lowpower; fi && \
@@ -50,7 +52,7 @@ CMD ["sh", "-c", "\
   ipfs config --json Routing.Type '\"dhtclient\"' && \
   ipfs config --json Provide.DHT.Interval '\"24h\"' && \
   ipfs daemon --enable-gc --routing=dhtclient & \
-  until curl -s http://127.0.0.1:5001/api/v0/id > /dev/null; do \
+  until ipfs id >/dev/null 2>&1; do \
   echo 'Waiting for IPFS daemon...'; sleep 3; \
   done && \
   exec /app/originless"]
