@@ -1,4 +1,21 @@
-node_modules
-temp_uploads/
-db/
+# Binaries
+originless
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test and coverage
+*.test
+*.out
+
+# Environment
 .env
+.env.*
+
+# Editor
+.idea/
+.vscode/
+*.swp
+*~

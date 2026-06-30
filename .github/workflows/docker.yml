@@ -34,12 +34,12 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Get package version tag
+      - name: Get app version tag
         id: package-version
         run: |
-          if [ -f package.json ]; then
-            VERSION=$(node -p "require('./package.json').version")
-            if [ -n "$VERSION" ] && [ "$VERSION" != "undefined" ]; then
+          if [ -f internal/config/config.go ]; then
+            VERSION=$(grep 'AppVersion' internal/config/config.go | sed -E 's/.*"([^"]+)".*/\1/')
+            if [ -n "$VERSION" ]; then
               echo "tag=type=raw,value=${VERSION}" >> "$GITHUB_OUTPUT"
             fi
           fi
