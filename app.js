@@ -20,9 +20,6 @@ const {
   uploadZipHandler,
 } = require("./modules/routes");
 
-const { refreshGateways } = require("./modules/gateways");
-
-
 // Ensure temp directory exists
 if (!fs.existsSync(UPLOAD_TEMP_DIR)) {
   fs.mkdirSync(UPLOAD_TEMP_DIR, { recursive: true });
@@ -48,16 +45,6 @@ app.use(errorHandler);
 const server = app.listen(PORT, HOST, () => {
   console.log(`[STARTUP] SERVER_LISTENING host=${HOST} port=${PORT} url=http://${HOST}:${PORT}`);
 });
-
-// Warm gateway cache and probe every minute
-const scheduleGatewayRefresh = () => {
-  refreshGateways().catch((err) => {
-    console.warn(`[GATEWAY] Refresh failed: ${err.message}`);
-  });
-};
-
-scheduleGatewayRefresh();
-setInterval(scheduleGatewayRefresh, 60 * 1000);
 
 // Graceful shutdown handler
 const gracefulShutdown = (signal) => {

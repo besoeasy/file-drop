@@ -8,8 +8,6 @@ const unzipper = require("unzipper");
 const { IPFS_API, STORAGE_MAX, FILE_LIMIT, formatBytes, UPLOAD_TEMP_DIR } = require("./config");
 const { axiosRequest } = require("./utils");
 const { checkIPFSHealth, getIPFSStats } = require("./ipfs");
-const { getGatewayUrl, refreshGateways } = require("./gateways");
-
 const unlinkSafe = async (filePath, context) => {
   if (!filePath) return;
 
@@ -224,7 +222,6 @@ const uploadHandler = async (req, res) => {
     // Simple response
     res.json({
       status: "success",
-      url: await getGatewayUrl(responseJson.Hash, req.file.originalname),
       cid: responseJson.Hash,
       size: uploadDetails.size_bytes,
       type: mimeType,
@@ -381,7 +378,6 @@ const uploadZipHandler = async (req, res) => {
     res.json({
       status: "success",
       cid,
-      url: await getGatewayUrl(cid),
       files: extractedFiles,
       size: extractedBytes,
       filename: originalName,

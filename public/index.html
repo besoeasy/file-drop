@@ -479,7 +479,10 @@
       },
       getGatewayUrlForResult(result) {
         if (!result) return "";
-        return result.url || this.getGatewayUrlForCid(result.cid, result.fileName);
+        if (result.files) {
+          return `${this.gatewayBase}${result.cid}/`;
+        }
+        return this.getGatewayUrlForCid(result.cid, result.fileName);
       },
       getHtmlEmbed(cid, fileType, filename) {
         const url = this.getGatewayUrlForCid(cid, filename);
@@ -529,7 +532,6 @@
             fileType: this.getFileType(this.uploadMode === "zip" ? "application/zip" : response.data.type),
             fileName: response.data.filename,
             mimeType: this.uploadMode === "zip" ? "application/zip" : response.data.type,
-            url: response.data.url,
           };
 
           this.file = null;
