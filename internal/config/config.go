@@ -13,7 +13,7 @@ const (
 	Port          = 3232
 	Host          = "0.0.0.0"
 	UploadTempDir = "/tmp/originless"
-	AppVersion    = "0.1.0"
+	AppVersion    = "0.1.32"
 )
 
 var (
