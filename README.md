@@ -96,7 +96,6 @@ curl -X POST -F "file=@yourfile.pdf" http://localhost:3232/upload
 {
   "status": "success",
   "cid": "QmX...",
-  "url": "https://dweb.link/ipfs/QmX...?filename=yourfile.pdf",
   "size": 12345,
   "type": "application/pdf",
   "filename": "yourfile.pdf"
@@ -115,9 +114,9 @@ curl -X POST -F "file=@dist.zip" http://localhost:3232/uploadzip
 {
   "status": "success",
   "cid": "QmX...",
-  "url": "https://dweb.link/ipfs/QmX.../",
   "filename": "dist.zip",
-  "fileCount": 12
+  "files": 12,
+  "size": 12345
 }
 ```
 
