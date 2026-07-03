@@ -1,7 +1,6 @@
 package ipfs
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -62,9 +61,8 @@ type addResponse struct {
 func NewClient() *Client {
 	return &Client{
 		baseURL: config.IPFSAPI,
-		httpClient: &http.Client{
-			Timeout: 0,
-		},
+		// Single shared client — connection to 127.0.0.1:5001 is reused across requests.
+		httpClient: &http.Client{Timeout: 0},
 	}
 }
 
@@ -85,43 +83,66 @@ func (c *Client) CheckHealth(ctx context.Context) HealthResult {
 	}
 }
 
+// GetStats fetches bandwidth, repo, node identity, and peer stats concurrently.
 func (c *Client) GetStats(ctx context.Context) (*Stats, error) {
-	bw, err := c.postJSON(ctx, "/api/v0/stats/bw?interval=5m", 5*time.Second, nil)
-	if err != nil {
-		return nil, err
+	type fetchResult struct {
+		data map[string]any
+		err  error
 	}
 
-	repo, err := c.postJSON(ctx, "/api/v0/repo/stat", 5*time.Second, nil)
-	if err != nil {
-		return nil, err
+	fetch := func(path string) chan fetchResult {
+		ch := make(chan fetchResult, 1)
+		go func() {
+			data, err := c.postJSON(ctx, path, 5*time.Second, nil)
+			ch <- fetchResult{data, err}
+		}()
+		return ch
 	}
 
-	id, err := c.postJSON(ctx, "/api/v0/id", 5*time.Second, nil)
-	if err != nil {
-		return nil, err
+	bwCh    := fetch("/api/v0/stats/bw?interval=5m")
+	repoCh  := fetch("/api/v0/repo/stat")
+	idCh    := fetch("/api/v0/id")
+	peersCh := fetch("/api/v0/swarm/peers")
+
+	bwR    := <-bwCh
+	repoR  := <-repoCh
+	idR    := <-idCh
+	peersR := <-peersCh
+
+	if bwR.err != nil {
+		return nil, bwR.err
+	}
+	if repoR.err != nil {
+		return nil, repoR.err
+	}
+	if idR.err != nil {
+		return nil, idR.err
+	}
+	if peersR.err != nil {
+		return nil, peersR.err
 	}
 
-	peers, err := c.postJSON(ctx, "/api/v0/swarm/peers", 5*time.Second, nil)
-	if err != nil {
-		return nil, err
-	}
+	bw    := bwR.data
+	repo  := repoR.data
+	id    := idR.data
+	peers := peersR.data
 
 	stats := &Stats{}
-	stats.Bandwidth.TotalIn = jsonInt64(bw["TotalIn"])
+	stats.Bandwidth.TotalIn  = jsonInt64(bw["TotalIn"])
 	stats.Bandwidth.TotalOut = jsonInt64(bw["TotalOut"])
-	stats.Bandwidth.RateIn = jsonInt64(bw["RateIn"])
-	stats.Bandwidth.RateOut = jsonInt64(bw["RateOut"])
+	stats.Bandwidth.RateIn   = jsonInt64(bw["RateIn"])
+	stats.Bandwidth.RateOut  = jsonInt64(bw["RateOut"])
 	stats.Bandwidth.Interval = "1h"
 
-	stats.Repository.Size = jsonInt64(repo["RepoSize"])
+	stats.Repository.Size       = jsonInt64(repo["RepoSize"])
 	stats.Repository.StorageMax = jsonInt64(repo["StorageMax"])
 	stats.Repository.NumObjects = jsonInt64(repo["NumObjects"])
-	stats.Repository.Path = jsonString(repo["RepoPath"])
-	stats.Repository.Version = jsonString(repo["Version"])
+	stats.Repository.Path       = jsonString(repo["RepoPath"])
+	stats.Repository.Version    = jsonString(repo["Version"])
 
-	stats.Node.ID = jsonString(id["ID"])
-	stats.Node.PublicKey = jsonString(id["PublicKey"])
-	stats.Node.AgentVersion = jsonString(id["AgentVersion"])
+	stats.Node.ID              = jsonString(id["ID"])
+	stats.Node.PublicKey       = jsonString(id["PublicKey"])
+	stats.Node.AgentVersion    = jsonString(id["AgentVersion"])
 	stats.Node.ProtocolVersion = jsonString(id["ProtocolVersion"])
 
 	if rawPeers, ok := peers["Peers"].([]any); ok {
@@ -131,36 +152,39 @@ func (c *Client) GetStats(ctx context.Context) (*Stats, error) {
 	return stats, nil
 }
 
-func (c *Client) AddFile(ctx context.Context, filePath, filename, contentType string) (string, error) {
-	body := &bytes.Buffer{}
-	writer := multipart.NewWriter(body)
+// AddFile streams filePath directly into the IPFS API without buffering in RAM.
+func (c *Client) AddFile(ctx context.Context, filePath, filename string) (string, error) {
+	pr, pw := io.Pipe()
+	mw := multipart.NewWriter(pw)
+	contentType := mw.FormDataContentType()
 
-	part, err := writer.CreateFormFile("file", filename)
+	go func() {
+		part, err := mw.CreateFormFile("file", filename)
+		if err != nil {
+			pw.CloseWithError(err)
+			return
+		}
+		f, err := os.Open(filePath)
+		if err != nil {
+			pw.CloseWithError(err)
+			return
+		}
+		defer f.Close()
+		if _, err := io.Copy(part, f); err != nil {
+			pw.CloseWithError(err)
+			return
+		}
+		pw.CloseWithError(mw.Close())
+	}()
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+"/api/v0/add?pin=false", pr)
 	if err != nil {
+		pr.CloseWithError(err)
 		return "", err
 	}
+	req.Header.Set("Content-Type", contentType)
 
-	file, err := os.Open(filePath)
-	if err != nil {
-		return "", err
-	}
-	defer file.Close()
-
-	if _, err := io.Copy(part, file); err != nil {
-		return "", err
-	}
-
-	if err := writer.Close(); err != nil {
-		return "", err
-	}
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+"/api/v0/add?pin=false", body)
-	if err != nil {
-		return "", err
-	}
-	req.Header.Set("Content-Type", writer.FormDataContentType())
-
-	resp, err := c.do(req, time.Hour)
+	resp, err := c.do(req)
 	if err != nil {
 		return "", err
 	}
@@ -170,53 +194,53 @@ func (c *Client) AddFile(ctx context.Context, filePath, filename, contentType st
 	if err := json.NewDecoder(resp).Decode(&result); err != nil {
 		return "", err
 	}
-
 	if result.Hash == "" {
 		return "", fmt.Errorf("invalid IPFS response for file upload")
 	}
-
-	_ = contentType
 	return result.Hash, nil
 }
 
+// AddDirectory streams all files in the map directly into the IPFS API without buffering in RAM.
 func (c *Client) AddDirectory(ctx context.Context, files map[string]string) (string, error) {
-	body := &bytes.Buffer{}
-	writer := multipart.NewWriter(body)
+	pr, pw := io.Pipe()
+	mw := multipart.NewWriter(pw)
+	contentType := mw.FormDataContentType()
 
-	for relativePath, absolutePath := range files {
-		part, err := writer.CreateFormFile("file", relativePath)
-		if err != nil {
-			return "", err
+	go func() {
+		for relativePath, absolutePath := range files {
+			part, err := mw.CreateFormFile("file", relativePath)
+			if err != nil {
+				pw.CloseWithError(err)
+				return
+			}
+			f, err := os.Open(absolutePath)
+			if err != nil {
+				pw.CloseWithError(err)
+				return
+			}
+			if _, err := io.Copy(part, f); err != nil {
+				f.Close()
+				pw.CloseWithError(err)
+				return
+			}
+			f.Close()
 		}
-
-		file, err := os.Open(absolutePath)
-		if err != nil {
-			return "", err
-		}
-
-		if _, err := io.Copy(part, file); err != nil {
-			file.Close()
-			return "", err
-		}
-		file.Close()
-	}
-
-	if err := writer.Close(); err != nil {
-		return "", err
-	}
+		pw.CloseWithError(mw.Close())
+	}()
 
 	req, err := http.NewRequestWithContext(
 		ctx,
 		http.MethodPost,
 		c.baseURL+"/api/v0/add?pin=false&wrap-with-directory=true&recursive=true",
-		body,
+		pr,
 	)
 	if err != nil {
+		pr.CloseWithError(err)
 		return "", err
 	}
-	req.Header.Set("Content-Type", writer.FormDataContentType())
+	req.Header.Set("Content-Type", contentType)
 
-	resp, err := c.do(req, time.Hour)
+	resp, err := c.do(req)
 	if err != nil {
 		return "", err
 	}
@@ -229,22 +253,27 @@ func (c *Client) AddDirectory(ctx context.Context, files map[string]string) (str
 	if len(entries) == 0 {
 		return "", fmt.Errorf("invalid IPFS response for folder upload")
 	}
-
 	root := entries[len(entries)-1]
 	if root.Hash == "" {
 		return "", fmt.Errorf("invalid IPFS response for folder upload")
 	}
-
 	return root.Hash, nil
 }
 
+// postJSON applies a per-call timeout via context rather than allocating a new http.Client.
 func (c *Client) postJSON(ctx context.Context, path string, timeout time.Duration, body io.Reader) (map[string]any, error) {
+	if timeout > 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, timeout)
+		defer cancel()
+	}
+
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+path, body)
 	if err != nil {
 		return nil, err
 	}
 
-	reader, err := c.do(req, timeout)
+	reader, err := c.do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -254,17 +283,12 @@ func (c *Client) postJSON(ctx context.Context, path string, timeout time.Duratio
 	if err := json.NewDecoder(reader).Decode(&payload); err != nil {
 		return nil, err
 	}
-
 	return payload, nil
 }
 
-func (c *Client) do(req *http.Request, timeout time.Duration) (io.ReadCloser, error) {
-	client := c.httpClient
-	if timeout > 0 {
-		client = &http.Client{Timeout: timeout}
-	}
-
-	resp, err := client.Do(req)
+// do executes the request using the shared client, preserving connection pooling.
+func (c *Client) do(req *http.Request) (io.ReadCloser, error) {
+	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -278,28 +302,19 @@ func (c *Client) do(req *http.Request, timeout time.Duration) (io.ReadCloser, er
 	return resp.Body, nil
 }
 
+// parseAddResponses stream-decodes the NDJSON response from the IPFS add API.
 func parseAddResponses(reader io.Reader) ([]addResponse, error) {
-	data, err := io.ReadAll(reader)
-	if err != nil {
-		return nil, err
-	}
-
-	lines := strings.Split(string(data), "\n")
-	entries := make([]addResponse, 0, len(lines))
-
-	for _, line := range lines {
-		line = strings.TrimSpace(line)
-		if line == "" {
-			continue
-		}
-
+	var entries []addResponse
+	dec := json.NewDecoder(reader)
+	for {
 		var entry addResponse
-		if err := json.Unmarshal([]byte(line), &entry); err != nil {
+		if err := dec.Decode(&entry); err == io.EOF {
+			break
+		} else if err != nil {
 			return nil, err
 		}
 		entries = append(entries, entry)
 	}
-
 	return entries, nil
 }
 

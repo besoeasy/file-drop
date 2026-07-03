@@ -70,9 +70,8 @@ func (h *Handler) Status(w http.ResponseWriter, r *http.Request) {
 			"current":    config.FormatBytes(stats.Repository.StorageMax),
 		},
 		"fileLimit": map[string]any{
-			"configured": config.FileLimitConfigured,
+			"configured": config.FormatBytes(config.FileLimit),
 			"bytes":      config.FileLimit,
-			"formatted":  config.FormatBytes(config.FileLimit),
 		},
 		"appVersion": config.AppVersion,
 	})
@@ -90,7 +89,7 @@ func (h *Handler) Upload(w http.ResponseWriter, r *http.Request) {
 	start := time.Now()
 	log.Printf("Starting IPFS upload for %s ...", saved.OriginalName)
 
-	cid, err := h.ipfs.AddFile(r.Context(), saved.Path, saved.OriginalName, mimeType)
+	cid, err := h.ipfs.AddFile(r.Context(), saved.Path, saved.OriginalName)
 	if err != nil {
 		log.Printf("IPFS upload error: %v", err)
 		writeJSON(w, http.StatusInternalServerError, map[string]any{
@@ -223,7 +222,7 @@ func (h *Handler) handleUploadError(w http.ResponseWriter, err error) {
 		writeJSON(w, http.StatusRequestEntityTooLarge, map[string]any{
 			"error":   "File too large",
 			"message": err.Error(),
-			"maxSize": config.FileLimitConfigured,
+			"maxSize": config.FormatBytes(config.FileLimit),
 		})
 		return
 	}
