@@ -17,9 +17,8 @@ const (
 )
 
 var (
-	StorageMax          string
-	FileLimit           int64
-	FileLimitConfigured string
+	StorageMax string
+	FileLimit  int64
 )
 
 var sizePattern = regexp.MustCompile(`(?i)^(\d+(?:\.\d+)?)\s*(B|KB|MB|GB|TB)$`)
@@ -32,16 +31,7 @@ func init() {
 		panic(fmt.Sprintf("invalid STORAGE_MAX: %v", err))
 	}
 
-	if raw := os.Getenv("FILE_LIMIT"); raw != "" {
-		FileLimitConfigured = raw
-		FileLimit, err = ParseSize(raw)
-		if err != nil {
-			panic(fmt.Sprintf("invalid FILE_LIMIT: %v", err))
-		}
-	} else {
-		FileLimitConfigured = "5GB"
-		FileLimit = storageMaxBytes / 100
-	}
+	FileLimit = storageMaxBytes / 100
 }
 
 func envOrDefault(key, fallback string) string {
