@@ -572,7 +572,7 @@
               timestamp: new Date(data.timestamp).toLocaleTimeString('en-US', { hour12: false }),
               peerscount: data.peers.count,
               storageLimit: data.storageLimit?.configured || "Unknown",
-              fileLimit: data.fileLimit?.formatted || data.fileLimit?.configured || "Unknown",
+              fileLimit: data.fileLimit?.bytes ? this.formatBytes(data.fileLimit.bytes) : "Unknown",
             };
           }
         } catch (error) {
