@@ -40,10 +40,6 @@ EXPOSE 3232 4001/tcp 4001/udp
 VOLUME ["/data"]
 
 STOPSIGNAL SIGTERM
-LABEL com.docker.compose.stop-grace-period="15s"
-
-HEALTHCHECK --interval=30s --timeout=10s --start-period=7m --retries=5 \
-  CMD ["/app/originless", "-health"]
 
 CMD ["sh", "-c", "\
   if [ ! -f \"$IPFS_PATH/config\" ]; then ipfs init --profile=lowpower; fi && \

@@ -18,10 +18,6 @@ import (
 )
 
 func main() {
-	if len(os.Args) > 1 && os.Args[1] == "-health" {
-		os.Exit(runHealthCheck())
-	}
-
 	if err := os.MkdirAll(config.UploadTempDir, 0o755); err != nil {
 		log.Fatalf("failed to create upload temp directory: %v", err)
 	}
@@ -72,19 +68,6 @@ func main() {
 	}
 }
 
-func runHealthCheck() int {
-	client := &http.Client{Timeout: 5 * time.Second}
-	resp, err := client.Get(fmt.Sprintf("http://127.0.0.1:%d/health", config.Port))
-	if err != nil {
-		return 1
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return 1
-	}
-	return 0
-}
 
 func projectRoot() string {
 	if root := os.Getenv("ORIGINLESS_ROOT"); root != "" {
