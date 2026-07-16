@@ -9,11 +9,14 @@ import (
 )
 
 const (
-	IPFSAPI       = "http://127.0.0.1:5001"
-	Port          = 3232
-	Host          = "0.0.0.0"
-	UploadTempDir = "/tmp/originless"
-	AppVersion    = "0.1.34"
+	IPFSAPI          = "http://127.0.0.1:5001"
+	Port             = 3232
+	Host             = "0.0.0.0"
+	UploadTempDir    = "/tmp/originless"
+	AppVersion       = "0.1.34"
+	MaxConcurrentOps = 3
+	MaxZipFiles      = 5000
+	MaxCompression   = 50
 )
 
 var (

@@ -15,11 +15,15 @@ import (
 )
 
 type Handler struct {
-	ipfs *ipfs.Client
+	ipfs      *ipfs.Client
+	semaphore chan struct{}
 }
 
 func New(ipfsClient *ipfs.Client) *Handler {
-	return &Handler{ipfs: ipfsClient}
+	return &Handler{
+		ipfs:      ipfsClient,
+		semaphore: make(chan struct{}, config.MaxConcurrentOps),
+	}
 }
 
 func (h *Handler) Health(w http.ResponseWriter, r *http.Request) {
@@ -78,6 +82,19 @@ func (h *Handler) Status(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) Upload(w http.ResponseWriter, r *http.Request) {
+	select {
+	case h.semaphore <- struct{}{}:
+		defer func() { <-h.semaphore }()
+	default:
+		writeJSON(w, http.StatusServiceUnavailable, map[string]any{
+			"error":     "Server busy",
+			"status":    "error",
+			"message":   "Too many concurrent uploads, try again later",
+			"timestamp": time.Now().UTC().Format(time.RFC3339),
+		})
+		return
+	}
+
 	saved, err := upload.SaveMultipartFile(r, config.FileLimit)
 	if err != nil {
 		h.handleUploadError(w, err)
@@ -115,6 +132,19 @@ func (h *Handler) Upload(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) UploadZip(w http.ResponseWriter, r *http.Request) {
+	select {
+	case h.semaphore <- struct{}{}:
+		defer func() { <-h.semaphore }()
+	default:
+		writeJSON(w, http.StatusServiceUnavailable, map[string]any{
+			"error":     "Server busy",
+			"status":    "error",
+			"message":   "Too many concurrent uploads, try again later",
+			"timestamp": time.Now().UTC().Format(time.RFC3339),
+		})
+		return
+	}
+
 	saved, err := upload.SaveMultipartFile(r, config.FileLimit)
 	if err != nil {
 		h.handleUploadError(w, err)

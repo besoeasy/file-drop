@@ -129,6 +129,19 @@ func ExtractZip(zipPath string, limit int64) (*ExtractedArchive, error) {
 			return nil, fmt.Errorf("invalid zip entry path: %s", entryPath)
 		}
 
+		if result.FileCount >= config.MaxZipFiles {
+			return nil, fmt.Errorf("zip archive contains too many files (max %d)", config.MaxZipFiles)
+		}
+
+		if entry.CompressedSize64 > 0 && entry.UncompressedSize64/entry.CompressedSize64 > config.MaxCompression {
+			return nil, fmt.Errorf("suspicious compression ratio for %s (%d:1)", entryPath, entry.UncompressedSize64/entry.CompressedSize64)
+		}
+
+		remaining := limit - result.TotalBytes
+		if entry.UncompressedSize64 > uint64(remaining) {
+			return nil, fmt.Errorf("extracted size exceeds limit of %s", config.FormatBytes(limit))
+		}
+
 		targetPath := filepath.Join(extractDir, entryPath)
 		if err := os.MkdirAll(filepath.Dir(targetPath), 0o755); err != nil {
 			return nil, err
@@ -145,7 +158,7 @@ func ExtractZip(zipPath string, limit int64) (*ExtractedArchive, error) {
 			return nil, err
 		}
 
-		written, err := io.Copy(destination, io.LimitReader(source, limit-result.TotalBytes+1))
+		written, err := io.Copy(destination, source)
 		source.Close()
 		destination.Close()
 		if err != nil {
@@ -154,10 +167,6 @@ func ExtractZip(zipPath string, limit int64) (*ExtractedArchive, error) {
 
 		result.TotalBytes += written
 		result.FileCount++
-
-		if result.TotalBytes > limit {
-			return nil, fmt.Errorf("extracted size exceeds limit of %s", config.FormatBytes(limit))
-		}
 	}
 
 	if result.FileCount == 0 {
