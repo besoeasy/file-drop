@@ -14,8 +14,12 @@ import (
 )
 
 var (
-	ErrNoFile       = errors.New("no file uploaded")
-	ErrFileTooLarge = errors.New("file too large")
+	ErrNoFile                = errors.New("no file uploaded")
+	ErrFileTooLarge          = errors.New("file too large")
+	ErrTooManyFiles          = errors.New("zip archive contains too many files")
+	ErrSuspiciousCompression = errors.New("suspicious compression ratio")
+	ErrExtractedSizeExceeded = errors.New("extracted size exceeds limit")
+	ErrEmptyArchive          = errors.New("zip archive contained no files")
 )
 
 type SavedFile struct {
@@ -130,16 +134,15 @@ func ExtractZip(zipPath string, limit int64) (*ExtractedArchive, error) {
 		}
 
 		if result.FileCount >= config.MaxZipFiles {
-			return nil, fmt.Errorf("zip archive contains too many files (max %d)", config.MaxZipFiles)
+			return nil, fmt.Errorf("%w (max %d)", ErrTooManyFiles, config.MaxZipFiles)
 		}
 
 		if entry.CompressedSize64 > 0 && entry.UncompressedSize64/entry.CompressedSize64 > config.MaxCompression {
-			return nil, fmt.Errorf("suspicious compression ratio for %s (%d:1)", entryPath, entry.UncompressedSize64/entry.CompressedSize64)
+			return nil, fmt.Errorf("%w for %s (%d:1)", ErrSuspiciousCompression, entryPath, entry.UncompressedSize64/entry.CompressedSize64)
 		}
 
-		remaining := limit - result.TotalBytes
-		if entry.UncompressedSize64 > uint64(remaining) {
-			return nil, fmt.Errorf("extracted size exceeds limit of %s", config.FormatBytes(limit))
+		if result.TotalBytes >= limit || entry.UncompressedSize64 > uint64(limit-result.TotalBytes) {
+			return nil, fmt.Errorf("%w of %s", ErrExtractedSizeExceeded, config.FormatBytes(limit))
 		}
 
 		targetPath := filepath.Join(extractDir, entryPath)
@@ -170,7 +173,7 @@ func ExtractZip(zipPath string, limit int64) (*ExtractedArchive, error) {
 	}
 
 	if result.FileCount == 0 {
-		return nil, errors.New("zip archive contained no files")
+		return nil, ErrEmptyArchive
 	}
 
 	cleanup = false
@@ -201,7 +204,7 @@ func CollectFiles(root string) (map[string]string, error) {
 	}
 
 	if len(files) == 0 {
-		return nil, errors.New("zip archive contained no files")
+		return nil, ErrEmptyArchive
 	}
 
 	return files, nil

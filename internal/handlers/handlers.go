@@ -164,40 +164,40 @@ func (h *Handler) UploadZip(w http.ResponseWriter, r *http.Request) {
 
 	archive, err := upload.ExtractZip(saved.Path, config.FileLimit)
 	if err != nil {
-		if strings.Contains(err.Error(), "zip archive contained no files") {
+		switch {
+		case errors.Is(err, upload.ErrEmptyArchive):
 			writeJSON(w, http.StatusBadRequest, map[string]any{
 				"error":     "Archive is empty",
 				"status":    "error",
-				"message":   "Zip archive contained no files",
+				"message":   err.Error(),
 				"timestamp": time.Now().UTC().Format(time.RFC3339),
 			})
-			return
+		case errors.Is(err, upload.ErrTooManyFiles),
+			errors.Is(err, upload.ErrSuspiciousCompression),
+			errors.Is(err, upload.ErrExtractedSizeExceeded):
+			log.Printf("ZIP upload rejected: %v", err)
+			writeJSON(w, http.StatusBadRequest, map[string]any{
+				"error":     "Invalid archive",
+				"status":    "error",
+				"message":   err.Error(),
+				"timestamp": time.Now().UTC().Format(time.RFC3339),
+			})
+		default:
+			log.Printf("ZIP upload error: %v", err)
+			writeJSON(w, http.StatusInternalServerError, map[string]any{
+				"error":     "Failed to upload zip to IPFS",
+				"details":   err.Error(),
+				"status":    "error",
+				"message":   "Failed to upload zip to IPFS",
+				"timestamp": time.Now().UTC().Format(time.RFC3339),
+			})
 		}
-
-		log.Printf("ZIP upload error: %v", err)
-		writeJSON(w, http.StatusInternalServerError, map[string]any{
-			"error":     "Failed to upload zip to IPFS",
-			"details":   err.Error(),
-			"status":    "error",
-			"message":   "Failed to upload zip to IPFS",
-			"timestamp": time.Now().UTC().Format(time.RFC3339),
-		})
 		return
 	}
 	defer upload.RemoveDir(archive.Dir)
 
 	files, err := upload.CollectFiles(archive.Dir)
 	if err != nil {
-		if strings.Contains(err.Error(), "zip archive contained no files") {
-			writeJSON(w, http.StatusBadRequest, map[string]any{
-				"error":     "Archive is empty",
-				"status":    "error",
-				"message":   "Zip archive contained no files",
-				"timestamp": time.Now().UTC().Format(time.RFC3339),
-			})
-			return
-		}
-
 		log.Printf("ZIP upload error: %v", err)
 		writeJSON(w, http.StatusInternalServerError, map[string]any{
 			"error":     "Failed to upload zip to IPFS",
@@ -238,31 +238,28 @@ func (h *Handler) UploadZip(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) handleUploadError(w http.ResponseWriter, err error) {
-	if errors.Is(err, upload.ErrNoFile) {
+	switch {
+	case errors.Is(err, upload.ErrNoFile):
 		writeJSON(w, http.StatusBadRequest, map[string]any{
 			"error":     "No file uploaded",
 			"status":    "error",
-			"message":   "No file uploaded",
+			"message":   err.Error(),
 			"timestamp": time.Now().UTC().Format(time.RFC3339),
 		})
-		return
-	}
-
-	if errors.Is(err, upload.ErrFileTooLarge) || strings.Contains(err.Error(), "file too large") {
+	case errors.Is(err, upload.ErrFileTooLarge):
 		writeJSON(w, http.StatusRequestEntityTooLarge, map[string]any{
 			"error":   "File too large",
 			"message": err.Error(),
 			"maxSize": config.FormatBytes(config.FileLimit),
 		})
-		return
+	default:
+		writeJSON(w, http.StatusBadRequest, map[string]any{
+			"error":     err.Error(),
+			"status":    "error",
+			"message":   err.Error(),
+			"timestamp": time.Now().UTC().Format(time.RFC3339),
+		})
 	}
-
-	writeJSON(w, http.StatusBadRequest, map[string]any{
-		"error":     err.Error(),
-		"status":    "error",
-		"message":   err.Error(),
-		"timestamp": time.Now().UTC().Format(time.RFC3339),
-	})
 }
 
 func writeJSON(w http.ResponseWriter, status int, payload any) {
