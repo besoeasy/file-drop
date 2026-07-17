@@ -47,7 +47,8 @@ func main() {
 	log.Printf("[STARTUP] running reconciliation...")
 	pinMgr.Reconcile()
 
-	go pinMgr.Run(time.Duration(config.JanitorInterval) * time.Minute)
+	pinCtx, pinCancel := context.WithCancel(context.Background())
+	go pinMgr.Run(pinCtx, time.Duration(config.JanitorInterval)*time.Minute)
 
 	handler := handlers.New(ipfsClient, pinMgr)
 
@@ -72,6 +73,9 @@ func main() {
 		Addr:              fmt.Sprintf("%s:%d", config.Host, config.Port),
 		Handler:           root,
 		ReadHeaderTimeout: 10 * time.Second,
+		ReadTimeout:       30 * time.Second,
+		WriteTimeout:      120 * time.Second,
+		IdleTimeout:       120 * time.Second,
 	}
 
 	go func() {
@@ -85,6 +89,8 @@ func main() {
 	signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM)
 	sig := <-stop
 	log.Printf("[SHUTDOWN] SIGNAL_RECEIVED signal=%s action=graceful_shutdown", sig)
+
+	pinCancel()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()

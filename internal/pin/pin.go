@@ -38,7 +38,10 @@ func (m *Manager) PinOnUpload(cid, filename string, size int64) error {
 	}
 
 	if err := m.db.InsertUpload(cid, filename, size); err != nil {
-		log.Printf("[pin] db insert failed for %s: %v", cid, err)
+		log.Printf("[pin] db insert failed for %s: %v — rolling back pin", cid, err)
+		if rbErr := m.ipfs.PinRemove(context.Background(), cid); rbErr != nil {
+			log.Printf("[pin] rollback unpin failed for %s: %v", cid, rbErr)
+		}
 		return err
 	}
 
@@ -77,7 +80,12 @@ func (m *Manager) Reconcile() error {
 	var orphaned int
 	for cid := range ipfsPins {
 		if _, tracked := dbCIDs[cid]; !tracked {
-			if err := m.db.InsertOrphaned(cid, 0); err != nil {
+			size, err := m.ipfs.ObjectStat(ctx, cid)
+			if err != nil {
+				log.Printf("[pin] failed to stat orphan %s: %v (using size=0)", cid, err)
+				size = 0
+			}
+			if err := m.db.InsertOrphaned(cid, size); err != nil {
 				log.Printf("[pin] failed to import orphan %s: %v", cid, err)
 				continue
 			}
@@ -108,19 +116,25 @@ func (m *Manager) Reconcile() error {
 	return nil
 }
 
-func (m *Manager) Run(interval time.Duration) {
+func (m *Manager) Run(ctx context.Context, interval time.Duration) {
 	log.Printf("[pin] janitor started (interval: %s, expiry: %s, threshold: %d%%)",
 		interval, m.expiry, config.PinThreshold)
 
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
 
-	for range ticker.C {
-		if err := m.UnpinExpired(); err != nil {
-			log.Printf("[pin] expired unpin cycle error: %v", err)
-		}
-		if err := m.CheckThreshold(); err != nil {
-			log.Printf("[pin] threshold check error: %v", err)
+	for {
+		select {
+		case <-ctx.Done():
+			log.Printf("[pin] janitor stopped")
+			return
+		case <-ticker.C:
+			if err := m.UnpinExpired(); err != nil {
+				log.Printf("[pin] expired unpin cycle error: %v", err)
+			}
+			if err := m.CheckThreshold(); err != nil {
+				log.Printf("[pin] threshold check error: %v", err)
+			}
 		}
 	}
 }
@@ -137,15 +151,15 @@ func (m *Manager) UnpinExpired() error {
 
 	log.Printf("[pin] unpinning %d expired files", len(expired))
 
-	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
-	defer cancel()
-
 	var unpinned int
 	for _, u := range expired {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		if err := m.ipfs.PinRemove(ctx, u.CID); err != nil {
+			cancel()
 			log.Printf("[pin] failed to unpin %s: %v", u.CID, err)
 			continue
 		}
+		cancel()
 		if err := m.db.MarkUnpinned(u.CID); err != nil {
 			log.Printf("[pin] failed to mark unpinned %s: %v", u.CID, err)
 			continue
@@ -185,34 +199,39 @@ func (m *Manager) EvictOldest() error {
 		return nil
 	}
 
-	needed := pinnedSize - targetSize
-	oldest, err := m.db.GetOldestPinnedFiles(100)
-	if err != nil {
-		return err
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
-	defer cancel()
-
 	var freed int64
 	var unpinned int
-	for _, u := range oldest {
-		if freed >= needed {
+
+	for pinnedSize > targetSize {
+		oldest, err := m.db.GetOldestPinnedFiles(50)
+		if err != nil {
+			return err
+		}
+		if len(oldest) == 0 {
+			log.Printf("[pin] warning: cannot evict enough — no more pinned files")
 			break
 		}
 
-		if err := m.ipfs.PinRemove(ctx, u.CID); err != nil {
-			log.Printf("[pin] failed to unpin %s for eviction: %v", u.CID, err)
-			continue
-		}
-		if err := m.db.MarkUnpinned(u.CID); err != nil {
-			log.Printf("[pin] failed to mark %s unpinned: %v", u.CID, err)
-			continue
+		for _, u := range oldest {
+			if pinnedSize-freed <= targetSize {
+				break
+			}
+
+			if err := m.ipfs.PinRemove(context.Background(), u.CID); err != nil {
+				log.Printf("[pin] failed to unpin %s for eviction: %v", u.CID, err)
+				continue
+			}
+			if err := m.db.MarkUnpinned(u.CID); err != nil {
+				log.Printf("[pin] failed to mark %s unpinned: %v", u.CID, err)
+				continue
+			}
+
+			freed += u.Size
+			unpinned++
+			log.Printf("[pin] evicted %s (%s)", u.Filename, config.FormatBytes(u.Size))
 		}
 
-		freed += u.Size
-		unpinned++
-		log.Printf("[pin] evicted %s (%s)", u.Filename, config.FormatBytes(u.Size))
+		pinnedSize, _ = m.db.GetPinnedSize()
 	}
 
 	newSize, _ := m.db.GetPinnedSize()

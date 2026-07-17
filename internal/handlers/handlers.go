@@ -126,8 +126,10 @@ func (h *Handler) Upload(w http.ResponseWriter, r *http.Request) {
 	log.Printf("File uploaded successfully: name=%s size_bytes=%d mime_type=%s cid=%s upload_duration_ms=%d",
 		saved.OriginalName, saved.Size, mimeType, cid, time.Since(start).Milliseconds())
 
+	pinned := true
 	if err := h.pinMgr.PinOnUpload(cid, saved.OriginalName, saved.Size); err != nil {
 		log.Printf("Pin failed for %s: %v", cid, err)
+		pinned = false
 	}
 
 	writeJSON(w, http.StatusOK, map[string]any{
@@ -136,7 +138,7 @@ func (h *Handler) Upload(w http.ResponseWriter, r *http.Request) {
 		"size":     saved.Size,
 		"type":     mimeType,
 		"filename": saved.OriginalName,
-		"pinned":   true,
+		"pinned":   pinned,
 	})
 }
 
@@ -182,8 +184,10 @@ func (h *Handler) UploadFolder(w http.ResponseWriter, r *http.Request) {
 	log.Printf("Folder uploaded successfully: files=%d size_bytes=%d cid=%s upload_duration_ms=%d",
 		saved.Count, saved.Total, cid, time.Since(start).Milliseconds())
 
+	pinned := true
 	if err := h.pinMgr.PinOnUpload(cid, "folder", saved.Total); err != nil {
 		log.Printf("Pin failed for folder %s: %v", cid, err)
+		pinned = false
 	}
 
 	writeJSON(w, http.StatusOK, map[string]any{
@@ -191,7 +195,7 @@ func (h *Handler) UploadFolder(w http.ResponseWriter, r *http.Request) {
 		"cid":    cid,
 		"files":  saved.Count,
 		"size":   saved.Total,
-		"pinned": true,
+		"pinned": pinned,
 	})
 }
 

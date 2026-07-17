@@ -7,6 +7,7 @@ import (
 	"io"
 	"mime/multipart"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"sort"
@@ -156,6 +157,7 @@ func (c *Client) GetStats(ctx context.Context) (*Stats, error) {
 // AddFile streams filePath directly into the IPFS API without buffering in RAM.
 func (c *Client) AddFile(ctx context.Context, filePath, filename string) (string, error) {
 	pr, pw := io.Pipe()
+	defer pr.CloseWithError(fmt.Errorf("pipe closed"))
 	mw := multipart.NewWriter(pw)
 	contentType := mw.FormDataContentType()
 
@@ -204,6 +206,7 @@ func (c *Client) AddFile(ctx context.Context, filePath, filename string) (string
 // AddDirectory streams all files in the map directly into the IPFS API without buffering in RAM.
 func (c *Client) AddDirectory(ctx context.Context, files map[string]string) (string, error) {
 	pr, pw := io.Pipe()
+	defer pr.CloseWithError(fmt.Errorf("pipe closed"))
 	mw := multipart.NewWriter(pw)
 	contentType := mw.FormDataContentType()
 
@@ -406,12 +409,12 @@ func mimeTypeByExtension(ext string) string {
 }
 
 func (c *Client) PinAdd(ctx context.Context, cid string) error {
-	_, err := c.postJSON(ctx, "/api/v0/pin/add?arg="+cid, 30*time.Second, nil)
+	_, err := c.postJSON(ctx, "/api/v0/pin/add?arg="+url.QueryEscape(cid), 30*time.Second, nil)
 	return err
 }
 
 func (c *Client) PinRemove(ctx context.Context, cid string) error {
-	_, err := c.postJSON(ctx, "/api/v0/pin/rm?arg="+cid, 30*time.Second, nil)
+	_, err := c.postJSON(ctx, "/api/v0/pin/rm?arg="+url.QueryEscape(cid), 30*time.Second, nil)
 	return err
 }
 
@@ -428,4 +431,12 @@ func (c *Client) PinList(ctx context.Context) (map[string]bool, error) {
 		}
 	}
 	return result, nil
+}
+
+func (c *Client) ObjectStat(ctx context.Context, cid string) (int64, error) {
+	data, err := c.postJSON(ctx, "/api/v0/object/stat?arg="+url.QueryEscape(cid), 10*time.Second, nil)
+	if err != nil {
+		return 0, err
+	}
+	return jsonInt64(data["CumulativeSize"]), nil
 }
