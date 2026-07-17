@@ -15,6 +15,8 @@ import (
 	"github.com/besoeasy/originless/internal/handlers"
 	"github.com/besoeasy/originless/internal/ipfs"
 	"github.com/besoeasy/originless/internal/middleware"
+	"github.com/besoeasy/originless/internal/pin"
+	"github.com/besoeasy/originless/internal/store"
 )
 
 func main() {
@@ -22,14 +24,40 @@ func main() {
 		log.Fatalf("failed to create upload temp directory: %v", err)
 	}
 
+	dataDir := envOrDefault("DATA_DIR", "./data")
+	if err := os.MkdirAll(dataDir, 0o755); err != nil {
+		log.Fatalf("failed to create data directory: %v", err)
+	}
+
+	dbPath := filepath.Join(dataDir, "originless.db")
+	db, err := store.New(dbPath)
+	if err != nil {
+		log.Fatalf("failed to open database: %v", err)
+	}
+	defer db.Close()
+
+	storageMaxBytes, err := config.ParseSize(config.StorageMax)
+	if err != nil {
+		log.Fatalf("invalid STORAGE_MAX: %v", err)
+	}
+
 	ipfsClient := ipfs.NewClient()
-	handler := handlers.New(ipfsClient)
+	pinMgr := pin.New(db, ipfsClient, storageMaxBytes)
+
+	log.Printf("[STARTUP] running reconciliation...")
+	pinMgr.Reconcile()
+
+	go pinMgr.Run(time.Duration(config.JanitorInterval) * time.Minute)
+
+	handler := handlers.New(ipfsClient, pinMgr)
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /health", handler.Health)
 	mux.HandleFunc("GET /status", handler.Status)
 	mux.HandleFunc("POST /upload", handler.Upload)
 	mux.HandleFunc("POST /uploadfolder", handler.UploadFolder)
+	mux.HandleFunc("GET /history", handler.History)
+	mux.HandleFunc("GET /pins", handler.PinStats)
 
 	publicDir := filepath.Join(projectRoot(), "public")
 	mux.Handle("/", http.FileServer(http.Dir(publicDir)))
@@ -68,6 +96,12 @@ func main() {
 	}
 }
 
+func envOrDefault(key, fallback string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
+	}
+	return fallback
+}
 
 func projectRoot() string {
 	if root := os.Getenv("ORIGINLESS_ROOT"); root != "" {

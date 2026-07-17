@@ -55,9 +55,9 @@ Open http://localhost:3232
 
 ## 🔄 How It Works
 
-1. **Upload** — Files stream to your local IPFS node (unpinned by default)
+1. **Upload** — Files are pinned to your local IPFS node (kept alive for 7 days minimum)
 2. **Propagate** — Content spreads via IPFS as peers request it
-3. **Self-Heal** — If garbage collected, your node repopulates content when online
+3. **Auto-Manage** — Files are automatically unpinned after 7 days; oldest files evicted at 75% storage
 
 ---
 
@@ -91,10 +91,19 @@ https://dweb.link/ipfs/QmX...?filename=example.pdf
 
 ## ⚙️ Configuration
 
-| Variable      | Default | Description                    |
-| ------------- | ------- | ------------------------------ |
-| `STORAGE_MAX` | `200GB` | Maximum storage limit for IPFS |
-| `PORT`        | `3232`  | API server port                |
+| Variable        | Default | Description                              |
+| --------------- | ------- | ---------------------------------------- |
+| `STORAGE_MAX`   | `200GB` | Maximum storage limit for IPFS           |
+| `PORT`          | `3232`  | API server port                          |
+| `DATA_DIR`      | `./data` | SQLite database location                |
+
+### Pin Management
+
+Files are automatically pinned on upload and tracked for 7 days. At 75% storage capacity, oldest pinned files are automatically evicted.
+
+- **Pin Expiry**: 7 days (files unpinned after 7 days)
+- **Eviction Threshold**: 75% of storage limit
+- **Startup Reconciliation**: Compares IPFS pins with database on startup
 
 ---
 
@@ -134,6 +143,52 @@ curl -X POST -F "file=@src/index.html;filename=src/index.html" -F "file=@src/sty
   "cid": "QmX...",
   "files": 12,
   "size": 12345
+}
+```
+
+### GET /history
+
+View upload history with pin status.
+
+```bash
+curl http://localhost:3232/history?limit=20
+```
+
+```json
+{
+  "status": "success",
+  "uploads": [
+    {
+      "id": 1,
+      "cid": "QmX...",
+      "filename": "example.pdf",
+      "size": 12345,
+      "created_at": "2026-07-17T12:00:00Z",
+      "unpinned": false,
+      "unpinned_at": null
+    }
+  ],
+  "limit": 20,
+  "offset": 0
+}
+```
+
+### GET /pins
+
+Get current pin statistics.
+
+```bash
+curl http://localhost:3232/pins
+```
+
+```json
+{
+  "status": "success",
+  "pinnedCount": 150,
+  "pinnedSize": 5368709120,
+  "pinnedSizeStr": "5.00 GB",
+  "storageLimit": "200GB",
+  "threshold": 75
 }
 ```
 

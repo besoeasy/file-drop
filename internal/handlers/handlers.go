@@ -5,21 +5,25 @@ import (
 	"errors"
 	"log"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/besoeasy/originless/internal/config"
 	"github.com/besoeasy/originless/internal/ipfs"
+	"github.com/besoeasy/originless/internal/pin"
 	"github.com/besoeasy/originless/internal/upload"
 )
 
 type Handler struct {
 	ipfs      *ipfs.Client
+	pinMgr    *pin.Manager
 	semaphore chan struct{}
 }
 
-func New(ipfsClient *ipfs.Client) *Handler {
+func New(ipfsClient *ipfs.Client, pinManager *pin.Manager) *Handler {
 	return &Handler{
 		ipfs:      ipfsClient,
+		pinMgr:    pinManager,
 		semaphore: make(chan struct{}, config.MaxConcurrentOps),
 	}
 }
@@ -122,12 +126,17 @@ func (h *Handler) Upload(w http.ResponseWriter, r *http.Request) {
 	log.Printf("File uploaded successfully: name=%s size_bytes=%d mime_type=%s cid=%s upload_duration_ms=%d",
 		saved.OriginalName, saved.Size, mimeType, cid, time.Since(start).Milliseconds())
 
+	if err := h.pinMgr.PinOnUpload(cid, saved.OriginalName, saved.Size); err != nil {
+		log.Printf("Pin failed for %s: %v", cid, err)
+	}
+
 	writeJSON(w, http.StatusOK, map[string]any{
 		"status":   "success",
 		"cid":      cid,
 		"size":     saved.Size,
 		"type":     mimeType,
 		"filename": saved.OriginalName,
+		"pinned":   true,
 	})
 }
 
@@ -173,11 +182,16 @@ func (h *Handler) UploadFolder(w http.ResponseWriter, r *http.Request) {
 	log.Printf("Folder uploaded successfully: files=%d size_bytes=%d cid=%s upload_duration_ms=%d",
 		saved.Count, saved.Total, cid, time.Since(start).Milliseconds())
 
+	if err := h.pinMgr.PinOnUpload(cid, "folder", saved.Total); err != nil {
+		log.Printf("Pin failed for folder %s: %v", cid, err)
+	}
+
 	writeJSON(w, http.StatusOK, map[string]any{
 		"status": "success",
 		"cid":    cid,
 		"files":  saved.Count,
 		"size":   saved.Total,
+		"pinned": true,
 	})
 }
 
@@ -210,4 +224,57 @@ func writeJSON(w http.ResponseWriter, status int, payload any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 	_ = json.NewEncoder(w).Encode(payload)
+}
+
+func (h *Handler) History(w http.ResponseWriter, r *http.Request) {
+	limit := 50
+	offset := 0
+
+	if v := r.URL.Query().Get("limit"); v != "" {
+		if parsed, err := strconv.Atoi(v); err == nil && parsed > 0 && parsed <= 100 {
+			limit = parsed
+		}
+	}
+	if v := r.URL.Query().Get("offset"); v != "" {
+		if parsed, err := strconv.Atoi(v); err == nil && parsed >= 0 {
+			offset = parsed
+		}
+	}
+
+	uploads, err := h.pinMgr.GetHistory(limit, offset)
+	if err != nil {
+		log.Printf("History error: %v", err)
+		writeJSON(w, http.StatusInternalServerError, map[string]any{
+			"error":   "Failed to fetch history",
+			"details": err.Error(),
+		})
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]any{
+		"status":  "success",
+		"uploads": uploads,
+		"limit":   limit,
+		"offset":  offset,
+	})
+}
+
+func (h *Handler) PinStats(w http.ResponseWriter, r *http.Request) {
+	count, size, err := h.pinMgr.GetStats()
+	if err != nil {
+		log.Printf("Pin stats error: %v", err)
+		writeJSON(w, http.StatusInternalServerError, map[string]any{
+			"error": "Failed to fetch pin stats",
+		})
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]any{
+		"status":        "success",
+		"pinnedCount":   count,
+		"pinnedSize":    size,
+		"pinnedSizeStr": config.FormatBytes(size),
+		"storageLimit":  config.StorageMax,
+		"threshold":     config.PinThreshold,
+	})
 }

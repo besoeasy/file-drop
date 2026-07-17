@@ -335,6 +335,55 @@
         </div>
       </section>
 
+      <!-- PIN STATUS -->
+      <section class="border border-line transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-brand/5">
+        <div class="p-5 border-b border-line bg-gray-50">
+          <h2 class="heading-title text-black">Pin Status</h2>
+        </div>
+        <div class="p-6 space-y-4">
+          <div class="flex justify-between items-baseline border-b border-line border-dashed pb-2">
+            <span class="heading-title">Pinned Files</span>
+            <span class="font-mono text-xs">{{ pinStats.count }}</span>
+          </div>
+          <div class="flex justify-between items-baseline border-b border-line border-dashed pb-2">
+            <span class="heading-title">Pinned Size</span>
+            <span class="font-mono text-xs">{{ pinStats.sizeStr }}</span>
+          </div>
+          <div class="flex justify-between items-baseline pb-2">
+            <span class="heading-title">Expiry</span>
+            <span class="font-mono text-[10px] text-gray-500">7 days</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- UPLOAD HISTORY -->
+      <section class="border border-line transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-brand/5">
+        <div class="p-5 border-b border-line bg-gray-50 flex justify-between items-center cursor-pointer hover:bg-gray-100 transition-all duration-300" @click="showHistory = !showHistory">
+          <h2 class="heading-title text-black m-0">Upload History</h2>
+          <i class="fas text-gray-400 text-xs transition-transform duration-300" :class="[showHistory ? 'fa-minus rotate-180' : 'fa-plus', showHistory ? 'text-brand' : '']"></i>
+        </div>
+        
+        <div v-show="showHistory" class="max-h-80 overflow-y-auto">
+          <div v-if="history.length === 0" class="p-6 text-center text-gray-400 text-xs">
+            No uploads yet
+          </div>
+          <div v-for="item in history" :key="item.cid" class="border-b border-line border-dashed p-4 hover:bg-gray-50 transition-all duration-200">
+            <div class="flex justify-between items-start">
+              <div class="min-w-0 flex-1">
+                <div class="font-mono text-xs truncate" :title="item.cid">{{ item.cid.slice(0, 12) }}...</div>
+                <div class="text-xs text-gray-500 mt-1">{{ item.filename }}</div>
+              </div>
+              <div class="text-right ml-4">
+                <span v-if="item.unpinned" class="text-[10px] text-gray-400 uppercase">unpinned</span>
+                <span v-else class="text-[10px] text-green-600 uppercase">pinned</span>
+                <div class="text-[10px] text-gray-400 mt-1">{{ formatBytes(item.size) }}</div>
+              </div>
+            </div>
+            <div class="text-[10px] text-gray-400 mt-2">{{ formatDate(item.created_at) }}</div>
+          </div>
+        </div>
+      </section>
+
       <!-- TERMINAL API DICTIONARY -->
       <section class="swiss-cell p-0 transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-brand/5">
         <div class="p-5 border-b border-line flex justify-between items-center cursor-pointer hover:bg-gray-50 transition-all duration-300 hover:pl-6" @click="showCli = !showCli">
@@ -381,11 +430,18 @@
         isPasted: false,
         activeTab: "urls",
         showCli: false,
+        showHistory: false,
         copied: false,
         currentUrl: window.location.origin,
         gatewayBase: "https://dweb.link/ipfs/",
         uploadMode: "file",
         folderFiles: null,
+        history: [],
+        pinStats: {
+          count: 0,
+          size: 0,
+          sizeStr: "0 B",
+        },
         status: {
           nodeId: "...",
           bandwidth: "0B / 0B",
@@ -539,6 +595,8 @@
           this.fileLabel = "Select payload";
           this.folderFiles = null;
           this.activeTab = "urls";
+          this.fetchHistory();
+          this.fetchPinStats();
         } catch (error) {
           this.uploadProgress = 0;
           this.result = {
@@ -579,10 +637,50 @@
           console.error(error);
         }
       },
+      async fetchHistory() {
+        try {
+          const response = await fetch("/history?limit=20");
+          const data = await response.json();
+          if (data.status === "success" && data.uploads) {
+            this.history = data.uploads;
+          }
+        } catch (error) {
+          console.error(error);
+        }
+      },
+      async fetchPinStats() {
+        try {
+          const response = await fetch("/pins");
+          const data = await response.json();
+          if (data.status === "success") {
+            this.pinStats = {
+              count: data.pinnedCount,
+              size: data.pinnedSize,
+              sizeStr: data.pinnedSizeStr,
+            };
+          }
+        } catch (error) {
+          console.error(error);
+        }
+      },
+      formatDate(dateStr) {
+        if (!dateStr) return "";
+        const date = new Date(dateStr);
+        return date.toLocaleString('en-US', { 
+          month: 'short', 
+          day: 'numeric',
+          hour: '2-digit', 
+          minute: '2-digit',
+          hour12: false 
+        });
+      },
     },
     mounted() {
       this.fetchStatus();
+      this.fetchHistory();
+      this.fetchPinStats();
       setInterval(this.fetchStatus, 10000);
+      setInterval(this.fetchPinStats, 30000);
       document.addEventListener("paste", this.handlePaste);
       document.getElementById("app")?.focus();
     },

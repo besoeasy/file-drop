@@ -404,3 +404,28 @@ func mimeTypeByExtension(ext string) string {
 		return ""
 	}
 }
+
+func (c *Client) PinAdd(ctx context.Context, cid string) error {
+	_, err := c.postJSON(ctx, "/api/v0/pin/add?arg="+cid, 30*time.Second, nil)
+	return err
+}
+
+func (c *Client) PinRemove(ctx context.Context, cid string) error {
+	_, err := c.postJSON(ctx, "/api/v0/pin/rm?arg="+cid, 30*time.Second, nil)
+	return err
+}
+
+func (c *Client) PinList(ctx context.Context) (map[string]bool, error) {
+	data, err := c.postJSON(ctx, "/api/v0/pin/ls?type=recursive", 30*time.Second, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	result := make(map[string]bool)
+	if keys, ok := data["Keys"].(map[string]any); ok {
+		for cid := range keys {
+			result[cid] = true
+		}
+	}
+	return result, nil
+}

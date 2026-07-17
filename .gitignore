@@ -19,3 +19,13 @@ originless
 .vscode/
 *.swp
 *~
+
+# Data directory
+data/
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# Go dependencies
+go.sum
