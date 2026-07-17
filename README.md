@@ -102,24 +102,6 @@ curl -X POST -F "file=@yourfile.pdf" http://localhost:3232/upload
 }
 ```
 
-### POST /uploadzip
-
-Upload a `.zip` archive. Originless extracts it and stores the entire folder to IPFS as a directory. Use this for static site and DApp deploys.
-
-```bash
-curl -X POST -F "file=@dist.zip" http://localhost:3232/uploadzip
-```
-
-```json
-{
-  "status": "success",
-  "cid": "QmX...",
-  "filename": "dist.zip",
-  "files": 12,
-  "size": 12345
-}
-```
-
 ---
 
 ## 🤖 AI Agent Integration
@@ -130,4 +112,4 @@ Teach your agents (Cursor, GitHub Copilot, Claude, etc.) to use Originless — *
 
 - _"What's the current Bitcoin price? Create a beautiful `index.html` report and upload it to `https://originless.besoeasy.com/upload` so I can share it."_
 - _"Generate a complex 3D fractal image, save it as a PNG, and upload it to my local Originless node at `http://localhost:3232/upload`."_
-- _"Build a React Pomodoro timer app, zip the `dist` output, and publish it live to IPFS via `https://originless.besoeasy.com/uploadzip`."_
+- _"Build a React app, and publish the built output to IPFS via `https://originless.besoeasy.com/upload`."_

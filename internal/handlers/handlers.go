@@ -5,8 +5,6 @@ import (
 	"errors"
 	"log"
 	"net/http"
-	"path/filepath"
-	"strings"
 	"time"
 
 	"github.com/besoeasy/originless/internal/config"
@@ -95,6 +93,8 @@ func (h *Handler) Upload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	r.Body = http.MaxBytesReader(w, r.Body, config.FileLimit+1024*1024)
+
 	saved, err := upload.SaveMultipartFile(r, config.FileLimit)
 	if err != nil {
 		h.handleUploadError(w, err)
@@ -127,112 +127,6 @@ func (h *Handler) Upload(w http.ResponseWriter, r *http.Request) {
 		"cid":      cid,
 		"size":     saved.Size,
 		"type":     mimeType,
-		"filename": saved.OriginalName,
-	})
-}
-
-func (h *Handler) UploadZip(w http.ResponseWriter, r *http.Request) {
-	select {
-	case h.semaphore <- struct{}{}:
-		defer func() { <-h.semaphore }()
-	default:
-		writeJSON(w, http.StatusServiceUnavailable, map[string]any{
-			"error":     "Server busy",
-			"status":    "error",
-			"message":   "Too many concurrent uploads, try again later",
-			"timestamp": time.Now().UTC().Format(time.RFC3339),
-		})
-		return
-	}
-
-	saved, err := upload.SaveMultipartFile(r, config.FileLimit)
-	if err != nil {
-		h.handleUploadError(w, err)
-		return
-	}
-	defer upload.RemovePath(saved.Path)
-
-	if strings.ToLower(filepath.Ext(saved.OriginalName)) != ".zip" {
-		writeJSON(w, http.StatusBadRequest, map[string]any{
-			"error":     "Invalid file type",
-			"status":    "error",
-			"message":   "Only .zip archives are supported",
-			"timestamp": time.Now().UTC().Format(time.RFC3339),
-		})
-		return
-	}
-
-	archive, err := upload.ExtractZip(saved.Path, config.FileLimit)
-	if err != nil {
-		switch {
-		case errors.Is(err, upload.ErrEmptyArchive):
-			writeJSON(w, http.StatusBadRequest, map[string]any{
-				"error":     "Archive is empty",
-				"status":    "error",
-				"message":   err.Error(),
-				"timestamp": time.Now().UTC().Format(time.RFC3339),
-			})
-		case errors.Is(err, upload.ErrTooManyFiles),
-			errors.Is(err, upload.ErrSuspiciousCompression),
-			errors.Is(err, upload.ErrExtractedSizeExceeded):
-			log.Printf("ZIP upload rejected: %v", err)
-			writeJSON(w, http.StatusBadRequest, map[string]any{
-				"error":     "Invalid archive",
-				"status":    "error",
-				"message":   err.Error(),
-				"timestamp": time.Now().UTC().Format(time.RFC3339),
-			})
-		default:
-			log.Printf("ZIP upload error: %v", err)
-			writeJSON(w, http.StatusInternalServerError, map[string]any{
-				"error":     "Failed to upload zip to IPFS",
-				"details":   err.Error(),
-				"status":    "error",
-				"message":   "Failed to upload zip to IPFS",
-				"timestamp": time.Now().UTC().Format(time.RFC3339),
-			})
-		}
-		return
-	}
-	defer upload.RemoveDir(archive.Dir)
-
-	files, err := upload.CollectFiles(archive.Dir)
-	if err != nil {
-		log.Printf("ZIP upload error: %v", err)
-		writeJSON(w, http.StatusInternalServerError, map[string]any{
-			"error":     "Failed to upload zip to IPFS",
-			"details":   err.Error(),
-			"status":    "error",
-			"message":   "Failed to upload zip to IPFS",
-			"timestamp": time.Now().UTC().Format(time.RFC3339),
-		})
-		return
-	}
-
-	start := time.Now()
-	log.Printf("Starting IPFS folder upload for %s ...", saved.OriginalName)
-
-	cid, err := h.ipfs.AddDirectory(r.Context(), files)
-	if err != nil {
-		log.Printf("ZIP upload error: %v", err)
-		writeJSON(w, http.StatusInternalServerError, map[string]any{
-			"error":     "Failed to upload zip to IPFS",
-			"details":   err.Error(),
-			"status":    "error",
-			"message":   "Failed to upload zip to IPFS",
-			"timestamp": time.Now().UTC().Format(time.RFC3339),
-		})
-		return
-	}
-
-	log.Printf("Folder uploaded successfully: name=%s files=%d size_bytes=%d cid=%s upload_duration_ms=%d",
-		saved.OriginalName, archive.FileCount, archive.TotalBytes, cid, time.Since(start).Milliseconds())
-
-	writeJSON(w, http.StatusOK, map[string]any{
-		"status":   "success",
-		"cid":      cid,
-		"files":    archive.FileCount,
-		"size":     archive.TotalBytes,
 		"filename": saved.OriginalName,
 	})
 }

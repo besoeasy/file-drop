@@ -168,13 +168,9 @@
       
       <section class="border border-line relative transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-brand/5">
         <div class="flex border-b border-line bg-gray-50/50">
-          <button @click="setUploadMode('file')" :class="['flex-1 p-4 text-sm font-semibold uppercase tracking-wider transition-all duration-300', uploadMode === 'file' ? 'bg-white border-b-2 border-b-brand text-black' : 'text-gray-500 hover:bg-white hover:text-black hover:-translate-y-px']">
+          <div class="flex-1 p-4 text-sm font-semibold uppercase tracking-wider bg-white border-b-2 border-b-brand text-black">
             Payload
-          </button>
-          <div class="w-px bg-line"></div>
-          <button @click="setUploadMode('zip')" :class="['flex-1 p-4 text-sm font-semibold uppercase tracking-wider transition-all duration-300', uploadMode === 'zip' ? 'bg-white border-b-2 border-b-brand text-black' : 'text-gray-500 hover:bg-white hover:text-black hover:-translate-y-px']">
-            Directory (ZIP)
-          </button>
+          </div>
         </div>
 
         <div class="p-6 md:p-10">
@@ -184,13 +180,13 @@
             </span>
             <h2 class="text-xl font-bold mb-2 max-w-full break-words px-4 transition-transform duration-300 group-hover:-translate-y-1">{{ fileLabel }}</h2>
             <p class="font-sans text-sm text-gray-500 px-4 mb-6 transition-colors duration-300 group-hover:text-gray-700">
-              {{ uploadMode === 'zip' ? 'Drop a zipped folder here' : 'Drop a file here' }} or click to browse.
+              Drop a file here or click to browse.
               <br/>Paste is universally supported.
             </p>
             <span class="inline-block border border-line px-6 py-2 text-sm font-semibold uppercase tracking-wider text-black group-hover:border-black transition-all duration-300 group-hover:-translate-y-1 group-hover:shadow-lg">
               Browse Files
             </span>
-            <input type="file" id="fileInput" class="hidden" :accept="uploadMode === 'zip' ? '.zip' : ''" @change="updateFileLabel" />
+            <input type="file" id="fileInput" class="hidden" @change="updateFileLabel" />
           </label><div v-else class="border border-line p-8 flex flex-col items-start transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:shadow-brand/5">
             <div class="heading-title mb-4 accent-text"><i class="fas fa-file-check mr-2"></i> Payload acquired</div>
             <h2 class="text-2xl font-bold mb-8 break-all max-w-full text-black">{{ fileLabel }}</h2>
@@ -210,8 +206,7 @@
         </div>
 
         <div v-if="!file" class="p-6 border-t border-line flex items-center bg-gray-50 bg-opacity-30">
-          <span v-if="uploadMode === 'zip'" class="text-xs text-gray-500 max-w-[250px] leading-tight"><i class="fas fa-info-circle mr-1"></i> Archives are extracted server-side into a static web root on IPFS.</span>
-          <span v-else class="text-xs text-gray-500 max-w-[250px] leading-tight"><i class="fas fa-info-circle mr-1"></i> Individual files stream directly to the node.</span>
+          <span class="text-xs text-gray-500 max-w-[250px] leading-tight"><i class="fas fa-info-circle mr-1"></i> Individual files stream directly to the node.</span>
         </div>
 
         <!-- PROGRESS BAR -->
@@ -266,10 +261,6 @@
               <div>
                 <div class="heading-title mb-1">Content ID (CID)</div>
                 <div class="font-mono text-xs break-all bg-gray-50 p-3 border border-line transition-all duration-300 hover:-translate-y-1 hover:border-brand/40 hover:shadow-lg hover:shadow-brand/5">{{ result.cid }}</div>
-              </div>
-              <div v-if="result.files">
-                <div class="heading-title mb-1">Object Count</div>
-                <div class="font-mono text-lg transition-transform duration-300 hover:-translate-y-1">{{ result.files }} <span class="text-xs text-gray-500">items</span></div>
               </div>
             </div>
 
@@ -347,17 +338,9 @@
             <div>
               <div class="flex justify-between items-baseline mb-2">
                 <span class="heading-title">File Endpoint</span>
-                <button @click="copyCurlCommand('file')" class="text-[10px] uppercase font-bold text-gray-500 hover:text-black transition-all duration-300 hover:-translate-y-px"><i class="fas fa-copy mr-1"></i> Copy</button>
+                <button @click="copyCurlCommand" class="text-[10px] uppercase font-bold text-gray-500 hover:text-black transition-all duration-300 hover:-translate-y-px"><i class="fas fa-copy mr-1"></i> Copy</button>
               </div>
               <code class="block w-full bg-white border border-line p-3 font-mono text-xs text-gray-800 break-all selection:bg-gray-200">curl -X POST -F "file=@demo.pdf" {{ currentUrl }}/upload</code>
-            </div>
-            
-            <div>
-              <div class="flex justify-between items-baseline mb-2">
-                <span class="heading-title">ZIP Endpoint</span>
-                <button @click="copyCurlCommand('zip')" class="text-[10px] uppercase font-bold text-gray-500 hover:text-black transition-all duration-300 hover:-translate-y-px"><i class="fas fa-copy mr-1"></i> Copy</button>
-              </div>
-              <code class="block w-full bg-white border border-line p-3 font-mono text-xs text-gray-800 break-all selection:bg-gray-200">curl -X POST -F "file=@build.zip" {{ currentUrl }}/uploadzip</code>
             </div>
           </div>
         </div>
@@ -392,7 +375,6 @@
         copied: false,
         currentUrl: window.location.origin,
         gatewayBase: "https://dweb.link/ipfs/",
-        uploadMode: "file",
         status: {
           nodeId: "...",
           bandwidth: "0B / 0B",
@@ -414,25 +396,10 @@
         const i = Math.floor(Math.log(bytes) / Math.log(1024));
         return (bytes / Math.pow(1024, i)).toFixed(2) + " " + sizes[i];
       },
-      setUploadMode(mode) {
-        this.uploadMode = mode;
-        this.file = null;
-        this.fileLabel = "Select payload";
-      },
-      isZipFile(file) {
-        return Boolean(file && file.name && file.name.toLowerCase().endsWith(".zip"));
-      },
       applySelectedFile(file) {
         if (!file) {
           this.file = null;
           this.fileLabel = "Select payload";
-          return;
-        }
-
-        if (this.uploadMode === "zip" && !this.isZipFile(file)) {
-          this.file = null;
-          this.fileLabel = "Invalid format: .zip required";
-          this.result = { success: false, message: "Directory mapping requires a .zip archive." };
           return;
         }
 
@@ -479,9 +446,6 @@
       },
       getGatewayUrlForResult(result) {
         if (!result) return "";
-        if (result.files) {
-          return `${this.gatewayBase}${result.cid}/`;
-        }
         return this.getGatewayUrlForCid(result.cid, result.fileName);
       },
       getHtmlEmbed(cid, fileType, filename) {
@@ -516,8 +480,7 @@
           const formData = new FormData();
           formData.append("file", this.file);
 
-          const uploadEndpoint = this.uploadMode === "zip" ? "/uploadzip" : "/upload";
-          const response = await axios.post(uploadEndpoint, formData, {
+          const response = await axios.post("/upload", formData, {
             onUploadProgress: (progressEvent) => {
               this.uploadProgress = (progressEvent.loaded / progressEvent.total) * 100;
             },
@@ -528,10 +491,9 @@
             success: true,
             cid: response.data.cid,
             size: this.formatBytes(response.data.size),
-            files: response.data.files,
-            fileType: this.getFileType(this.uploadMode === "zip" ? "application/zip" : response.data.type),
+            fileType: this.getFileType(response.data.type),
             fileName: response.data.filename,
-            mimeType: this.uploadMode === "zip" ? "application/zip" : response.data.type,
+            mimeType: response.data.type,
           };
 
           this.file = null;
@@ -547,10 +509,8 @@
           this.uploading = false;
         }
       },
-      copyCurlCommand(type = "file") {
-        const route = type === "zip" ? "/uploadzip" : "/upload";
-        const filename = type === "zip" ? "build.zip" : "demo.pdf";
-        const command = `curl -X POST -F "file=@${filename}" ${this.currentUrl}${route}`;
+      copyCurlCommand() {
+        const command = `curl -X POST -F "file=@demo.pdf" ${this.currentUrl}/upload`;
         navigator.clipboard.writeText(command).then(() => {
           this.copied = true;
           setTimeout(() => { this.copied = false; }, 2000);

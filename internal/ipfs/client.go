@@ -200,66 +200,6 @@ func (c *Client) AddFile(ctx context.Context, filePath, filename string) (string
 	return result.Hash, nil
 }
 
-// AddDirectory streams all files in the map directly into the IPFS API without buffering in RAM.
-func (c *Client) AddDirectory(ctx context.Context, files map[string]string) (string, error) {
-	pr, pw := io.Pipe()
-	mw := multipart.NewWriter(pw)
-	contentType := mw.FormDataContentType()
-
-	go func() {
-		for relativePath, absolutePath := range files {
-			part, err := mw.CreateFormFile("file", relativePath)
-			if err != nil {
-				pw.CloseWithError(err)
-				return
-			}
-			f, err := os.Open(absolutePath)
-			if err != nil {
-				pw.CloseWithError(err)
-				return
-			}
-			if _, err := io.Copy(part, f); err != nil {
-				f.Close()
-				pw.CloseWithError(err)
-				return
-			}
-			f.Close()
-		}
-		pw.CloseWithError(mw.Close())
-	}()
-
-	req, err := http.NewRequestWithContext(
-		ctx,
-		http.MethodPost,
-		c.baseURL+"/api/v0/add?pin=false&wrap-with-directory=true&recursive=true",
-		pr,
-	)
-	if err != nil {
-		pr.CloseWithError(err)
-		return "", err
-	}
-	req.Header.Set("Content-Type", contentType)
-
-	resp, err := c.do(req)
-	if err != nil {
-		return "", err
-	}
-	defer resp.Close()
-
-	entries, err := parseAddResponses(resp)
-	if err != nil {
-		return "", err
-	}
-	if len(entries) == 0 {
-		return "", fmt.Errorf("invalid IPFS response for folder upload")
-	}
-	root := entries[len(entries)-1]
-	if root.Hash == "" {
-		return "", fmt.Errorf("invalid IPFS response for folder upload")
-	}
-	return root.Hash, nil
-}
-
 // postJSON applies a per-call timeout via context rather than allocating a new http.Client.
 func (c *Client) postJSON(ctx context.Context, path string, timeout time.Duration, body io.Reader) (map[string]any, error) {
 	if timeout > 0 {
