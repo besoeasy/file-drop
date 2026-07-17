@@ -131,6 +131,56 @@ func (h *Handler) Upload(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+func (h *Handler) UploadFolder(w http.ResponseWriter, r *http.Request) {
+	select {
+	case h.semaphore <- struct{}{}:
+		defer func() { <-h.semaphore }()
+	default:
+		writeJSON(w, http.StatusServiceUnavailable, map[string]any{
+			"error":     "Server busy",
+			"status":    "error",
+			"message":   "Too many concurrent uploads, try again later",
+			"timestamp": time.Now().UTC().Format(time.RFC3339),
+		})
+		return
+	}
+
+	r.Body = http.MaxBytesReader(w, r.Body, config.FileLimit+1024*1024)
+
+	saved, err := upload.SaveMultipartFiles(r, config.FileLimit)
+	if err != nil {
+		h.handleUploadError(w, err)
+		return
+	}
+	defer upload.RemoveAll(saved.Files)
+
+	start := time.Now()
+	log.Printf("Starting IPFS folder upload: %d files ...", saved.Count)
+
+	cid, err := h.ipfs.AddDirectory(r.Context(), saved.Files)
+	if err != nil {
+		log.Printf("Folder upload error: %v", err)
+		writeJSON(w, http.StatusInternalServerError, map[string]any{
+			"error":     "Failed to upload folder to IPFS",
+			"details":   err.Error(),
+			"status":    "error",
+			"message":   "Failed to upload folder to IPFS",
+			"timestamp": time.Now().UTC().Format(time.RFC3339),
+		})
+		return
+	}
+
+	log.Printf("Folder uploaded successfully: files=%d size_bytes=%d cid=%s upload_duration_ms=%d",
+		saved.Count, saved.Total, cid, time.Since(start).Milliseconds())
+
+	writeJSON(w, http.StatusOK, map[string]any{
+		"status": "success",
+		"cid":    cid,
+		"files":  saved.Count,
+		"size":   saved.Total,
+	})
+}
+
 func (h *Handler) handleUploadError(w http.ResponseWriter, err error) {
 	switch {
 	case errors.Is(err, upload.ErrNoFile):

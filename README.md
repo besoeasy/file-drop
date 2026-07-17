@@ -102,6 +102,23 @@ curl -X POST -F "file=@yourfile.pdf" http://localhost:3232/upload
 }
 ```
 
+### POST /uploadfolder
+
+Upload an entire folder. The browser selects a folder and sends all files with their relative paths. The folder is stored on IPFS as a directory.
+
+```bash
+curl -X POST -F "file=@src/index.html;filename=src/index.html" -F "file=@src/style.css;filename=src/style.css" http://localhost:3232/uploadfolder
+```
+
+```json
+{
+  "status": "success",
+  "cid": "QmX...",
+  "files": 12,
+  "size": 12345
+}
+```
+
 ---
 
 ## 🤖 AI Agent Integration

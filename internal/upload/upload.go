@@ -96,3 +96,99 @@ func RemovePath(path string) {
 		log.Printf("Failed to delete temp file: %v", err)
 	}
 }
+
+func RemoveAll(paths map[string]string) {
+	for _, p := range paths {
+		RemovePath(p)
+	}
+}
+
+type SavedFiles struct {
+	Files map[string]string
+	Count int
+	Total int64
+}
+
+func SaveMultipartFiles(r *http.Request, limit int64) (*SavedFiles, error) {
+	if err := os.MkdirAll(config.UploadTempDir, 0o755); err != nil {
+		return nil, err
+	}
+
+	reader, err := r.MultipartReader()
+	if err != nil {
+		return nil, err
+	}
+
+	files := make(map[string]string)
+	var total int64
+
+	for {
+		part, err := reader.NextPart()
+		if errors.Is(err, io.EOF) {
+			break
+		}
+		if err != nil {
+			for _, p := range files {
+				os.Remove(p)
+			}
+			return nil, err
+		}
+
+		if part.FormName() != "file" {
+			part.Close()
+			continue
+		}
+
+		relPath := part.FileName()
+		if relPath == "" || relPath == "." {
+			part.Close()
+			continue
+		}
+
+		tmpFile, err := os.CreateTemp(config.UploadTempDir, "folder-*")
+		if err != nil {
+			part.Close()
+			for _, p := range files {
+				os.Remove(p)
+			}
+			return nil, err
+		}
+
+		written, err := io.Copy(tmpFile, io.LimitReader(part, limit-total+1))
+		part.Close()
+		if err != nil {
+			tmpFile.Close()
+			os.Remove(tmpFile.Name())
+			for _, p := range files {
+				os.Remove(p)
+			}
+			return nil, err
+		}
+
+		total += written
+		if total > limit {
+			tmpFile.Close()
+			os.Remove(tmpFile.Name())
+			for _, p := range files {
+				os.Remove(p)
+			}
+			return nil, fmt.Errorf("%w: exceeds the maximum allowed size of %s", ErrFileTooLarge, config.FormatBytes(limit))
+		}
+
+		if err := tmpFile.Close(); err != nil {
+			os.Remove(tmpFile.Name())
+			for _, p := range files {
+				os.Remove(p)
+			}
+			return nil, err
+		}
+
+		files[filepath.ToSlash(relPath)] = tmpFile.Name()
+	}
+
+	if len(files) == 0 {
+		return nil, ErrNoFile
+	}
+
+	return &SavedFiles{Files: files, Count: len(files), Total: total}, nil
+}

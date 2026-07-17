@@ -29,6 +29,7 @@ func main() {
 	mux.HandleFunc("GET /health", handler.Health)
 	mux.HandleFunc("GET /status", handler.Status)
 	mux.HandleFunc("POST /upload", handler.Upload)
+	mux.HandleFunc("POST /uploadfolder", handler.UploadFolder)
 
 	publicDir := filepath.Join(projectRoot(), "public")
 	mux.Handle("/", http.FileServer(http.Dir(publicDir)))

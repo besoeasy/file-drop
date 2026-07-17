@@ -13,7 +13,7 @@ const (
 	Port             = 3232
 	Host             = "0.0.0.0"
 	UploadTempDir    = "/tmp/originless"
-	AppVersion       = "0.2.0"
+	AppVersion       = "0.3.0"
 	MaxConcurrentOps = 3
 )
 
