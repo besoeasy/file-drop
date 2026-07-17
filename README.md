@@ -61,7 +61,25 @@ Open http://localhost:3232
 
 ---
 
-## 🤝 Integrations
+## 📡 Fetching Files
+
+The recommended way to fetch files from Originless is [helia-verified-fetch](https://github.com/ipfs/helia-verified-fetch). It provides content-addressed verification — you get cryptographic proof that the data you received matches the CID, protecting against tampering and stale gateways.
+
+```js
+import { verifiedFetch } from "@helia/verified-fetch"
+
+const cid = "QmX..."
+const response = await verifiedFetch(`ipfs://${cid}`)
+const blob = await response.blob()
+```
+
+For simple use cases, standard gateway URLs also work:
+
+```
+https://dweb.link/ipfs/QmX...?filename=example.pdf
+```
+
+---
 
 | Platform | Description |
 | -------- | ----------- |
