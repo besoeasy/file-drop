@@ -82,19 +82,32 @@ Open **[http://localhost:3232](http://localhost:3232)** in your browser to acces
 
 ## 📡 Fetching Files & Content Verification
 
-### Recommended: Content-Verified Fetch (Helia)
-Retrieve files with cryptographic proof that the data matches the CID (protects against stale or malicious gateways):
+### 🛡️ Recommended for Automated Fetching: [`@helia/verified-fetch`](https://github.com/ipfs/helia-verified-fetch)
 
+We strongly recommend using [**`@helia/verified-fetch`**](https://github.com/ipfs/helia-verified-fetch) for programmatic and automated retrieval of files pinned via Originless. 
+
+Unlike traditional HTTP requests to central gateways, `helia-verified-fetch` provides **trustless, content-addressed verification**. It downloads raw blocks directly over IPFS / libp2p, verifies the cryptographic hash against the CID in real-time, and protects your applications from tampered or stale data.
+
+#### Installation
+```bash
+npm install @helia/verified-fetch
+```
+
+#### Example Usage
 ```javascript
 import { verifiedFetch } from "@helia/verified-fetch";
 
+// Fetch and verify content directly by CID
 const cid = "QmX...";
 const response = await verifiedFetch(`ipfs://${cid}`);
 const fileBlob = await response.blob();
+
+// Or parse JSON automatically
+// const data = await verifiedFetch(`ipfs://${cid}`).then(res => res.json());
 ```
 
-### Public Gateways
-Or view files via standard IPFS gateways:
+### 🌐 Standard Public Gateways
+For simple browser links or non-verified web views, standard IPFS gateway URLs can also be used:
 
 ```text
 https://dweb.link/ipfs/QmX...?filename=document.pdf
