@@ -50,7 +50,7 @@ CMD ["sh", "-c", "\
   ipfs config --json Swarm.ConnMgr.LowWater 20 && \
   ipfs config --json Swarm.ConnMgr.HighWater 50 && \
   ipfs config --json Swarm.RelayService.Enabled false && \
-  ipfs config --json Swarm.EnableAutoRelay false && \
+  ipfs config --json Swarm.RelayClient.Enabled false && \
   ipfs daemon --enable-gc --routing=dhtclient & \
   until ipfs id >/dev/null 2>&1; do \
   echo 'Waiting for IPFS daemon...'; sleep 3; \
