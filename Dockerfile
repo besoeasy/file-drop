@@ -19,7 +19,7 @@ RUN apk add --no-cache curl tar && \
 
 FROM alpine:3.20
 
-ENV STORAGE_MAX=200GB
+ENV STORAGE_MAX=100GB
 ENV DATA_DIR=/data
 ENV IPFS_PATH=/data
 

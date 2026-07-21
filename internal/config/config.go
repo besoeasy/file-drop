@@ -28,7 +28,7 @@ var (
 var sizePattern = regexp.MustCompile(`(?i)^(\d+(?:\.\d+)?)\s*(B|KB|MB|GB|TB)$`)
 
 func init() {
-	StorageMax = envOrDefault("STORAGE_MAX", "200GB")
+	StorageMax = envOrDefault("STORAGE_MAX", "100GB")
 
 	storageMaxBytes, err := ParseSize(StorageMax)
 	if err != nil {

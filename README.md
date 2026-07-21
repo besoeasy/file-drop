@@ -26,7 +26,7 @@ docker run -d \
   -p 4001:4001/tcp \
   -p 4001:4001/udp \
   -v originless_data:/data \
-  -e STORAGE_MAX=200GB \
+  -e STORAGE_MAX=100GB \
   ghcr.io/besoeasy/originless:latest
 ```
 
@@ -141,7 +141,7 @@ curl http://localhost:3232/pins
 
 | Variable | Default | Description |
 | :--- | :--- | :--- |
-| `STORAGE_MAX` | `200GB` | Maximum storage limit allocated to IPFS data. |
+| `STORAGE_MAX` | `100GB` | Maximum storage limit allocated to IPFS data. |
 | `PORT` | `3232` | API server & UI HTTP listening port. |
 | `DATA_DIR` | `/data` | Path to store SQLite database & IPFS node config. |
 

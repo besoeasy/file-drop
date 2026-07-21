@@ -26,6 +26,3 @@ data/
 *.db-journal
 *.db-wal
 *.db-shm
-
-# Go dependencies
-go.sum
