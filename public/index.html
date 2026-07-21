@@ -178,7 +178,7 @@
         </div>
 
         <div class="p-6 md:p-10">
-          <label v-if="!file" for="fileInput" class="dropzone flex flex-col items-center justify-center p-12 text-center cursor-pointer min-h-[300px] relative group hover:-translate-y-1 hover:shadow-xl hover:shadow-brand/10" @dragover.prevent="isDragOver = true" @dragleave.prevent="isDragOver = false" @drop.prevent="handleDrop($event)" :class="isDragOver ? 'dropzone-active scale-[1.01] shadow-xl shadow-brand/10' : ''">
+          <label v-if="!file" :for="uploadMode === 'folder' ? 'folderInput' : 'fileInput'" class="dropzone flex flex-col items-center justify-center p-12 text-center cursor-pointer min-h-[300px] relative group hover:-translate-y-1 hover:shadow-xl hover:shadow-brand/10" @dragover.prevent="isDragOver = true" @dragleave.prevent="isDragOver = false" @drop.prevent="handleDrop($event)" :class="isDragOver ? 'dropzone-active scale-[1.01] shadow-xl shadow-brand/10' : ''">
             <span class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 group-hover:bg-red-50 text-gray-400 group-hover:text-brand transition-all duration-300 mb-4 group-hover:-translate-y-1 group-hover:scale-110">
               <i :class="['fas text-2xl group-hover:animate-soft-bob', uploadMode === 'folder' ? 'fa-folder-open' : 'fa-upload']"></i>
             </span>
@@ -190,7 +190,7 @@
             <span class="inline-block border border-line px-6 py-2 text-sm font-semibold uppercase tracking-wider text-black group-hover:border-black transition-all duration-300 group-hover:-translate-y-1 group-hover:shadow-lg">
               {{ uploadMode === 'folder' ? 'Browse Folders' : 'Browse Files' }}
             </span>
-            <input v-if="uploadMode === 'folder'" type="file" id="folderInput" class="hidden" webkitdirectory @change="handleFolderSelect" />
+            <input v-if="uploadMode === 'folder'" type="file" id="folderInput" class="hidden" webkitdirectory directory @change="handleFolderSelect" />
             <input v-else type="file" id="fileInput" class="hidden" @change="updateFileLabel" />
           </label><div v-else class="border border-line p-8 flex flex-col items-start transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:shadow-brand/5">
             <div class="heading-title mb-4 accent-text"><i class="fas fa-file-check mr-2"></i> Payload acquired</div>
