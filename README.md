@@ -2,204 +2,151 @@
 
 # 🌐 Originless
 
-**Private, decentralized file sharing for Nostr and the web**
+**Private, decentralized, origin-independent file & app hosting powered by IPFS**
 
-[![Docker](https://img.shields.io/badge/docker-%230db7ed.svg?style=for-the-badge&logo=docker&logoColor=white)](https://github.com/besoeasy/Originless/pkgs/container/originless)
+[![Docker](https://img.shields.io/badge/docker-%230db7ed.svg?style=for-the-badge&logo=docker&logoColor=white)](https://ghcr.io/besoeasy/originless)
 [![IPFS](https://img.shields.io/badge/IPFS-65C2CB?style=for-the-badge&logo=ipfs&logoColor=white)](https://ipfs.tech)
 [![License: ISC](https://img.shields.io/badge/License-ISC-blue.svg?style=for-the-badge)](https://opensource.org/licenses/ISC)
 
-**One storage backend to rule them all** — Drop into apps, screenshot tools, pastebin-style pastes, Nostr clients, Reddit posts, forum embeds. Durable, anonymous file hosting that keeps you private.
-
-<img width="1536" src="https://github.com/user-attachments/assets/5014810c-cc51-4ad4-a1b8-6e4db510c09f" alt="Originless Banner" />
+**The frictionless storage backend for the modern web** — Drop into DApps, Nostr clients, AI agents, screenshot tools, and pastebins. Durable, cryptographic file hosting with zero API keys or user accounts required.
 
 </div>
 
 ---
 
-## 🚀 Quick Start
+## ⚡ Quick Start (Run in 5 Seconds)
+
+Run a complete Originless node with IPFS integrated using a single command:
 
 ```bash
-docker run -d --restart unless-stopped --name originless \
+docker run -d \
+  --name originless \
+  --restart unless-stopped \
   -p 3232:3232 \
   -p 4001:4001/tcp \
   -p 4001:4001/udp \
-  -v originlessd:/data \
+  -v originless_data:/data \
   -e STORAGE_MAX=200GB \
-  ghcr.io/besoeasy/originless
+  ghcr.io/besoeasy/originless:latest
 ```
 
-Open http://localhost:3232
+> **Podman User?** Simply replace `docker` with `podman` in the command above!
 
-### Public Gateways
-
-| Gateway  | URL                              |
-| -------- | -------------------------------- |
-| besoeasy | https://originless.besoeasy.com/ |
-| gupt.app | https://originless.gupt.app/     |
-| 0xchat   | https://originless.0xchat.com/   |
+Open **[http://localhost:3232](http://localhost:3232)** in your browser to access the Web UI and API.
 
 ---
 
-## 🌟 Use Cases
+## 🔥 Key Features
 
-- **🌍 Decentralized Apps** — Build your frontend and upload the `dist` folder to host your live DApp on IPFS
-- **🖼️ Screenshot Tools** — Anonymous image hosting for screenshots and screen recordings
-- **📝 Pastebin Alternative** — Decentralized paste and snippet sharing
-- **💬 Nostr Clients** — Media attachments for decentralized social apps
-- **🎨 Portfolio Hosting** — Permanent galleries and portfolios that survive link rot
-- **📦 Package Distribution** — Resilient software and asset distribution
-- **🎵 Podcast Hosting** — Decentralized RSS feed media hosting
-- **💾 Backup Storage** — Self-healing backup infrastructure
+- **🌐 Origin-Independent Storage**: Files are pinned to IPFS. Once propagated to peers, content stays online even if your origin node goes offline.
+- **🔒 Zero-Friction & Accountless**: No API keys, passwords, or authentication overhead needed for uploads. Perfect for local dev, public APIs, or AI agent integration.
+- **🛡️ Tamper-Proof Cryptographic Verification**: Content-addressed by unique IPFS CIDs (`ipfs://QmX...`). Downloads can be cryptographically verified against the hash.
+- **📁 Full Folder & DApp Uploads**: Upload complete static websites, React/Vite build directories (`dist/`), or asset folders with intact relative paths.
+- **🧹 Automated Smart Janitor**: Intelligent disk space management. Keeps uploads pinned for 7 days minimum and automatically evicts oldest files at 75% capacity to prevent disk overflow.
+- **🤖 Built for Autonomous AI Agents**: Native endpoint design allows LLMs (Claude, Copilot, Cursor, Custom Agents) to host generated media, code snippets, or sites instantly.
+
+---
+
+## 🌟 Primary Use Cases
+
+| Use Case | Description |
+| :--- | :--- |
+| **🚀 Decentralized DApp Hosting** | Drag-and-drop or upload your frontend `dist/` folder to host permanent, censorship-resistant web applications on IPFS. |
+| **💬 Nostr Media Attachments** | Instant, zero-auth media uploader for decentralized social apps (e.g., [0xchat](https://0xchat.com/)). |
+| **🤖 Autonomous AI Agent Outputs** | Give AI assistants the ability to publish reports, interactive charts, and generated images with zero setup or API keys. |
+| **🖼️ Anonymous Image & Screenshot Sharing** | Instant backend for screenshot capture tools, screen recordings, and temporary image uploads. |
+| **📝 Pastebin & Code Snippet Sharing** | Share text, log files, or code snippets without fear of link rot or centralized deletion. |
+| **📦 Resilient Asset Distribution** | Distribute software releases, binaries, audio/podcasts, or heavy media over a self-healing P2P network. |
 
 ---
 
 ## 🔄 How It Works
 
-1. **Upload** — Files are pinned to your local IPFS node (kept alive for 7 days minimum)
-2. **Propagate** — Content spreads via IPFS as peers request it
-3. **Auto-Manage** — Files are automatically unpinned after 7 days; oldest files evicted at 75% storage
-
----
-
-## 📡 Fetching Files
-
-The recommended way to fetch files from Originless is [helia-verified-fetch](https://github.com/ipfs/helia-verified-fetch). It provides content-addressed verification — you get cryptographic proof that the data you received matches the CID, protecting against tampering and stale gateways.
-
-```js
-import { verifiedFetch } from "@helia/verified-fetch"
-
-const cid = "QmX..."
-const response = await verifiedFetch(`ipfs://${cid}`)
-const blob = await response.blob()
+```
+ ┌──────────────┐      Upload File / Folder      ┌──────────────────┐
+ │ User / Client│ ─────────────────────────────> │  Originless Node │
+ └──────────────┘                                └─────────┬────────┘
+                                                           │
+                                             Pins Content & Generates CID
+                                                           │
+                                                           ▼
+ ┌──────────────┐      Cryptographic CID         ┌──────────────────┐
+ │ Public Peers │ <───────────────────────────── │  IPFS P2P Swarm  │
+ └──────────────┘    Helia / Gateway Access      └──────────────────┘
 ```
 
-For simple use cases, standard gateway URLs also work:
+1. **Upload**: Send single files or directory trees via the Web UI or simple HTTP POST endpoint.
+2. **Pin & Distribute**: Originless pins the content locally on IPFS and broadcasts it to global P2P peers.
+3. **Automated Lifecycle**: Files are guaranteed pinned for 7 days. An automated janitor routine reconciles storage to keep usage below limits.
 
+---
+
+## 📡 Fetching Files & Content Verification
+
+### Recommended: Content-Verified Fetch (Helia)
+Retrieve files with cryptographic proof that the data matches the CID (protects against stale or malicious gateways):
+
+```javascript
+import { verifiedFetch } from "@helia/verified-fetch";
+
+const cid = "QmX...";
+const response = await verifiedFetch(`ipfs://${cid}`);
+const fileBlob = await response.blob();
 ```
-https://dweb.link/ipfs/QmX...?filename=example.pdf
+
+### Public Gateways
+Or view files via standard IPFS gateways:
+
+```text
+https://dweb.link/ipfs/QmX...?filename=document.pdf
 ```
 
 ---
 
-| Platform | Description |
-| -------- | ----------- |
-| [0xchat](https://0xchat.com/) | Private, decentralized Nostr chat |
-| [ZeroNote](https://zeronote.js.org/) | Anonymous encrypted notes sharing |
-| [gupt.app](https://gupt.app/) | Private, anonymous file sharing |
-
----
-
-## ⚙️ Configuration
-
-| Variable        | Default | Description                              |
-| --------------- | ------- | ---------------------------------------- |
-| `STORAGE_MAX`   | `200GB` | Maximum storage limit for IPFS           |
-| `PORT`          | `3232`  | API server port                          |
-| `DATA_DIR`      | `./data` | SQLite database location                |
-
-### Pin Management
-
-Files are automatically pinned on upload and tracked for 7 days. At 75% storage capacity, oldest pinned files are automatically evicted.
-
-- **Pin Expiry**: 7 days (files unpinned after 7 days)
-- **Eviction Threshold**: 75% of storage limit
-- **Startup Reconciliation**: Compares IPFS pins with database on startup
-
----
-
-## 🛠️ API Reference
+## 🛠️ API Quick Reference
 
 Base URL: `http://localhost:3232`
 
-### POST /upload
-
-Upload a single file.
-
+### Upload Single File
 ```bash
-curl -X POST -F "file=@yourfile.pdf" http://localhost:3232/upload
+curl -X POST -F "file=@photo.png" http://localhost:3232/upload
 ```
-
+*Response:*
 ```json
 {
   "status": "success",
   "cid": "QmX...",
-  "size": 12345,
-  "type": "application/pdf",
-  "filename": "yourfile.pdf"
+  "size": 1048576,
+  "type": "image/png",
+  "filename": "photo.png"
 }
 ```
 
-### POST /uploadfolder
-
-Upload an entire folder. The browser selects a folder and sends all files with their relative paths. The folder is stored on IPFS as a directory.
-
+### Upload Folder / DApp
 ```bash
-curl -X POST -F "file=@src/index.html;filename=src/index.html" -F "file=@src/style.css;filename=src/style.css" http://localhost:3232/uploadfolder
+curl -X POST \
+  -F "file=@dist/index.html;filename=index.html" \
+  -F "file=@dist/style.css;filename=style.css" \
+  http://localhost:3232/uploadfolder
 ```
 
-```json
-{
-  "status": "success",
-  "cid": "QmX...",
-  "files": 12,
-  "size": 12345
-}
-```
-
-### GET /history
-
-View upload history with pin status.
-
-```bash
-curl http://localhost:3232/history?limit=20
-```
-
-```json
-{
-  "status": "success",
-  "uploads": [
-    {
-      "id": 1,
-      "cid": "QmX...",
-      "filename": "example.pdf",
-      "size": 12345,
-      "created_at": "2026-07-17T12:00:00Z",
-      "unpinned": false,
-      "unpinned_at": null
-    }
-  ],
-  "limit": 20,
-  "offset": 0
-}
-```
-
-### GET /pins
-
-Get current pin statistics.
-
+### Check Storage & Pins
 ```bash
 curl http://localhost:3232/pins
 ```
 
-```json
-{
-  "status": "success",
-  "pinnedCount": 150,
-  "pinnedSize": 5368709120,
-  "pinnedSizeStr": "5.00 GB",
-  "storageLimit": "200GB",
-  "threshold": 75
-}
-```
+---
+
+## ⚙️ Environment Configuration
+
+| Variable | Default | Description |
+| :--- | :--- | :--- |
+| `STORAGE_MAX` | `200GB` | Maximum storage limit allocated to IPFS data. |
+| `PORT` | `3232` | API server & UI HTTP listening port. |
+| `DATA_DIR` | `/data` | Path to store SQLite database & IPFS node config. |
 
 ---
 
-## 🤖 AI Agent Integration
+## 📄 License
 
-Teach your agents (Cursor, GitHub Copilot, Claude, etc.) to use Originless — **no API keys, no accounts, no configuration required**. Just point them at a running instance.
-
-### Example Prompts
-
-- _"What's the current Bitcoin price? Create a beautiful `index.html` report and upload it to `https://originless.besoeasy.com/upload` so I can share it."_
-- _"Generate a complex 3D fractal image, save it as a PNG, and upload it to my local Originless node at `http://localhost:3232/upload`."_
-- _"Build a React app, and publish the built output to IPFS via `https://originless.besoeasy.com/upload`."_
+Distributed under the **ISC License**. Free for personal and commercial use.
