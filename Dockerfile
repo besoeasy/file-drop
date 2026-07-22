@@ -47,7 +47,7 @@ CMD ["sh", "-c", "\
   ipfs config Datastore.StorageMax ${STORAGE_MAX} && \
   ipfs config --json Routing.Type '\"dhtclient\"' && \
   ipfs config --json Swarm.RelayService.Enabled false && \
-  ipfs config --json Swarm.RelayClient.Enabled false && \
+  ipfs config --json Swarm.RelayClient.Enabled true && \
   ipfs daemon --enable-gc --routing=dhtclient & \
   until ipfs id >/dev/null 2>&1; do \
   echo 'Waiting for IPFS daemon...'; sleep 3; \
