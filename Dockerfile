@@ -36,7 +36,7 @@ RUN mkdir -p /tmp/originless /data && chown -R originless:originless /app /tmp/o
 
 USER originless
 
-EXPOSE 3232 4001/tcp 4001/udp
+EXPOSE 3232 4001/tcp 4001/udp 5001
 
 VOLUME ["/data"]
 

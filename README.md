@@ -25,13 +25,15 @@ docker run -d \
   -p 3232:3232 \
   -p 4001:4001/tcp \
   -p 4001:4001/udp \
+  -p 5001:5001 \
   -e STORAGE_MAX=100GB \
   ghcr.io/besoeasy/originless:latest
 ```
 
 > **Podman User?** Simply replace `docker` with `podman` in the command above!
 
-Open **[http://localhost:3232](http://localhost:3232)** in your browser to access the Web UI and API.
+- Access **Originless Web UI & API** at **[http://localhost:3232](http://localhost:3232)**
+- Access **IPFS WebUI & RPC API** at **[http://localhost:5001/webui](http://localhost:5001/webui)**
 
 ---
 
