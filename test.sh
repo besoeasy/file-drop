@@ -20,8 +20,9 @@ SERVER_URL="${SERVER_URL%/}"
 # Validate server health
 echo ""
 echo "🔍 Checking health of server at ${SERVER_URL}..."
-if ! curl -s -f --max-time 5 "${SERVER_URL}/health" >/dev/null 2>&1; then
-    echo "⚠️ Warning: Could not reach ${SERVER_URL}/health (proceeding anyway...)"
+HEALTH_STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 5 "${SERVER_URL}/health" || echo "000")
+if [ "$HEALTH_STATUS" -ne 200 ]; then
+    echo "⚠️ Warning: ${SERVER_URL}/health returned HTTP ${HEALTH_STATUS} (Server may be offline or returning 502 Bad Gateway)"
 else
     echo "✅ Server is online!"
 fi
@@ -68,20 +69,34 @@ trap cleanup EXIT
 echo "🚀 Uploading file to ${SERVER_URL}/upload ..."
 UPLOAD_START=$(date +%s)
 
-RESPONSE=$(curl -s -X POST -F "file=@${TEST_FILE};filename=${FILENAME}" "${SERVER_URL}/upload")
+# Capture HTTP status code and body safely
+HTTP_RESPONSE=$(curl -s -w "\n%{http_code}" -X POST -F "file=@${TEST_FILE};filename=${FILENAME}" "${SERVER_URL}/upload" || echo -e "\n000")
+
+HTTP_STATUS=$(echo "$HTTP_RESPONSE" | tail -n 1)
+RESPONSE=$(echo "$HTTP_RESPONSE" | sed '$d')
 
 UPLOAD_END=$(date +%s)
 UPLOAD_DURATION=$(( UPLOAD_END - UPLOAD_START ))
 
+if [ "$HTTP_STATUS" -ne 200 ]; then
+    echo ""
+    echo "❌ Upload failed with HTTP status: ${HTTP_STATUS}"
+    echo "   Server output: ${RESPONSE}"
+    if [ "$HTTP_STATUS" -eq 502 ]; then
+        echo "   👉 Note: HTTP 502 Bad Gateway means your backend server or Docker container crashed/stopped behind Cloudflare."
+    fi
+    exit 1
+fi
+
 # Extract CID from response
 if command -v jq >/dev/null 2>&1; then
-    CID=$(echo "$RESPONSE" | jq -r '.cid // empty')
+    CID=$(echo "$RESPONSE" | jq -r '.cid // empty' 2>/dev/null || true)
 else
     CID=$(echo "$RESPONSE" | grep -o '"cid":"[^"]*"' | cut -d'"' -f4)
 fi
 
 if [ -z "$CID" ] || [ "$CID" = "null" ]; then
-    echo "❌ Upload failed. Server response:"
+    echo "❌ Could not parse CID from server response:"
     echo "$RESPONSE"
     exit 1
 fi
@@ -104,7 +119,6 @@ while true; do
     ELAPSED=$(( $(date +%s) - POLL_START ))
     
     # Use -L to follow sub-domain redirects (e.g. dweb.link redirects to cid.ipfs.dweb.link)
-    # Write only the final HTTP response code
     HTTP_STATUS=$(curl -s -L -o /dev/null -w "%{http_code}" --max-time 8 "${TEST_GATEWAY}/ipfs/${CID}" || echo "000")
     
     if [ "$HTTP_STATUS" -eq 200 ]; then
@@ -124,7 +138,6 @@ while true; do
     else
         echo "[+${ELAPSED}s] Gateway Response: HTTP ${HTTP_STATUS} (Not ready yet). Retrying in 5s..."
         
-        # If timeout keeps happening after 60s, warn about port 4001
         if [ "$ELAPSED" -gt 60 ] && [ "$((ELAPSED % 30))" -lt 5 ]; then
             echo "   ⚠️ Note: If this takes longer than 60s, verify that port 4001 (TCP/UDP) is open on your server."
         fi
