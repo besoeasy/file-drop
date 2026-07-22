@@ -47,8 +47,6 @@ CMD ["sh", "-c", "\
   ipfs config Datastore.StorageMax ${STORAGE_MAX} && \
   ipfs config --json Routing.Type '\"dhtclient\"' && \
   ipfs config --json Provide.DHT.Interval '\"24h\"' && \
-  ipfs config --json Swarm.ConnMgr.LowWater 20 && \
-  ipfs config --json Swarm.ConnMgr.HighWater 50 && \
   ipfs config --json Swarm.RelayService.Enabled false && \
   ipfs config --json Swarm.RelayClient.Enabled false && \
   ipfs daemon --enable-gc --routing=dhtclient & \
