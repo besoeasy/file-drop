@@ -46,7 +46,6 @@ CMD ["sh", "-c", "\
   if [ ! -f \"$IPFS_PATH/config\" ]; then ipfs init --profile=lowpower; fi && \
   ipfs config Datastore.StorageMax ${STORAGE_MAX} && \
   ipfs config --json Routing.Type '\"dhtclient\"' && \
-  ipfs config --json Provide.DHT.Interval '\"24h\"' && \
   ipfs config --json Swarm.RelayService.Enabled false && \
   ipfs config --json Swarm.RelayClient.Enabled false && \
   ipfs daemon --enable-gc --routing=dhtclient & \
