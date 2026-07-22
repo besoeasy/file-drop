@@ -103,8 +103,9 @@ while true; do
     POLL_COUNT=$(( POLL_COUNT + 1 ))
     ELAPSED=$(( $(date +%s) - POLL_START ))
     
-    # Attempt to fetch CID from public gateway
-    HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 4 "${TEST_GATEWAY}/ipfs/${CID}" || true)
+    # Use -L to follow sub-domain redirects (e.g. dweb.link redirects to cid.ipfs.dweb.link)
+    # Write only the final HTTP response code
+    HTTP_STATUS=$(curl -s -L -o /dev/null -w "%{http_code}" --max-time 8 "${TEST_GATEWAY}/ipfs/${CID}" || echo "000")
     
     if [ "$HTTP_STATUS" -eq 200 ]; then
         TOTAL_TIME=$(( $(date +%s) - UPLOAD_START ))
@@ -121,7 +122,13 @@ while true; do
         echo "--------------------------------------------------"
         break
     else
-        echo "[+${ELAPSED}s] HTTP Status: ${HTTP_STATUS} (Not yet available on gateway). Polling again in 5s..."
+        echo "[+${ELAPSED}s] Gateway Response: HTTP ${HTTP_STATUS} (Not ready yet). Retrying in 5s..."
+        
+        # If timeout keeps happening after 60s, warn about port 4001
+        if [ "$ELAPSED" -gt 60 ] && [ "$((ELAPSED % 30))" -lt 5 ]; then
+            echo "   ⚠️ Note: If this takes longer than 60s, verify that port 4001 (TCP/UDP) is open on your server."
+        fi
+        
         sleep 5
     fi
 done
