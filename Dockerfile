@@ -6,7 +6,7 @@ COPY go.mod go.sum* ./
 RUN go mod download
 
 COPY . .
-RUN CGO_ENABLED=0 go build -ldflags="-s -w" -o /originless .
+RUN CGO_ENABLED=0 go build -ldflags="-s -w" -o /originless ./cmd/originless
 
 FROM alpine:3.20 AS kubo
 
@@ -30,7 +30,6 @@ WORKDIR /app
 
 COPY --from=kubo /ipfs /usr/local/bin/ipfs
 COPY --from=builder /originless /app/originless
-COPY public ./public
 
 RUN mkdir -p /tmp/originless /data && chown -R originless:originless /app /tmp/originless /data
 

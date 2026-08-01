@@ -1,4 +1,4 @@
-package handlers
+package api
 
 import (
 	"encoding/json"
@@ -10,20 +10,19 @@ import (
 
 	"github.com/besoeasy/originless/internal/config"
 	"github.com/besoeasy/originless/internal/ipfs"
-	"github.com/besoeasy/originless/internal/pin"
-	"github.com/besoeasy/originless/internal/upload"
+	"github.com/besoeasy/originless/internal/janitor"
 )
 
 type Handler struct {
 	ipfs      *ipfs.Client
-	pinMgr    *pin.Manager
+	janitor   *janitor.Manager
 	semaphore chan struct{}
 }
 
-func New(ipfsClient *ipfs.Client, pinManager *pin.Manager) *Handler {
+func NewHandler(ipfsClient *ipfs.Client, janitorManager *janitor.Manager) *Handler {
 	return &Handler{
 		ipfs:      ipfsClient,
-		pinMgr:    pinManager,
+		janitor:   janitorManager,
 		semaphore: make(chan struct{}, config.MaxConcurrentOps),
 	}
 }
@@ -99,12 +98,12 @@ func (h *Handler) Upload(w http.ResponseWriter, r *http.Request) {
 
 	r.Body = http.MaxBytesReader(w, r.Body, config.FileLimit+1024*1024)
 
-	saved, err := upload.SaveMultipartFile(r, config.FileLimit)
+	saved, err := SaveMultipartFile(r, config.FileLimit)
 	if err != nil {
 		h.handleUploadError(w, err)
 		return
 	}
-	defer upload.RemovePath(saved.Path)
+	defer RemovePath(saved.Path)
 
 	mimeType := ipfs.MimeType(saved.OriginalName)
 	start := time.Now()
@@ -127,7 +126,7 @@ func (h *Handler) Upload(w http.ResponseWriter, r *http.Request) {
 		saved.OriginalName, saved.Size, mimeType, cid, time.Since(start).Milliseconds())
 
 	pinned := true
-	if err := h.pinMgr.PinOnUpload(cid, saved.OriginalName, saved.Size); err != nil {
+	if err := h.janitor.PinOnUpload(cid, saved.OriginalName, saved.Size); err != nil {
 		log.Printf("Pin failed for %s: %v", cid, err)
 		pinned = false
 	}
@@ -158,12 +157,12 @@ func (h *Handler) UploadFolder(w http.ResponseWriter, r *http.Request) {
 
 	r.Body = http.MaxBytesReader(w, r.Body, config.FileLimit+1024*1024)
 
-	saved, err := upload.SaveMultipartFiles(r, config.FileLimit)
+	saved, err := SaveMultipartFiles(r, config.FileLimit)
 	if err != nil {
 		h.handleUploadError(w, err)
 		return
 	}
-	defer upload.RemoveAll(saved.Files)
+	defer RemoveAll(saved.Files)
 
 	start := time.Now()
 	log.Printf("Starting IPFS folder upload: %d files ...", saved.Count)
@@ -185,7 +184,7 @@ func (h *Handler) UploadFolder(w http.ResponseWriter, r *http.Request) {
 		saved.Count, saved.Total, cid, time.Since(start).Milliseconds())
 
 	pinned := true
-	if err := h.pinMgr.PinOnUpload(cid, "folder", saved.Total); err != nil {
+	if err := h.janitor.PinOnUpload(cid, "folder", saved.Total); err != nil {
 		log.Printf("Pin failed for folder %s: %v", cid, err)
 		pinned = false
 	}
@@ -201,14 +200,14 @@ func (h *Handler) UploadFolder(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) handleUploadError(w http.ResponseWriter, err error) {
 	switch {
-	case errors.Is(err, upload.ErrNoFile):
+	case errors.Is(err, ErrNoFile):
 		writeJSON(w, http.StatusBadRequest, map[string]any{
 			"error":     "No file uploaded",
 			"status":    "error",
 			"message":   err.Error(),
 			"timestamp": time.Now().UTC().Format(time.RFC3339),
 		})
-	case errors.Is(err, upload.ErrFileTooLarge):
+	case errors.Is(err, ErrFileTooLarge):
 		writeJSON(w, http.StatusRequestEntityTooLarge, map[string]any{
 			"error":   "File too large",
 			"message": err.Error(),
@@ -222,12 +221,6 @@ func (h *Handler) handleUploadError(w http.ResponseWriter, err error) {
 			"timestamp": time.Now().UTC().Format(time.RFC3339),
 		})
 	}
-}
-
-func writeJSON(w http.ResponseWriter, status int, payload any) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(status)
-	_ = json.NewEncoder(w).Encode(payload)
 }
 
 func (h *Handler) History(w http.ResponseWriter, r *http.Request) {
@@ -245,7 +238,7 @@ func (h *Handler) History(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	uploads, err := h.pinMgr.GetHistory(limit, offset)
+	uploads, err := h.janitor.GetHistory(limit, offset)
 	if err != nil {
 		log.Printf("History error: %v", err)
 		writeJSON(w, http.StatusInternalServerError, map[string]any{
@@ -264,7 +257,7 @@ func (h *Handler) History(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) PinStats(w http.ResponseWriter, r *http.Request) {
-	count, size, err := h.pinMgr.GetStats()
+	count, size, err := h.janitor.GetStats()
 	if err != nil {
 		log.Printf("Pin stats error: %v", err)
 		writeJSON(w, http.StatusInternalServerError, map[string]any{
@@ -281,4 +274,10 @@ func (h *Handler) PinStats(w http.ResponseWriter, r *http.Request) {
 		"storageLimit":  config.StorageMax,
 		"threshold":     config.PinThreshold,
 	})
+}
+
+func writeJSON(w http.ResponseWriter, status int, payload any) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	_ = json.NewEncoder(w).Encode(payload)
 }

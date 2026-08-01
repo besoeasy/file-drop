@@ -1,4 +1,4 @@
-package upload
+package api
 
 import (
 	"errors"
@@ -21,6 +21,12 @@ type SavedFile struct {
 	Path         string
 	OriginalName string
 	Size         int64
+}
+
+type SavedFiles struct {
+	Files map[string]string
+	Count int
+	Total int64
 }
 
 func SaveMultipartFile(r *http.Request, limit int64) (*SavedFile, error) {
@@ -86,27 +92,6 @@ func SaveMultipartFile(r *http.Request, limit int64) (*SavedFile, error) {
 	}
 
 	return nil, ErrNoFile
-}
-
-func RemovePath(path string) {
-	if path == "" {
-		return
-	}
-	if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
-		log.Printf("Failed to delete temp file: %v", err)
-	}
-}
-
-func RemoveAll(paths map[string]string) {
-	for _, p := range paths {
-		RemovePath(p)
-	}
-}
-
-type SavedFiles struct {
-	Files map[string]string
-	Count int
-	Total int64
 }
 
 func SaveMultipartFiles(r *http.Request, limit int64) (*SavedFiles, error) {
@@ -191,4 +176,19 @@ func SaveMultipartFiles(r *http.Request, limit int64) (*SavedFiles, error) {
 	}
 
 	return &SavedFiles{Files: files, Count: len(files), Total: total}, nil
+}
+
+func RemovePath(path string) {
+	if path == "" {
+		return
+	}
+	if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
+		log.Printf("Failed to delete temp file: %v", err)
+	}
+}
+
+func RemoveAll(paths map[string]string) {
+	for _, p := range paths {
+		RemovePath(p)
+	}
 }

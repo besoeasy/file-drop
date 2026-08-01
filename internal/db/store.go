@@ -1,4 +1,4 @@
-package store
+package db
 
 import (
 	"database/sql"
@@ -10,12 +10,12 @@ import (
 )
 
 type Upload struct {
-	ID         int64     `json:"id"`
-	CID        string    `json:"cid"`
-	Filename   string    `json:"filename"`
-	Size       int64     `json:"size"`
-	CreatedAt  time.Time `json:"created_at"`
-	Unpinned   bool      `json:"unpinned"`
+	ID         int64      `json:"id"`
+	CID        string     `json:"cid"`
+	Filename   string     `json:"filename"`
+	Size       int64      `json:"size"`
+	CreatedAt  time.Time  `json:"created_at"`
+	Unpinned   bool       `json:"unpinned"`
 	UnpinnedAt *time.Time `json:"unpinned_at,omitempty"`
 }
 
@@ -24,21 +24,21 @@ type Store struct {
 }
 
 func New(dbPath string) (*Store, error) {
-	db, err := sql.Open("sqlite", dbPath)
+	sqlDB, err := sql.Open("sqlite", dbPath)
 	if err != nil {
 		return nil, fmt.Errorf("open database: %w", err)
 	}
 
-	db.SetMaxOpenConns(1)
-	db.SetMaxIdleConns(1)
+	sqlDB.SetMaxOpenConns(1)
+	sqlDB.SetMaxIdleConns(1)
 
-	if err := migrate(db); err != nil {
-		db.Close()
+	if err := migrate(sqlDB); err != nil {
+		sqlDB.Close()
 		return nil, fmt.Errorf("migrate: %w", err)
 	}
 
-	log.Printf("[store] database ready at %s", dbPath)
-	return &Store{db: db}, nil
+	log.Printf("[db] database ready at %s", dbPath)
+	return &Store{db: sqlDB}, nil
 }
 
 func (s *Store) Close() error {
