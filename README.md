@@ -40,11 +40,25 @@ docker run -d \
 ## 🔥 Key Features
 
 - **🌐 Origin-Independent Storage**: Files are pinned to IPFS. Once propagated to peers, content stays online even if your origin node goes offline.
+- **🛡️ Legal & Host Protection**: P2P multihash routing shields node operators—you participate in the decentralized IPFS swarm rather than acting as a direct HTTP web host responsible for serving content under a centralized domain origin.
+- **🏠 Zero Domain, HTTPS, or Port Exposure Required**: Runs seamlessly behind NATs, firewalls, home servers, or local environments using IPFS `libp2p` hole-punching. No domain name, public IP, or SSL certificate setup needed!
 - **🔒 Zero-Friction & Accountless**: No API keys, passwords, or authentication overhead needed for uploads. Perfect for local dev, public APIs, or AI agent integration.
+- **📁 Full Folder & DApp Uploads**: Upload complete static websites, React/Vite build directories (`dist/`), or asset folders with intact relative paths (unlike single-file media servers).
 - **🛡️ Tamper-Proof Cryptographic Verification**: Content-addressed by unique IPFS CIDs (`ipfs://QmX...`). Downloads can be cryptographically verified against the hash.
-- **📁 Full Folder & DApp Uploads**: Upload complete static websites, React/Vite build directories (`dist/`), or asset folders with intact relative paths.
 - **🧹 Automated Smart Janitor**: Intelligent disk space management. Keeps uploads pinned for 7 days minimum and automatically evicts oldest files at 75% capacity to prevent disk overflow.
 - **🤖 Built for Autonomous AI Agents**: Native endpoint design allows LLMs (Claude, Copilot, Cursor, Custom Agents) to host generated media, code snippets, or sites instantly.
+
+---
+
+## ⚡ Why Originless vs. Nostr Blossom & Centralized Media Servers
+
+| Feature | Nostr Blossom / Centralized HTTP Servers | 🌐 **Originless** |
+| :--- | :--- | :--- |
+| **Domain & Network Setup** | ❌ **Requires** public domain, SSL certificates (HTTPS), and open public web ports. | ✅ **Zero Domain / NAT Ready**. Runs behind home routers, firewalls, or local Docker containers via `libp2p`. |
+| **Hosting Liability & Risk** | ❌ Server acts as direct HTTP web host (`https://server.com/<hash>`), making operator directly liable. | ✅ **Decentralized Swarm Buffer**. Content is content-addressed (`ipfs://CID`) and distributed over global P2P nodes. |
+| **Link Resilience** | ❌ Single point of failure. If server operator shuts down, all file links break instantly. | ✅ **Origin-Independent**. Content propagates across global IPFS swarm and stays alive even if your node shuts down. |
+| **Multi-File & DApp Support** | ❌ Single flat files/blobs only (photos/videos). | ✅ **Full Directory & DApp Hosting**. Upload entire Vite/React `dist/` folders or static apps. |
+| **Trustless Client Verification**| ❌ Relies on server trust. | ✅ **Content-Addressed Cryptography**. Verifiable via `@helia/verified-fetch` down to raw data blocks. |
 
 ---
 
