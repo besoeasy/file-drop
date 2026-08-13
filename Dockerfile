@@ -35,8 +35,6 @@ CMD ["sh", "-c", "\
   if [ ! -f \"$IPFS_PATH/config\" ]; then ipfs init --profile=lowpower; fi && \
   ipfs config Datastore.StorageMax ${STORAGE_MAX} && \
   ipfs config --json Routing.Type '\"dhtclient\"' && \
-  ipfs config --json Swarm.RelayService.Enabled false && \
-  ipfs config --json Swarm.RelayClient.Enabled true && \
   attempts=0; \
   until nc -z 127.0.0.1 5001 >/dev/null 2>&1; do \
     attempts=$((attempts+1)); \
