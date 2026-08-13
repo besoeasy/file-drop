@@ -36,5 +36,7 @@ CMD ["sh", "-c", "\
   ipfs config Datastore.StorageMax ${STORAGE_MAX} && \
   ipfs config --json Routing.Type '\"dhtclient\"'; \
   ipfs daemon --enable-gc --routing=dhtclient & \
+  IPFS_PID=$! && \
+  export IPFS_PID && \
   sleep 10 && \
   exec /app/originless"]
