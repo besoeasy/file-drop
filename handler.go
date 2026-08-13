@@ -14,13 +14,15 @@ import (
 type Handler struct {
 	ipfs      *Client
 	janitor   *Manager
+	metrics   *Metrics
 	semaphore chan struct{}
 }
 
-func NewHandler(ipfsClient *Client, janitorManager *Manager) *Handler {
+func NewHandler(ipfsClient *Client, janitorManager *Manager, metrics *Metrics) *Handler {
 	return &Handler{
 		ipfs:      ipfsClient,
 		janitor:   janitorManager,
+		metrics:   metrics,
 		semaphore: make(chan struct{}, MaxConcurrentOps),
 	}
 }
@@ -122,6 +124,7 @@ func (h *Handler) Upload(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("File uploaded successfully: name=%s size_bytes=%d mime_type=%s cid=%s upload_duration_ms=%d",
 		saved.OriginalName, saved.Size, mimeType, cid, time.Since(start).Milliseconds())
+	h.metrics.IncUpload(saved.Size)
 
 	pinned := true
 	if err := h.janitor.PinOnUpload(cid, saved.OriginalName, saved.Size); err != nil {
@@ -180,6 +183,7 @@ func (h *Handler) UploadFolder(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("Folder uploaded successfully: files=%d size_bytes=%d cid=%s upload_duration_ms=%d",
 		saved.Count, saved.Total, cid, time.Since(start).Milliseconds())
+	h.metrics.IncUpload(saved.Total)
 
 	pinned := true
 	if err := h.janitor.PinOnUpload(cid, "folder", saved.Total); err != nil {
@@ -299,6 +303,7 @@ func (h *Handler) Paste(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("Paste pinned: title=%s size_bytes=%d cid=%s upload_duration_ms=%d",
 		title, len(content), cid, time.Since(start).Milliseconds())
+	h.metrics.IncPaste()
 
 	pinned := true
 	if err := h.janitor.PinOnUpload(cid, title, int64(len(content))); err != nil {

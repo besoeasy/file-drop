@@ -21,9 +21,10 @@ const (
 )
 
 var (
-	StorageMax    string
-	FileLimit     int64
-	PinExpiryDays = 30
+	StorageMax      string
+	StorageMaxBytes int64
+	FileLimit       int64
+	PinExpiryDays   = 30
 )
 
 var sizePattern = regexp.MustCompile(`(?i)^(\d+(?:\.\d+)?)\s*(B|KB|MB|GB|TB)$`)
@@ -37,6 +38,7 @@ func init() {
 		panic(fmt.Sprintf("invalid STORAGE_MAX: %v", err))
 	}
 
+	StorageMaxBytes = storageMaxBytes
 	FileLimit = storageMaxBytes / 100
 }
 
