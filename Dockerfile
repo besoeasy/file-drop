@@ -24,7 +24,7 @@ RUN mkdir -p /tmp/originless /data && chown -R originless:originless /app /tmp/o
 
 USER originless
 
-EXPOSE 3232 4001/tcp 4001/udp 5001
+EXPOSE 3232 4001/tcp 4001/udp
 
 VOLUME ["/data"]
 
@@ -34,8 +34,7 @@ CMD ["sh", "-c", "\
   export IPFS_PATH=/data && \
   if [ ! -f \"$IPFS_PATH/config\" ]; then ipfs init --profile=lowpower; fi && \
   ipfs config Datastore.StorageMax ${STORAGE_MAX} && \
-  ipfs config --json Routing.Type '\"dhtclient\"' && \
-  rm -f \"$IPFS_PATH/repo.lock\"; \
+  ipfs config --json Routing.Type '\"dhtclient\"'; \
   ipfs daemon --enable-gc --routing=dhtclient & \
   sleep 10 && \
   exec /app/originless"]
