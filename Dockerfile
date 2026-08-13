@@ -30,6 +30,8 @@ VOLUME ["/data"]
 
 STOPSIGNAL SIGTERM
 
+HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 CMD wget -qO- http://127.0.0.1:3232/health || exit 1
+
 CMD ["sh", "-c", "\
   export IPFS_PATH=/data && \
   if [ ! -f \"$IPFS_PATH/config\" ]; then ipfs init --profile=lowpower; fi && \
