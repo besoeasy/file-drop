@@ -55,23 +55,6 @@
       border-radius: 2px !important; /* Swiss minimal rounding */
     }
 
-    /* Swiss layout styling */
-    .swiss-grid {
-      display: grid;
-      border: 1px solid var(--line);
-    }
-    
-    .swiss-cell {
-      border: 1px solid var(--line);
-      padding: 1.5rem;
-    }
-
-    .swiss-cell-header {
-      border-bottom: 1px solid var(--line);
-      padding-bottom: 1rem;
-      margin-bottom: 1.5rem;
-    }
-
     .heading-title {
       font-size: 0.7rem;
       text-transform: uppercase;
@@ -80,11 +63,6 @@
       color: #666;
     }
 
-    .accent-block {
-      background-color: var(--brand);
-      color: white;
-    }
-    
     .accent-text {
       color: var(--brand);
     }
@@ -92,15 +70,6 @@
     .dropzone {
       border: 1px dashed #ccc;
       transition: all 0.2s ease;
-    }
-
-    @media (prefers-reduced-motion: reduce) {
-      *, *::before, *::after {
-        animation-duration: 0.01ms !important;
-        animation-iteration-count: 1 !important;
-        transition-duration: 0.01ms !important;
-        scroll-behavior: auto !important;
-      }
     }
 
     .dropzone-active {
@@ -119,300 +88,535 @@
       box-shadow: 0 0 0 1px var(--brand);
     }
 
+    /* Page transition */
+    .page-enter-active, .page-leave-active {
+      transition: opacity 0.25s ease, transform 0.25s ease;
+    }
+    .page-enter-from, .page-leave-to {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+
     ::-webkit-scrollbar {
       width: 8px;
       height: 8px;
     }
     ::-webkit-scrollbar-track {
-      background: #ffffff; 
+      background: #ffffff;
       border-left: 1px solid var(--line);
     }
     ::-webkit-scrollbar-thumb {
-      background: #d4d4d8; 
+      background: #d4d4d8;
     }
     ::-webkit-scrollbar-thumb:hover {
-      background: #a1a1aa; 
+      background: #a1a1aa;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+      }
     }
   </style>
 </head>
 <body class="min-h-screen">
 
-<div id="app" class="max-w-7xl mx-auto p-4 sm:p-8 md:p-12 outline-none flex flex-col gap-8" tabindex="0" @paste="handlePaste">
+<div id="app" class="min-h-screen flex flex-col" @paste="handlePaste">
 
-  <!-- HEADER / MASTHEAD -->
-  <header class="swiss-grid grid-cols-1 md:grid-cols-4 lg:grid-cols-5 border-l-0 border-r-0 border-t-0 pb-8 gap-8 items-end">
-    <div class="col-span-1 md:col-span-2 lg:col-span-3">
-      <h1 class="text-5xl font-bold tracking-tight transition-transform duration-300 hover:-translate-y-1">Originless<span class="accent-text inline-block transition-transform duration-300 hover:translate-x-1 hover:-translate-y-1">.</span></h1>
-    </div>
-    
-    <div class="col-span-1 md:col-span-2 lg:col-span-2 grid grid-cols-2 gap-4">
-      <div class="border-l border-line pl-4 transition-all duration-300 hover:-translate-y-1 hover:border-brand/50 hover:text-black">
-        <div class="heading-title mb-1">Status</div>
-        <div class="font-mono text-sm">
-          <span class="w-2 h-2 inline-block rounded-full bg-brand mr-1 relative -top-px animate-soft-bob"></span>
-          {{ status.peerscount }} Peers Online
-        </div>
+  <!-- ============ NAVBAR ============ -->
+  <nav class="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-line">
+    <div class="max-w-7xl mx-auto px-4 sm:px-8 h-16 flex items-center justify-between gap-4">
+      <a href="#/dashboard" class="flex items-center gap-2 shrink-0">
+        <span class="w-2.5 h-2.5 bg-brand inline-block"></span>
+        <span class="text-xl font-bold tracking-tight">Originless<span class="accent-text">.</span></span>
+      </a>
+
+      <div class="hidden md:flex items-center gap-1">
+        <a v-for="item in navItems" :key="item.id" :href="'#/' + item.id"
+           :class="['px-3 py-2 text-xs font-semibold uppercase tracking-wider transition-all duration-300 border-b-2',
+                    currentPage === item.id ? 'border-brand text-black' : 'border-transparent text-gray-500 hover:text-black hover:bg-gray-50']">
+          <i :class="['fas', item.icon, 'mr-1.5']"></i>{{ item.label }}
+        </a>
       </div>
-      <div class="border-l border-line pl-4 transition-all duration-300 hover:-translate-y-1 hover:border-brand/50 hover:text-black">
-        <div class="heading-title mb-1">Capacity</div>
-        <div class="font-mono text-sm">{{ status.fileLimit }} Max</div>
+
+      <div class="flex items-center gap-4 shrink-0">
+        <div class="hidden sm:flex items-center gap-2 font-mono text-xs text-gray-600">
+          <span class="w-2 h-2 rounded-full bg-brand animate-soft-bob"></span>
+          {{ status.peerscount }} peers
+        </div>
+        <a href="#/upload" class="bg-brand text-white text-xs font-semibold uppercase tracking-wider px-4 py-2 hover:bg-red-600 hover:-translate-y-px transition-all duration-300 shadow-sm hover:shadow-md">
+          <i class="fas fa-cloud-arrow-up mr-1.5"></i>Upload
+        </a>
       </div>
     </div>
-  </header>
 
-  <!-- MAIN BODY GRID -->
-  <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
-    
-    <!-- LEFT CONTENT (UPLOAD FORMS) -->
-    <main class="lg:col-span-8 flex flex-col gap-8">
-      
-      <section class="border border-line relative transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-brand/5">
-        <div class="flex border-b border-line bg-gray-50/50">
-          <button @click="setMode('file')" :class="['flex-1 p-4 text-sm font-semibold uppercase tracking-wider transition-all duration-300', uploadMode === 'file' ? 'bg-white border-b-2 border-b-brand text-black' : 'text-gray-500 hover:bg-white hover:text-black hover:-translate-y-px']">
-            File
-          </button>
-          <div class="w-px bg-line"></div>
-          <button @click="setMode('folder')" :class="['flex-1 p-4 text-sm font-semibold uppercase tracking-wider transition-all duration-300', uploadMode === 'folder' ? 'bg-white border-b-2 border-b-brand text-black' : 'text-gray-500 hover:bg-white hover:text-black hover:-translate-y-px']">
-            Folder
-          </button>
+    <!-- Mobile nav -->
+    <div class="md:hidden border-t border-line flex overflow-x-auto">
+      <a v-for="item in navItems" :key="item.id" :href="'#/' + item.id"
+         :class="['flex-1 min-w-[80px] text-center py-3 text-[10px] font-semibold uppercase tracking-wider border-b-2 transition-all duration-300',
+                  currentPage === item.id ? 'border-brand text-black' : 'border-transparent text-gray-500']">
+        <i :class="['fas', item.icon, 'block mb-1']"></i>{{ item.label }}
+      </a>
+    </div>
+  </nav>
+
+  <!-- ============ PAGE: DASHBOARD ============ -->
+  <main v-if="currentPage === 'dashboard'" class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-8 py-8 md:py-12 animate-fade-in">
+    <div class="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">
+      <div>
+        <div class="heading-title mb-2">Private · Decentralized · Origin-Independent</div>
+        <h1 class="text-4xl md:text-5xl font-bold tracking-tight">Originless<span class="accent-text">.</span></h1>
+        <p class="text-gray-500 mt-3 max-w-xl">Durable, cryptographic file hosting powered by IPFS. Zero API keys, zero accounts, zero friction.</p>
+      </div>
+      <a href="#/upload" class="inline-flex items-center gap-2 bg-brand text-white font-semibold text-sm uppercase tracking-wider py-3 px-6 hover:bg-red-600 hover:-translate-y-1 hover:shadow-xl hover:shadow-brand/20 transition-all duration-300 self-start md:self-auto">
+        <i class="fas fa-cloud-arrow-up"></i> Upload Payload
+      </a>
+    </div>
+
+    <!-- Stat cards -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <div class="border border-line p-5 hover:-translate-y-1 hover:shadow-xl hover:shadow-brand/5 transition-all duration-300">
+        <div class="heading-title mb-3"><i class="fas fa-share-nodes mr-1"></i> Peers Online</div>
+        <div class="font-mono text-3xl font-bold">{{ status.peerscount }}</div>
+        <div class="text-[10px] text-gray-400 uppercase tracking-wider mt-2">libp2p swarm</div>
+      </div>
+      <div class="border border-line p-5 hover:-translate-y-1 hover:shadow-xl hover:shadow-brand/5 transition-all duration-300">
+        <div class="heading-title mb-3"><i class="fas fa-database mr-1"></i> Repository</div>
+        <div class="font-mono text-3xl font-bold">{{ status.repoSize }}</div>
+        <div class="text-[10px] text-gray-400 uppercase tracking-wider mt-2">used / max</div>
+      </div>
+      <div class="border border-line p-5 hover:-translate-y-1 hover:shadow-xl hover:shadow-brand/5 transition-all duration-300">
+        <div class="heading-title mb-3"><i class="fas fa-thumbtack mr-1"></i> Pinned Files</div>
+        <div class="font-mono text-3xl font-bold">{{ pinStats.count }}</div>
+        <div class="text-[10px] text-gray-400 uppercase tracking-wider mt-2">{{ pinStats.sizeStr }}</div>
+      </div>
+      <div class="border border-line p-5 hover:-translate-y-1 hover:shadow-xl hover:shadow-brand/5 transition-all duration-300">
+        <div class="heading-title mb-3"><i class="fas fa-arrow-right-arrow-left mr-1"></i> Bandwidth</div>
+        <div class="font-mono text-3xl font-bold">{{ status.bandwidthIn }}</div>
+        <div class="text-[10px] text-gray-400 uppercase tracking-wider mt-2">in / out</div>
+      </div>
+    </div>
+
+    <!-- Storage bar -->
+    <div class="border border-line p-6 mb-8 hover:-translate-y-1 hover:shadow-xl hover:shadow-brand/5 transition-all duration-300">
+      <div class="flex justify-between items-baseline mb-4">
+        <div class="heading-title">Storage Utilization</div>
+        <div class="font-mono text-xs text-gray-500">{{ status.repoSize }} of {{ status.fileLimit }} file limit</div>
+      </div>
+      <div class="h-2 w-full bg-gray-100">
+        <div class="h-full bg-brand transition-all duration-700" :style="{ width: storagePercent + '%' }"></div>
+      </div>
+      <div class="flex justify-between mt-2 text-[10px] text-gray-400 uppercase tracking-wider">
+        <span>{{ storagePercent }}% used</span>
+        <span>threshold {{ pinStats.threshold }}%</span>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      <!-- Recent uploads -->
+      <section class="lg:col-span-7 border border-line hover:-translate-y-1 hover:shadow-xl hover:shadow-brand/5 transition-all duration-300">
+        <div class="p-5 border-b border-line bg-gray-50 flex justify-between items-center">
+          <h2 class="heading-title text-black m-0">Recent Uploads</h2>
+          <a href="#/files" class="text-[10px] uppercase font-bold tracking-wider text-gray-500 hover:text-black transition-all duration-300">View all <i class="fas fa-arrow-right ml-1"></i></a>
         </div>
-
-        <div class="p-6 md:p-10">
-          <label v-if="!file" :for="uploadMode === 'folder' ? 'folderInput' : 'fileInput'" class="dropzone flex flex-col items-center justify-center p-12 text-center cursor-pointer min-h-[300px] relative group hover:-translate-y-1 hover:shadow-xl hover:shadow-brand/10" @dragover.prevent="isDragOver = true" @dragleave.prevent="isDragOver = false" @drop.prevent="handleDrop($event)" :class="isDragOver ? 'dropzone-active scale-[1.01] shadow-xl shadow-brand/10' : ''">
-            <span class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 group-hover:bg-red-50 text-gray-400 group-hover:text-brand transition-all duration-300 mb-4 group-hover:-translate-y-1 group-hover:scale-110">
-              <i :class="['fas text-2xl group-hover:animate-soft-bob', uploadMode === 'folder' ? 'fa-folder-open' : 'fa-upload']"></i>
-            </span>
-            <h2 class="text-xl font-bold mb-2 max-w-full break-words px-4 transition-transform duration-300 group-hover:-translate-y-1">{{ fileLabel }}</h2>
-            <p class="font-sans text-sm text-gray-500 px-4 mb-6 transition-colors duration-300 group-hover:text-gray-700">
-              {{ uploadMode === 'folder' ? 'Select a folder to upload' : 'Drop a file here or click to browse.' }}
-              <br/>Paste is universally supported.
-            </p>
-            <span class="inline-block border border-line px-6 py-2 text-sm font-semibold uppercase tracking-wider text-black group-hover:border-black transition-all duration-300 group-hover:-translate-y-1 group-hover:shadow-lg">
-              {{ uploadMode === 'folder' ? 'Browse Folders' : 'Browse Files' }}
-            </span>
-            <input v-if="uploadMode === 'folder'" type="file" id="folderInput" class="hidden" webkitdirectory directory @change="handleFolderSelect" />
-            <input v-else type="file" id="fileInput" class="hidden" @change="updateFileLabel" />
-          </label><div v-else class="border border-line p-8 flex flex-col items-start transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:shadow-brand/5">
-            <div class="heading-title mb-4 accent-text"><i class="fas fa-file-check mr-2"></i> Payload acquired</div>
-            <h2 class="text-2xl font-bold mb-8 break-all max-w-full text-black">{{ fileLabel }}</h2>
-
-            <div class="flex flex-col sm:flex-row w-full gap-4 items-center border-t border-line pt-6 mt-2">
-              <button type="button" @click="uploadFile" :disabled="uploading" class="bg-brand text-white font-semibold text-sm uppercase tracking-wider py-4 px-10 transition-all duration-300 hover:-translate-y-1 hover:bg-red-600 hover:shadow-xl hover:shadow-brand/20 disabled:opacity-50 flex justify-center items-center gap-3 w-full sm:w-auto">
-                <i v-if="uploading" class="fas fa-circle-notch fa-spin"></i>
-                <i v-else class="fas fa-upload"></i>
-                {{ uploading ? 'Transmitting...' : (uploadMode === 'folder' ? 'Upload Folder' : 'Upload Payload') }}
-              </button>
-
-              <button type="button" @click="file = null; fileLabel = 'Select payload'" class="text-xs font-semibold uppercase tracking-widest text-gray-500 hover:text-black border border-transparent hover:border-line px-4 py-3 transition-all duration-300 hover:-translate-y-1 w-full sm:w-auto">
-                Dispose Selection
-              </button>
+        <div v-if="history.length === 0" class="p-8 text-center text-gray-400 text-xs">No uploads yet</div>
+        <div v-else>
+          <div v-for="item in recentUploads" :key="item.cid" class="border-b border-line border-dashed px-5 py-4 flex justify-between items-center hover:bg-gray-50 transition-all duration-200">
+            <div class="min-w-0 flex-1">
+              <div class="font-mono text-xs truncate" :title="item.cid">{{ item.cid.slice(0, 14) }}...</div>
+              <div class="text-xs text-gray-500 mt-0.5 truncate">{{ item.filename }}</div>
             </div>
-          </div>
-        </div>
-
-        <div v-if="!file" class="p-6 border-t border-line flex items-center bg-gray-50 bg-opacity-30">
-          <span class="text-xs text-gray-500 max-w-[250px] leading-tight"><i class="fas fa-info-circle mr-1"></i> {{ uploadMode === 'folder' ? 'Folders are uploaded as a directory on IPFS.' : 'Individual files stream directly to the node.' }}</span>
-        </div>
-
-        <!-- PROGRESS BAR -->
-        <div v-if="uploading" class="h-1 w-full bg-gray-100 absolute bottom-0 left-0">
-          <div class="h-full bg-brand transition-all duration-300" :style="{ width: uploadProgress + '%' }"></div>
-        </div>
-      </section>
-
-      <!-- RESULTS SECTION -->
-      <section v-if="result" class="border border-line animate-fade-in transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-brand/5">
-        <div v-if="result.success" class="p-0">
-          
-          <div class="p-6 md:p-8 border-b border-line flex justify-between items-start">
-            <div>
-              <div class="heading-title mb-1 accent-text">Receipt</div>
-              <h3 class="text-2xl font-bold">{{ result.fileName }}</h3>
-              <p class="text-gray-500 text-sm mt-1">Successfully anchored to IPFS.</p>
+            <div class="text-right ml-4 shrink-0">
+              <span v-if="item.unpinned" class="text-[10px] text-gray-400 uppercase">unpinned</span>
+              <span v-else class="text-[10px] text-green-600 uppercase">pinned</span>
+              <div class="text-[10px] text-gray-400 mt-1">{{ formatBytes(item.size) }} · {{ formatDate(item.created_at) }}</div>
             </div>
-            <div class="text-right">
-              <div class="font-mono text-xl font-bold">{{ result.size }}</div>
-              <div class="heading-title mt-1">{{ result.mimeType || result.fileType }}</div>
-            </div>
-          </div>
-
-          <div class="flex border-b border-line bg-gray-50/50">
-            <button @click="activeTab = 'urls'" :class="['px-6 py-3 text-xs font-semibold uppercase tracking-wider border-r border-line transition-all duration-300', activeTab === 'urls' ? 'bg-white border-b-2 border-b-brand text-black' : 'text-gray-500 hover:bg-white hover:text-black hover:-translate-y-px']">Routing</button>
-            <button @click="activeTab = 'details'" :class="['px-6 py-3 text-xs font-semibold uppercase tracking-wider border-r border-line transition-all duration-300', activeTab === 'details' ? 'bg-white border-b-2 border-b-brand text-black' : 'text-gray-500 hover:bg-white hover:text-black hover:-translate-y-px']">Metadata</button>
-            <button v-if="result.fileType" @click="activeTab = 'embed'" :class="['px-6 py-3 text-xs font-semibold uppercase tracking-wider border-r border-line transition-all duration-300', activeTab === 'embed' ? 'bg-white border-b-2 border-b-brand text-black' : 'text-gray-500 hover:bg-white hover:text-black hover:-translate-y-px']">Embed Codes</button>
-          </div>
-
-          <div class="p-6 md:p-8 bg-white min-h-[200px]">
-            
-            <!-- URLS TAB -->
-            <div v-if="activeTab === 'urls'" class="space-y-6">
-              <div>
-                <label class="heading-title block mb-2">Public Gateway URL</label>
-                <div class="flex">
-                  <input type="text" :value="getGatewayUrlForResult(result)" readonly class="flex-1 border border-line p-3 font-mono text-sm bg-gray-50" @click="$event.target.select()" />
-                  <a :href="getGatewayUrlForResult(result)" target="_blank" class="border border-line border-l-0 px-4 flex items-center justify-center hover:bg-gray-50 hover:text-black text-gray-600 transition-all duration-300 hover:-translate-y-px">
-                    <i class="fas fa-external-link-alt"></i>
-                  </a>
-                </div>
-              </div>
-              <div>
-                <label class="heading-title block mb-2">IPFS Protocol URI</label>
-                <input type="text" :value="getIpfsUrlWithFilename(result.cid, result.fileName)" readonly class="w-full border border-line p-3 font-mono text-sm bg-gray-50" @click="$event.target.select()" />
-              </div>
-            </div>
-
-            <!-- DETAILS TAB -->
-            <div v-if="activeTab === 'details'" class="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <div>
-                <div class="heading-title mb-1">Content ID (CID)</div>
-                <div class="font-mono text-xs break-all bg-gray-50 p-3 border border-line transition-all duration-300 hover:-translate-y-1 hover:border-brand/40 hover:shadow-lg hover:shadow-brand/5">{{ result.cid }}</div>
-              </div>
-              <div v-if="result.files">
-                <div class="heading-title mb-1">Object Count</div>
-                <div class="font-mono text-lg transition-transform duration-300 hover:-translate-y-1">{{ result.files }} <span class="text-xs text-gray-500">items</span></div>
-              </div>
-            </div>
-
-            <!-- EMBED TAB -->
-            <div v-if="activeTab === 'embed' && result.fileType" class="space-y-6">
-              <div>
-                <label class="heading-title block mb-2">HTML Snippet</label>
-                <textarea :value="getHtmlEmbed(result.cid, result.fileType, result.fileName)" readonly rows="3" class="w-full border border-line p-3 font-mono text-sm bg-gray-50 resize-none" @click="$event.target.select()"></textarea>
-              </div>
-            </div>
-
-          </div>
-        </div>
-        
-        <div v-else class="p-6 md:p-8 bg-red-50 border-l-4 border-brand">
-          <div class="heading-title accent-text mb-2">Exception Thrown</div>
-          <h3 class="text-lg font-semibold text-red-900">{{ result.message }}</h3>
-        </div>
-      </section>
-
-      <!-- UPLOAD HISTORY -->
-      <section class="border border-line transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-brand/5">
-        <div class="p-5 border-b border-line bg-gray-50 flex justify-between items-center cursor-pointer hover:bg-gray-100 transition-all duration-300" @click="showHistory = !showHistory">
-          <h2 class="heading-title text-black m-0">Upload History</h2>
-          <i class="fas text-gray-400 text-xs transition-transform duration-300" :class="[showHistory ? 'fa-minus rotate-180' : 'fa-plus', showHistory ? 'text-brand' : '']"></i>
-        </div>
-        
-        <div v-show="showHistory" class="max-h-80 overflow-y-auto">
-          <div v-if="history.length === 0" class="p-6 text-center text-gray-400 text-xs">
-            No uploads yet
-          </div>
-          <div v-for="item in history" :key="item.cid" class="border-b border-line border-dashed p-4 hover:bg-gray-50 transition-all duration-200">
-            <div class="flex justify-between items-start">
-              <div class="min-w-0 flex-1">
-                <div class="font-mono text-xs truncate" :title="item.cid">{{ item.cid.slice(0, 12) }}...</div>
-                <div class="text-xs text-gray-500 mt-1">{{ item.filename }}</div>
-              </div>
-              <div class="text-right ml-4">
-                <span v-if="item.unpinned" class="text-[10px] text-gray-400 uppercase">unpinned</span>
-                <span v-else class="text-[10px] text-green-600 uppercase">pinned</span>
-                <div class="text-[10px] text-gray-400 mt-1">{{ formatBytes(item.size) }}</div>
-              </div>
-            </div>
-            <div class="text-[10px] text-gray-400 mt-2">{{ formatDate(item.created_at) }}</div>
           </div>
         </div>
       </section>
 
-    </main>
-
-    <!-- RIGHT CONTENT (SIDEBAR/TELEMETRY) -->
-    <aside class="lg:col-span-4 flex flex-col gap-8">
-      
-      <!-- NODE TELEMETRY -->
-      <section class="border border-line transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-brand/5">
+      <!-- Node info -->
+      <section class="lg:col-span-5 border border-line hover:-translate-y-1 hover:shadow-xl hover:shadow-brand/5 transition-all duration-300">
         <div class="p-5 border-b border-line bg-gray-50">
-          <h2 class="heading-title text-black">Network Telemetry</h2>
+          <h2 class="heading-title text-black m-0">Node</h2>
         </div>
         <div class="p-6 space-y-4">
-          
           <div class="flex justify-between items-baseline border-b border-line border-dashed pb-2">
             <span class="heading-title">Peer ID</span>
             <span class="font-mono text-xs">{{ status.nodeId }}</span>
           </div>
-          
           <div class="flex justify-between items-baseline border-b border-line border-dashed pb-2">
-            <span class="heading-title">Repository</span>
-            <span class="font-mono text-xs">{{ status.repoSize }}</span>
+            <span class="heading-title">Client</span>
+            <span class="font-mono text-[10px] text-gray-500">{{ status.version }}</span>
           </div>
-          
           <div class="flex justify-between items-baseline border-b border-line border-dashed pb-2">
             <span class="heading-title">Object Map</span>
             <span class="font-mono text-xs">{{ status.repoObjects }} keys</span>
           </div>
-          
           <div class="flex justify-between items-baseline border-b border-line border-dashed pb-2">
-            <span class="heading-title">Bandwidth (I/O)</span>
-            <span class="font-mono text-[10px] break-all text-right w-1/2 leading-tight">
-              {{ status.bandwidth }}
-            </span>
+            <span class="heading-title">App Version</span>
+            <span class="font-mono text-xs">{{ status.appver }}</span>
           </div>
-          
           <div class="flex justify-between items-baseline pb-2">
-            <span class="heading-title">Client Ver.</span>
-            <span class="font-mono text-[10px] text-gray-500">{{ status.version }}</span>
-          </div>
-
-          <div class="pt-4 text-xs text-right font-mono text-gray-400">
-            SYNC: {{ status.timestamp }}
+            <span class="heading-title">Sync</span>
+            <span class="font-mono text-xs text-gray-500">{{ status.timestamp }}</span>
           </div>
         </div>
       </section>
+    </div>
+  </main>
 
-      <!-- PIN STATUS -->
-      <section class="border border-line transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-brand/5">
-        <div class="p-5 border-b border-line bg-gray-50">
-          <h2 class="heading-title text-black">Pin Status</h2>
-        </div>
-        <div class="p-6 space-y-4">
-          <div class="flex justify-between items-baseline border-b border-line border-dashed pb-2">
-            <span class="heading-title">Pinned Files</span>
-            <span class="font-mono text-xs">{{ pinStats.count }}</span>
-          </div>
-          <div class="flex justify-between items-baseline border-b border-line border-dashed pb-2">
-            <span class="heading-title">Pinned Size</span>
-            <span class="font-mono text-xs">{{ pinStats.sizeStr }}</span>
-          </div>
-          <div class="flex justify-between items-baseline pb-2">
-            <span class="heading-title">Expiry</span>
-            <span class="font-mono text-[10px] text-gray-500">7 days</span>
-          </div>
-        </div>
-      </section>
+  <!-- ============ PAGE: UPLOAD ============ -->
+  <main v-else-if="currentPage === 'upload'" class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-8 py-8 md:py-12 animate-fade-in">
+    <div class="mb-8">
+      <div class="heading-title mb-2">Transmit Payload</div>
+      <h1 class="text-3xl md:text-4xl font-bold tracking-tight">Upload<span class="accent-text">.</span></h1>
+    </div>
 
-      <!-- TERMINAL API DICTIONARY -->
-      <section class="swiss-cell p-0 transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-brand/5">
-        <div class="p-5 border-b border-line flex justify-between items-center cursor-pointer hover:bg-gray-50 transition-all duration-300 hover:pl-6" @click="showCli = !showCli">
-          <h2 class="heading-title text-black m-0">Terminal API</h2>
-          <i class="fas text-gray-400 text-xs transition-transform duration-300" :class="[showCli ? 'fa-minus rotate-180' : 'fa-plus', showCli ? 'text-brand' : '']"></i>
-        </div>
-        
-        <div v-show="showCli" class="p-6 bg-gray-50 border-line">
-          <div class="space-y-6">
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      <div class="lg:col-span-8 flex flex-col gap-8">
+        <section class="border border-line relative hover:-translate-y-1 hover:shadow-2xl hover:shadow-brand/5 transition-all duration-300">
+          <div class="flex border-b border-line bg-gray-50/50">
+            <button @click="setMode('file')" :class="['flex-1 p-4 text-sm font-semibold uppercase tracking-wider transition-all duration-300', uploadMode === 'file' ? 'bg-white border-b-2 border-b-brand text-black' : 'text-gray-500 hover:bg-white hover:text-black hover:-translate-y-px']">
+              File
+            </button>
+            <div class="w-px bg-line"></div>
+            <button @click="setMode('folder')" :class="['flex-1 p-4 text-sm font-semibold uppercase tracking-wider transition-all duration-300', uploadMode === 'folder' ? 'bg-white border-b-2 border-b-brand text-black' : 'text-gray-500 hover:bg-white hover:text-black hover:-translate-y-px']">
+              Folder
+            </button>
+          </div>
+
+          <div class="p-6 md:p-10">
+            <label v-if="!file" :for="uploadMode === 'folder' ? 'folderInput' : 'fileInput'" class="dropzone flex flex-col items-center justify-center p-12 text-center cursor-pointer min-h-[300px] relative group hover:-translate-y-1 hover:shadow-xl hover:shadow-brand/10" @dragover.prevent="isDragOver = true" @dragleave.prevent="isDragOver = false" @drop.prevent="handleDrop($event)" :class="isDragOver ? 'dropzone-active scale-[1.01] shadow-xl shadow-brand/10' : ''">
+              <span class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 group-hover:bg-red-50 text-gray-400 group-hover:text-brand transition-all duration-300 mb-4 group-hover:-translate-y-1 group-hover:scale-110">
+                <i :class="['fas text-2xl group-hover:animate-soft-bob', uploadMode === 'folder' ? 'fa-folder-open' : 'fa-upload']"></i>
+              </span>
+              <h2 class="text-xl font-bold mb-2 max-w-full break-words px-4 transition-transform duration-300 group-hover:-translate-y-1">{{ fileLabel }}</h2>
+              <p class="font-sans text-sm text-gray-500 px-4 mb-6 transition-colors duration-300 group-hover:text-gray-700">
+                {{ uploadMode === 'folder' ? 'Select a folder to upload' : 'Drop a file here or click to browse.' }}
+                <br/>Paste is universally supported.
+              </p>
+              <span class="inline-block border border-line px-6 py-2 text-sm font-semibold uppercase tracking-wider text-black group-hover:border-black transition-all duration-300 group-hover:-translate-y-1 group-hover:shadow-lg">
+                {{ uploadMode === 'folder' ? 'Browse Folders' : 'Browse Files' }}
+              </span>
+              <input v-if="uploadMode === 'folder'" type="file" id="folderInput" class="hidden" webkitdirectory directory @change="handleFolderSelect" />
+              <input v-else type="file" id="fileInput" class="hidden" @change="updateFileLabel" />
+            </label><div v-else class="border border-line p-8 flex flex-col items-start transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:shadow-brand/5">
+              <div class="heading-title mb-4 accent-text"><i class="fas fa-file-check mr-2"></i> Payload acquired</div>
+              <h2 class="text-2xl font-bold mb-8 break-all max-w-full text-black">{{ fileLabel }}</h2>
+
+              <div class="flex flex-col sm:flex-row w-full gap-4 items-center border-t border-line pt-6 mt-2">
+                <button type="button" @click="uploadFile" :disabled="uploading" class="bg-brand text-white font-semibold text-sm uppercase tracking-wider py-4 px-10 transition-all duration-300 hover:-translate-y-1 hover:bg-red-600 hover:shadow-xl hover:shadow-brand/20 disabled:opacity-50 flex justify-center items-center gap-3 w-full sm:w-auto">
+                  <i v-if="uploading" class="fas fa-circle-notch fa-spin"></i>
+                  <i v-else class="fas fa-upload"></i>
+                  {{ uploading ? 'Transmitting...' : (uploadMode === 'folder' ? 'Upload Folder' : 'Upload Payload') }}
+                </button>
+
+                <button type="button" @click="file = null; fileLabel = 'Select payload'" class="text-xs font-semibold uppercase tracking-widest text-gray-500 hover:text-black border border-transparent hover:border-line px-4 py-3 transition-all duration-300 hover:-translate-y-1 w-full sm:w-auto">
+                  Dispose Selection
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div v-if="!file" class="p-6 border-t border-line flex items-center bg-gray-50 bg-opacity-30">
+            <span class="text-xs text-gray-500 max-w-[250px] leading-tight"><i class="fas fa-info-circle mr-1"></i> {{ uploadMode === 'folder' ? 'Folders are uploaded as a directory on IPFS.' : 'Individual files stream directly to the node.' }}</span>
+          </div>
+
+          <div v-if="uploading" class="h-1 w-full bg-gray-100 absolute bottom-0 left-0">
+            <div class="h-full bg-brand transition-all duration-300" :style="{ width: uploadProgress + '%' }"></div>
+          </div>
+        </section>
+
+        <!-- RESULTS -->
+        <section v-if="result" class="border border-line animate-fade-in hover:-translate-y-1 hover:shadow-2xl hover:shadow-brand/5 transition-all duration-300">
+          <div v-if="result.success" class="p-0">
+            <div class="p-6 md:p-8 border-b border-line flex justify-between items-start">
+              <div>
+                <div class="heading-title mb-1 accent-text">Receipt</div>
+                <h3 class="text-2xl font-bold">{{ result.fileName }}</h3>
+                <p class="text-gray-500 text-sm mt-1">Successfully anchored to IPFS.</p>
+              </div>
+              <div class="text-right">
+                <div class="font-mono text-xl font-bold">{{ result.size }}</div>
+                <div class="heading-title mt-1">{{ result.mimeType || result.fileType }}</div>
+              </div>
+            </div>
+
+            <div class="flex border-b border-line bg-gray-50/50">
+              <button @click="activeTab = 'urls'" :class="['px-6 py-3 text-xs font-semibold uppercase tracking-wider border-r border-line transition-all duration-300', activeTab === 'urls' ? 'bg-white border-b-2 border-b-brand text-black' : 'text-gray-500 hover:bg-white hover:text-black hover:-translate-y-px']">Routing</button>
+              <button @click="activeTab = 'details'" :class="['px-6 py-3 text-xs font-semibold uppercase tracking-wider border-r border-line transition-all duration-300', activeTab === 'details' ? 'bg-white border-b-2 border-b-brand text-black' : 'text-gray-500 hover:bg-white hover:text-black hover:-translate-y-px']">Metadata</button>
+              <button v-if="result.fileType" @click="activeTab = 'embed'" :class="['px-6 py-3 text-xs font-semibold uppercase tracking-wider border-r border-line transition-all duration-300', activeTab === 'embed' ? 'bg-white border-b-2 border-b-brand text-black' : 'text-gray-500 hover:bg-white hover:text-black hover:-translate-y-px']">Embed Codes</button>
+            </div>
+
+            <div class="p-6 md:p-8 bg-white min-h-[200px]">
+              <div v-if="activeTab === 'urls'" class="space-y-6">
+                <div>
+                  <label class="heading-title block mb-2">Public Gateway URL</label>
+                  <div class="flex">
+                    <input type="text" :value="getGatewayUrlForResult(result)" readonly class="flex-1 border border-line p-3 font-mono text-sm bg-gray-50" @click="$event.target.select()" />
+                    <a :href="getGatewayUrlForResult(result)" target="_blank" class="border border-line border-l-0 px-4 flex items-center justify-center hover:bg-gray-50 hover:text-black text-gray-600 transition-all duration-300 hover:-translate-y-px">
+                      <i class="fas fa-external-link-alt"></i>
+                    </a>
+                  </div>
+                </div>
+                <div>
+                  <label class="heading-title block mb-2">IPFS Protocol URI</label>
+                  <input type="text" :value="getIpfsUrlWithFilename(result.cid, result.fileName)" readonly class="w-full border border-line p-3 font-mono text-sm bg-gray-50" @click="$event.target.select()" />
+                </div>
+              </div>
+
+              <div v-if="activeTab === 'details'" class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div>
+                  <div class="heading-title mb-1">Content ID (CID)</div>
+                  <div class="font-mono text-xs break-all bg-gray-50 p-3 border border-line hover:-translate-y-1 hover:border-brand/40 hover:shadow-lg hover:shadow-brand/5 transition-all duration-300">{{ result.cid }}</div>
+                </div>
+                <div v-if="result.files">
+                  <div class="heading-title mb-1">Object Count</div>
+                  <div class="font-mono text-lg hover:-translate-y-1 transition-transform duration-300">{{ result.files }} <span class="text-xs text-gray-500">items</span></div>
+                </div>
+              </div>
+
+              <div v-if="activeTab === 'embed' && result.fileType" class="space-y-6">
+                <div>
+                  <label class="heading-title block mb-2">HTML Snippet</label>
+                  <textarea :value="getHtmlEmbed(result.cid, result.fileType, result.fileName)" readonly rows="3" class="w-full border border-line p-3 font-mono text-sm bg-gray-50 resize-none" @click="$event.target.select()"></textarea>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div v-else class="p-6 md:p-8 bg-red-50 border-l-4 border-brand">
+            <div class="heading-title accent-text mb-2">Exception Thrown</div>
+            <h3 class="text-lg font-semibold text-red-900">{{ result.message }}</h3>
+          </div>
+        </section>
+      </div>
+
+      <!-- Upload page sidebar -->
+      <aside class="lg:col-span-4 flex flex-col gap-8">
+        <section class="border border-line hover:-translate-y-1 hover:shadow-xl hover:shadow-brand/5 transition-all duration-300">
+          <div class="p-5 border-b border-line bg-gray-50">
+            <h2 class="heading-title text-black m-0">Pin Status</h2>
+          </div>
+          <div class="p-6 space-y-4">
+            <div class="flex justify-between items-baseline border-b border-line border-dashed pb-2">
+              <span class="heading-title">Pinned Files</span>
+              <span class="font-mono text-xs">{{ pinStats.count }}</span>
+            </div>
+            <div class="flex justify-between items-baseline border-b border-line border-dashed pb-2">
+              <span class="heading-title">Pinned Size</span>
+              <span class="font-mono text-xs">{{ pinStats.sizeStr }}</span>
+            </div>
+            <div class="flex justify-between items-baseline border-b border-line border-dashed pb-2">
+              <span class="heading-title">Storage Limit</span>
+              <span class="font-mono text-xs">{{ status.fileLimit }}</span>
+            </div>
+            <div class="flex justify-between items-baseline pb-2">
+              <span class="heading-title">Eviction Threshold</span>
+              <span class="font-mono text-xs">{{ pinStats.threshold }}%</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="border border-line hover:-translate-y-1 hover:shadow-xl hover:shadow-brand/5 transition-all duration-300">
+          <div class="p-5 border-b border-line bg-gray-50">
+            <h2 class="heading-title text-black m-0">Quick Reference</h2>
+          </div>
+          <div class="p-6 space-y-4">
             <div>
               <div class="flex justify-between items-baseline mb-2">
                 <span class="heading-title">File Endpoint</span>
-                <button @click="copyCurlCommand" class="text-[10px] uppercase font-bold text-gray-500 hover:text-black transition-all duration-300 hover:-translate-y-px"><i class="fas fa-copy mr-1"></i> Copy</button>
+                <button @click="copyCurl()" class="text-[10px] uppercase font-bold text-gray-500 hover:text-black transition-all duration-300 hover:-translate-y-px"><i class="fas fa-copy mr-1"></i> {{ copied === 'curl' ? 'Copied' : 'Copy' }}</button>
               </div>
-              <code class="block w-full bg-white border border-line p-3 font-mono text-xs text-gray-800 break-all selection:bg-gray-200">curl -X POST -F "file=@demo.pdf" {{ currentUrl }}/upload</code>
+              <code class="block w-full bg-gray-50 border border-line p-3 font-mono text-xs text-gray-800 break-all">curl -X POST -F "file=@demo.pdf" {{ currentUrl }}/upload</code>
             </div>
+            <a href="#/api" class="block text-center border border-line py-3 text-xs font-semibold uppercase tracking-wider text-gray-600 hover:border-black hover:text-black hover:-translate-y-px transition-all duration-300">Full API Reference</a>
+          </div>
+        </section>
+      </aside>
+    </div>
+  </main>
+
+  <!-- ============ PAGE: FILES ============ -->
+  <main v-else-if="currentPage === 'files'" class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-8 py-8 md:py-12 animate-fade-in">
+    <div class="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
+      <div>
+        <div class="heading-title mb-2">Pinned Content</div>
+        <h1 class="text-3xl md:text-4xl font-bold tracking-tight">Files<span class="accent-text">.</span></h1>
+      </div>
+      <div class="flex gap-4">
+        <div class="border border-line px-5 py-3 text-center">
+          <div class="heading-title mb-1">Pinned</div>
+          <div class="font-mono text-lg font-bold">{{ pinStats.count }}</div>
+        </div>
+        <div class="border border-line px-5 py-3 text-center">
+          <div class="heading-title mb-1">Size</div>
+          <div class="font-mono text-lg font-bold">{{ pinStats.sizeStr }}</div>
+        </div>
+      </div>
+    </div>
+
+    <section class="border border-line hover:-translate-y-1 hover:shadow-xl hover:shadow-brand/5 transition-all duration-300">
+      <div class="p-5 border-b border-line bg-gray-50 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <h2 class="heading-title text-black m-0">Upload History</h2>
+        <div class="relative w-full sm:w-72">
+          <i class="fas fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
+          <input v-model="searchQuery" type="text" placeholder="Search by filename or CID..." class="w-full border border-line pl-8 pr-3 py-2 text-xs font-mono bg-white focus:border-brand transition-colors duration-300" />
+        </div>
+      </div>
+
+      <div v-if="filteredHistory.length === 0" class="p-10 text-center text-gray-400 text-xs">
+        {{ history.length === 0 ? 'No uploads yet' : 'No matches for your search' }}
+      </div>
+      <div v-else class="overflow-x-auto">
+        <table class="w-full text-left text-xs">
+          <thead>
+            <tr class="text-[10px] uppercase tracking-wider text-gray-400 border-b border-line bg-gray-50/50">
+              <th class="px-5 py-3 font-medium">File</th>
+              <th class="px-5 py-3 font-medium">CID</th>
+              <th class="px-5 py-3 font-medium text-right">Size</th>
+              <th class="px-5 py-3 font-medium text-right">Status</th>
+              <th class="px-5 py-3 font-medium text-right">Date</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="item in filteredHistory" :key="item.cid" class="border-b border-line border-dashed hover:bg-gray-50 transition-all duration-200">
+              <td class="px-5 py-3 min-w-0 max-w-[220px]">
+                <div class="truncate font-medium">{{ item.filename }}</div>
+              </td>
+              <td class="px-5 py-3">
+                <div class="font-mono text-[10px] text-gray-500 truncate max-w-[180px]" :title="item.cid">{{ item.cid }}</div>
+              </td>
+              <td class="px-5 py-3 text-right text-gray-500 whitespace-nowrap">{{ formatBytes(item.size) }}</td>
+              <td class="px-5 py-3 text-right whitespace-nowrap">
+                <span v-if="item.unpinned" class="text-[10px] text-gray-400 uppercase border border-line px-2 py-0.5">unpinned</span>
+                <span v-else class="text-[10px] text-green-600 uppercase border border-green-200 bg-green-50 px-2 py-0.5">pinned</span>
+              </td>
+              <td class="px-5 py-3 text-right text-gray-400 whitespace-nowrap">{{ formatDate(item.created_at) }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <!-- ============ PAGE: NETWORK ============ -->
+  <main v-else-if="currentPage === 'network'" class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-8 py-8 md:py-12 animate-fade-in">
+    <div class="mb-8">
+      <div class="heading-title mb-2">Live Telemetry</div>
+      <h1 class="text-3xl md:text-4xl font-bold tracking-tight">Network<span class="accent-text">.</span></h1>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      <section class="lg:col-span-7 border border-line hover:-translate-y-1 hover:shadow-xl hover:shadow-brand/5 transition-all duration-300">
+        <div class="p-5 border-b border-line bg-gray-50">
+          <h2 class="heading-title text-black m-0">Node Telemetry</h2>
+        </div>
+        <div class="p-6 space-y-4">
+          <div class="flex justify-between items-baseline border-b border-line border-dashed pb-3">
+            <span class="heading-title">Peer ID</span>
+            <span class="font-mono text-xs">{{ status.nodeId }}</span>
+          </div>
+          <div class="flex justify-between items-baseline border-b border-line border-dashed pb-3">
+            <span class="heading-title">Client Version</span>
+            <span class="font-mono text-[10px] text-gray-500">{{ status.version }}</span>
+          </div>
+          <div class="flex justify-between items-baseline border-b border-line border-dashed pb-3">
+            <span class="heading-title">Repository</span>
+            <span class="font-mono text-xs">{{ status.repoSize }}</span>
+          </div>
+          <div class="flex justify-between items-baseline border-b border-line border-dashed pb-3">
+            <span class="heading-title">Object Map</span>
+            <span class="font-mono text-xs">{{ status.repoObjects }} keys</span>
+          </div>
+          <div class="flex justify-between items-baseline border-b border-line border-dashed pb-3">
+            <span class="heading-title">Peers Online</span>
+            <span class="font-mono text-xs">{{ status.peerscount }}</span>
+          </div>
+          <div class="flex justify-between items-baseline pb-2">
+            <span class="heading-title">Last Sync</span>
+            <span class="font-mono text-xs text-gray-500">{{ status.timestamp }}</span>
           </div>
         </div>
       </section>
-      
-      <!-- FOOTER LINKS -->
-      <footer class="flex justify-between items-center pt-2">
-        <a href="https://github.com/besoeasy/Originless" target="_blank" class="heading-title hover:text-black transition-all duration-300 hover:-translate-y-px"><i class="fab fa-github mr-1"></i> Source Code</a>
-        <span class="heading-title">v{{ status.appver }}</span>
-      </footer>
 
-    </aside>
+      <section class="lg:col-span-5 border border-line hover:-translate-y-1 hover:shadow-xl hover:shadow-brand/5 transition-all duration-300">
+        <div class="p-5 border-b border-line bg-gray-50">
+          <h2 class="heading-title text-black m-0">Bandwidth</h2>
+        </div>
+        <div class="p-6 space-y-6">
+          <div>
+            <div class="heading-title mb-2">Ingress</div>
+            <div class="font-mono text-3xl font-bold">{{ status.bandwidthIn }}</div>
+            <div class="text-[10px] text-gray-400 uppercase tracking-wider mt-1">total received</div>
+          </div>
+          <div class="border-t border-line border-dashed pt-6">
+            <div class="heading-title mb-2">Egress</div>
+            <div class="font-mono text-3xl font-bold">{{ status.bandwidthOut }}</div>
+            <div class="text-[10px] text-gray-400 uppercase tracking-wider mt-1">total sent</div>
+          </div>
+          <div class="border-t border-line border-dashed pt-6">
+            <div class="heading-title mb-2">Rate</div>
+            <div class="font-mono text-sm text-gray-600">{{ status.bandwidthRate }}</div>
+            <div class="text-[10px] text-gray-400 uppercase tracking-wider mt-1">current in / out</div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
 
-  </div>
+  <!-- ============ PAGE: API ============ -->
+  <main v-else-if="currentPage === 'api'" class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-8 py-8 md:py-12 animate-fade-in">
+    <div class="mb-8">
+      <div class="heading-title mb-2">Programmatic Access</div>
+      <h1 class="text-3xl md:text-4xl font-bold tracking-tight">API<span class="accent-text">.</span></h1>
+      <p class="text-gray-500 mt-3 max-w-xl">Zero-friction endpoints. No API keys, no authentication, no accounts.</p>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <section v-for="ep in apiEndpoints" :key="ep.method + ep.path" class="border border-line hover:-translate-y-1 hover:shadow-xl hover:shadow-brand/5 transition-all duration-300">
+        <div class="p-5 border-b border-line bg-gray-50 flex justify-between items-center">
+          <div class="flex items-center gap-3">
+            <span :class="['text-[10px] font-bold px-2 py-1 uppercase tracking-wider', ep.method === 'GET' ? 'bg-gray-100 text-gray-600' : 'bg-brand text-white']">{{ ep.method }}</span>
+            <span class="font-mono text-xs">{{ ep.path }}</span>
+          </div>
+          <button @click="copyText(ep.curl, ep.path)" class="text-[10px] uppercase font-bold text-gray-500 hover:text-black transition-all duration-300 hover:-translate-y-px"><i class="fas fa-copy mr-1"></i> {{ copied === ep.path ? 'Copied' : 'Copy' }}</button>
+        </div>
+        <div class="p-5">
+          <p class="text-xs text-gray-500 mb-4">{{ ep.description }}</p>
+          <code class="block w-full bg-gray-50 border border-line p-3 font-mono text-[11px] text-gray-800 break-all leading-relaxed">{{ ep.curl }}</code>
+        </div>
+      </section>
+    </div>
+
+    <section class="border border-line mt-8 hover:-translate-y-1 hover:shadow-xl hover:shadow-brand/5 transition-all duration-300">
+      <div class="p-5 border-b border-line bg-gray-50">
+        <h2 class="heading-title text-black m-0">Fetching Content</h2>
+      </div>
+      <div class="p-6 space-y-6">
+        <div>
+          <p class="text-xs text-gray-500 mb-3">For trustless, content-addressed verification, use <a href="https://github.com/ipfs/helia-verified-fetch" target="_blank" class="accent-text font-semibold hover:underline">@helia/verified-fetch</a>:</p>
+          <code class="block w-full bg-gray-50 border border-line p-3 font-mono text-[11px] text-gray-800 break-all leading-relaxed">npm install @helia/verified-fetch</code>
+        </div>
+        <div>
+          <p class="text-xs text-gray-500 mb-3">Or use a standard public gateway for simple browser links:</p>
+          <code class="block w-full bg-gray-50 border border-line p-3 font-mono text-[11px] text-gray-800 break-all leading-relaxed">https://dweb.link/ipfs/QmX...?filename=document.pdf</code>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ============ FOOTER ============ -->
+  <footer class="border-t border-line mt-auto">
+    <div class="max-w-7xl mx-auto px-4 sm:px-8 py-6 flex justify-between items-center">
+      <a href="https://github.com/besoeasy/Originless" target="_blank" class="heading-title hover:text-black transition-all duration-300 hover:-translate-y-px"><i class="fab fa-github mr-1"></i> Source Code</a>
+      <span class="heading-title">v{{ status.appver }}</span>
+    </div>
+  </footer>
 </div>
 
 <script>
@@ -421,30 +625,39 @@
   createApp({
     data() {
       return {
+        currentPage: "dashboard",
+        navItems: [
+          { id: "dashboard", label: "Dashboard", icon: "fa-gauge-high" },
+          { id: "upload", label: "Upload", icon: "fa-cloud-arrow-up" },
+          { id: "files", label: "Files", icon: "fa-folder-open" },
+          { id: "network", label: "Network", icon: "fa-network-wired" },
+          { id: "api", label: "API", icon: "fa-terminal" },
+        ],
         file: null,
         fileLabel: "Select payload",
         uploading: false,
         uploadProgress: 0,
         result: null,
         isDragOver: false,
-        isPasted: false,
         activeTab: "urls",
-        showCli: false,
-        showHistory: false,
-        copied: false,
-        currentUrl: window.location.origin,
-        gatewayBase: "https://dweb.link/ipfs/",
         uploadMode: "file",
         folderFiles: null,
+        searchQuery: "",
+        copied: "",
+        currentUrl: window.location.origin,
+        gatewayBase: "https://dweb.link/ipfs/",
         history: [],
         pinStats: {
           count: 0,
           size: 0,
           sizeStr: "0 B",
+          threshold: 75,
         },
         status: {
           nodeId: "...",
-          bandwidth: "0B / 0B",
+          bandwidthIn: "0 B",
+          bandwidthOut: "0 B",
+          bandwidthRate: "0 B / 0 B",
           repoSize: "...",
           repoObjects: "...",
           version: "...",
@@ -453,8 +666,66 @@
           peerscount: 0,
           storageLimit: "...",
           fileLimit: "...",
+          repoSizeBytes: 0,
+          storageMaxBytes: 0,
         },
+        apiEndpoints: [
+          {
+            method: "POST",
+            path: "/upload",
+            description: "Upload a single file. Streams directly to the node and pins it to IPFS.",
+            curl: 'curl -X POST -F "file=@photo.png" http://localhost:3232/upload',
+          },
+          {
+            method: "POST",
+            path: "/uploadfolder",
+            description: "Upload a folder / DApp build directory. Preserves relative paths on IPFS.",
+            curl: 'curl -X POST -F "file=@dist/index.html;filename=index.html" -F "file=@dist/style.css;filename=style.css" http://localhost:3232/uploadfolder',
+          },
+          {
+            method: "GET",
+            path: "/status",
+            description: "Node telemetry: peers, bandwidth, repository usage, client version.",
+            curl: "curl http://localhost:3232/status",
+          },
+          {
+            method: "GET",
+            path: "/pins",
+            description: "Pin statistics: pinned count, total size, storage limit and eviction threshold.",
+            curl: "curl http://localhost:3232/pins",
+          },
+          {
+            method: "GET",
+            path: "/history",
+            description: "Upload history with CID, filename, size and pin status.",
+            curl: "curl 'http://localhost:3232/history?limit=20'",
+          },
+          {
+            method: "GET",
+            path: "/health",
+            description: "Liveness probe for orchestration and monitoring.",
+            curl: "curl http://localhost:3232/health",
+          },
+        ],
       };
+    },
+    computed: {
+      filteredHistory() {
+        if (!this.searchQuery) return this.history;
+        const q = this.searchQuery.toLowerCase();
+        return this.history.filter((h) =>
+          (h.filename || "").toLowerCase().includes(q) ||
+          (h.cid || "").toLowerCase().includes(q)
+        );
+      },
+      recentUploads() {
+        return this.history.slice(0, 5);
+      },
+      storagePercent() {
+        if (!this.status.storageMaxBytes) return 0;
+        const pct = (this.status.repoSizeBytes / this.status.storageMaxBytes) * 100;
+        return Math.min(100, Math.max(0, Math.round(pct)));
+      },
     },
     methods: {
       formatBytes(bytes) {
@@ -462,6 +733,23 @@
         if (bytes === 0) return "0 Bytes";
         const i = Math.floor(Math.log(bytes) / Math.log(1024));
         return (bytes / Math.pow(1024, i)).toFixed(2) + " " + sizes[i];
+      },
+      onHashChange() {
+        const page = window.location.hash.replace("#/", "");
+        if (this.navItems.some((n) => n.id === page)) {
+          this.currentPage = page;
+        } else {
+          this.currentPage = "dashboard";
+        }
+        // Refresh data when navigating to data-driven pages
+        if (this.currentPage === "files") {
+          this.fetchHistory();
+        }
+        if (this.currentPage === "dashboard") {
+          this.fetchHistory();
+          this.fetchPinStats();
+        }
+        window.scrollTo(0, 0);
       },
       setMode(mode) {
         this.uploadMode = mode;
@@ -511,10 +799,6 @@
           if (!file) continue;
 
           this.applySelectedFile(file);
-          this.isPasted = true;
-          setTimeout(() => {
-            this.isPasted = false;
-          }, 1000);
           break;
         }
       },
@@ -544,7 +828,7 @@
           case "image":
             return `<img src="${url}" alt="IPFS Asset" style="max-width:100%;height:auto;" />`;
           default:
-            return `<a href="${url}'" download>Download Asset</a>`;
+            return `<a href="${url}" download>Download Asset</a>`;
         }
       },
       getIpfsUrlWithFilename(cid, filename, gateway = "") {
@@ -607,12 +891,15 @@
           this.uploading = false;
         }
       },
-      copyCurlCommand() {
-        const command = `curl -X POST -F "file=@demo.pdf" ${this.currentUrl}/upload`;
-        navigator.clipboard.writeText(command).then(() => {
-          this.copied = true;
-          setTimeout(() => { this.copied = false; }, 2000);
+      copyText(text, key) {
+        navigator.clipboard.writeText(text).then(() => {
+          this.copied = key;
+          setTimeout(() => { this.copied = ""; }, 2000);
         });
+      },
+      copyCurl() {
+        const command = `curl -X POST -F "file=@demo.pdf" ${this.currentUrl}/upload`;
+        this.copyText(command, "curl");
       },
       async fetchStatus() {
         try {
@@ -622,7 +909,9 @@
           if (data.status === "success") {
             this.status = {
               nodeId: data.node.id.slice(0, 8) + "…" + data.node.id.slice(-8),
-              bandwidth: `IN: ${this.formatBytes(data.bandwidth.totalIn)}\nOUT: ${this.formatBytes(data.bandwidth.totalOut)}`,
+              bandwidthIn: this.formatBytes(data.bandwidth.totalIn),
+              bandwidthOut: this.formatBytes(data.bandwidth.totalOut),
+              bandwidthRate: `IN: ${this.formatBytes(data.bandwidth.rateIn)} / OUT: ${this.formatBytes(data.bandwidth.rateOut)}`,
               repoSize: `${this.formatBytes(data.repository.size)} / ${this.formatBytes(data.repository.storageMax)}`,
               repoObjects: `${data.repository.numObjects}`,
               version: `${data.node.agentVersion}`,
@@ -631,6 +920,8 @@
               peerscount: data.peers.count,
               storageLimit: data.storageLimit?.configured || "Unknown",
               fileLimit: data.fileLimit?.bytes ? this.formatBytes(data.fileLimit.bytes) : "Unknown",
+              repoSizeBytes: data.repository.size || 0,
+              storageMaxBytes: data.repository.storageMax || 0,
             };
           }
         } catch (error) {
@@ -657,6 +948,7 @@
               count: data.pinnedCount,
               size: data.pinnedSize,
               sizeStr: data.pinnedSizeStr,
+              threshold: data.threshold,
             };
           }
         } catch (error) {
@@ -666,25 +958,27 @@
       formatDate(dateStr) {
         if (!dateStr) return "";
         const date = new Date(dateStr);
-        return date.toLocaleString('en-US', { 
-          month: 'short', 
+        return date.toLocaleString('en-US', {
+          month: 'short',
           day: 'numeric',
-          hour: '2-digit', 
+          hour: '2-digit',
           minute: '2-digit',
-          hour12: false 
+          hour12: false
         });
       },
     },
     mounted() {
+      this.onHashChange();
+      window.addEventListener("hashchange", this.onHashChange);
       this.fetchStatus();
       this.fetchHistory();
       this.fetchPinStats();
       setInterval(this.fetchStatus, 10000);
       setInterval(this.fetchPinStats, 30000);
       document.addEventListener("paste", this.handlePaste);
-      document.getElementById("app")?.focus();
     },
     beforeUnmount() {
+      window.removeEventListener("hashchange", this.onHashChange);
       document.removeEventListener("paste", this.handlePaste);
     },
   }).mount("#app");

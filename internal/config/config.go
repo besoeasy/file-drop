@@ -13,22 +13,23 @@ const (
 	Port             = 3232
 	Host             = "0.0.0.0"
 	UploadTempDir    = "/tmp/originless"
-	AppVersion       = "0.4.0"
+	AppVersion       = "0.4.2"
 	MaxConcurrentOps = 3
-	PinExpiryDays    = 7
 	PinThreshold     = 75
 	JanitorInterval  = 60 // minutes
 )
 
 var (
-	StorageMax string
-	FileLimit  int64
+	StorageMax    string
+	FileLimit     int64
+	PinExpiryDays = 30
 )
 
 var sizePattern = regexp.MustCompile(`(?i)^(\d+(?:\.\d+)?)\s*(B|KB|MB|GB|TB)$`)
 
 func init() {
 	StorageMax = envOrDefault("STORAGE_MAX", "100GB")
+	PinExpiryDays = envOrDefaultInt("PIN_EXPIRY_DAYS", 30)
 
 	storageMaxBytes, err := ParseSize(StorageMax)
 	if err != nil {
@@ -41,6 +42,15 @@ func init() {
 func envOrDefault(key, fallback string) string {
 	if value := os.Getenv(key); value != "" {
 		return value
+	}
+	return fallback
+}
+
+func envOrDefaultInt(key string, fallback int) int {
+	if value := os.Getenv(key); value != "" {
+		if parsed, err := strconv.Atoi(value); err == nil && parsed > 0 {
+			return parsed
+		}
 	}
 	return fallback
 }

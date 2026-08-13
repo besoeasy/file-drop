@@ -25,7 +25,6 @@ docker run -d \
   -p 3232:3232 \
   -p 4001:4001/tcp \
   -p 4001:4001/udp \
-  -p 5001:5001 \
   -e STORAGE_MAX=100GB \
   ghcr.io/besoeasy/originless:latest
 ```
@@ -33,7 +32,6 @@ docker run -d \
 > **Podman User?** Simply replace `docker` with `podman` in the command above!
 
 - Access **Originless Web UI & API** at **[http://localhost:3232](http://localhost:3232)**
-- Access **IPFS WebUI & RPC API** at **[http://localhost:5001/webui](http://localhost:5001/webui)**
 
 ---
 
@@ -170,6 +168,7 @@ curl http://localhost:3232/pins
 | Variable | Default | Description |
 | :--- | :--- | :--- |
 | `STORAGE_MAX` | `100GB` | Maximum storage limit allocated to IPFS data. |
+| `PIN_EXPIRY_DAYS` | `30` | Days a file stays pinned before the janitor may evict it. |
 
 > All other paths are fixed: the SQLite database and IPFS node repository live at `/data` (the container's persistent volume).
 
