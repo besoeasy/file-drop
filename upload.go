@@ -1,4 +1,4 @@
-package api
+package main
 
 import (
 	"errors"
@@ -8,8 +8,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-
-	"github.com/besoeasy/originless/internal/config"
 )
 
 var (
@@ -30,7 +28,7 @@ type SavedFiles struct {
 }
 
 func SaveMultipartFile(r *http.Request, limit int64) (*SavedFile, error) {
-	if err := os.MkdirAll(config.UploadTempDir, 0o755); err != nil {
+	if err := os.MkdirAll(UploadTempDir, 0o755); err != nil {
 		return nil, err
 	}
 
@@ -59,7 +57,7 @@ func SaveMultipartFile(r *http.Request, limit int64) (*SavedFile, error) {
 			return nil, ErrNoFile
 		}
 
-		tmpFile, err := os.CreateTemp(config.UploadTempDir, "upload-*")
+		tmpFile, err := os.CreateTemp(UploadTempDir, "upload-*")
 		if err != nil {
 			part.Close()
 			return nil, err
@@ -76,7 +74,7 @@ func SaveMultipartFile(r *http.Request, limit int64) (*SavedFile, error) {
 		if written > limit {
 			tmpFile.Close()
 			os.Remove(tmpFile.Name())
-			return nil, fmt.Errorf("%w: exceeds the maximum allowed size of %s", ErrFileTooLarge, config.FormatBytes(limit))
+			return nil, fmt.Errorf("%w: exceeds the maximum allowed size of %s", ErrFileTooLarge, FormatBytes(limit))
 		}
 
 		if err := tmpFile.Close(); err != nil {
@@ -95,7 +93,7 @@ func SaveMultipartFile(r *http.Request, limit int64) (*SavedFile, error) {
 }
 
 func SaveMultipartFiles(r *http.Request, limit int64) (*SavedFiles, error) {
-	if err := os.MkdirAll(config.UploadTempDir, 0o755); err != nil {
+	if err := os.MkdirAll(UploadTempDir, 0o755); err != nil {
 		return nil, err
 	}
 
@@ -130,7 +128,7 @@ func SaveMultipartFiles(r *http.Request, limit int64) (*SavedFiles, error) {
 			continue
 		}
 
-		tmpFile, err := os.CreateTemp(config.UploadTempDir, "folder-*")
+		tmpFile, err := os.CreateTemp(UploadTempDir, "folder-*")
 		if err != nil {
 			part.Close()
 			for _, p := range files {
@@ -157,7 +155,7 @@ func SaveMultipartFiles(r *http.Request, limit int64) (*SavedFiles, error) {
 			for _, p := range files {
 				os.Remove(p)
 			}
-			return nil, fmt.Errorf("%w: exceeds the maximum allowed size of %s", ErrFileTooLarge, config.FormatBytes(limit))
+			return nil, fmt.Errorf("%w: exceeds the maximum allowed size of %s", ErrFileTooLarge, FormatBytes(limit))
 		}
 
 		if err := tmpFile.Close(); err != nil {

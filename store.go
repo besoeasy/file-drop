@@ -1,4 +1,4 @@
-package db
+package main
 
 import (
 	"database/sql"
@@ -23,7 +23,7 @@ type Store struct {
 	db *sql.DB
 }
 
-func New(dbPath string) (*Store, error) {
+func NewStore(dbPath string) (*Store, error) {
 	sqlDB, err := sql.Open("sqlite", dbPath)
 	if err != nil {
 		return nil, fmt.Errorf("open database: %w", err)

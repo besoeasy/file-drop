@@ -10,16 +10,10 @@ import (
 	"path/filepath"
 	"syscall"
 	"time"
-
-	"github.com/besoeasy/originless/internal/api"
-	"github.com/besoeasy/originless/internal/config"
-	"github.com/besoeasy/originless/internal/db"
-	"github.com/besoeasy/originless/internal/ipfs"
-	"github.com/besoeasy/originless/internal/janitor"
 )
 
 func main() {
-	if err := os.MkdirAll(config.UploadTempDir, 0o755); err != nil {
+	if err := os.MkdirAll(UploadTempDir, 0o755); err != nil {
 		log.Fatalf("failed to create upload temp directory: %v", err)
 	}
 
@@ -29,30 +23,30 @@ func main() {
 	}
 
 	dbPath := filepath.Join(dataDir, "originless.db")
-	database, err := db.New(dbPath)
+	database, err := NewStore(dbPath)
 	if err != nil {
 		log.Fatalf("failed to open database: %v", err)
 	}
 	defer database.Close()
 
-	storageMaxBytes, err := config.ParseSize(config.StorageMax)
+	storageMaxBytes, err := ParseSize(StorageMax)
 	if err != nil {
 		log.Fatalf("invalid STORAGE_MAX: %v", err)
 	}
 
-	ipfsClient := ipfs.NewClient()
-	janitorMgr := janitor.New(database, ipfsClient, storageMaxBytes)
+	ipfsClient := NewClient()
+	janitorMgr := NewJanitor(database, ipfsClient, storageMaxBytes)
 
 	log.Printf("[STARTUP] running janitor reconciliation...")
 	janitorMgr.Reconcile()
 
 	janitorCtx, janitorCancel := context.WithCancel(context.Background())
-	go janitorMgr.Run(janitorCtx, time.Duration(config.JanitorInterval)*time.Minute)
+	go janitorMgr.Run(janitorCtx, time.Duration(JanitorInterval)*time.Minute)
 
-	router := api.NewRouter(ipfsClient, janitorMgr)
+	router := NewRouter(ipfsClient, janitorMgr)
 
 	server := &http.Server{
-		Addr:              fmt.Sprintf("%s:%d", config.Host, config.Port),
+		Addr:              fmt.Sprintf("%s:%d", Host, Port),
 		Handler:           router,
 		ReadHeaderTimeout: 10 * time.Second,
 		ReadTimeout:       30 * time.Second,
@@ -61,7 +55,7 @@ func main() {
 	}
 
 	go func() {
-		log.Printf("[STARTUP] SERVER_LISTENING host=%s port=%d url=http://%s:%d", config.Host, config.Port, config.Host, config.Port)
+		log.Printf("[STARTUP] SERVER_LISTENING host=%s port=%d url=http://%s:%d", Host, Port, Host, Port)
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("server failed: %v", err)
 		}

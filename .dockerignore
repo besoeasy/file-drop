@@ -1,7 +1,6 @@
 .git
 .github
 README.md
-logo.png
 originless
 *.exe
 .env

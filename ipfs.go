@@ -1,4 +1,4 @@
-package ipfs
+package main
 
 import (
 	"context"
@@ -13,8 +13,6 @@ import (
 	"sort"
 	"strings"
 	"time"
-
-	"github.com/besoeasy/originless/internal/config"
 )
 
 type Client struct {
@@ -62,7 +60,7 @@ type addResponse struct {
 
 func NewClient() *Client {
 	return &Client{
-		baseURL: config.IPFSAPI,
+		baseURL: IPFSAPI,
 		// Single shared client — connection to 127.0.0.1:5001 is reused across requests.
 		httpClient: &http.Client{Timeout: 0},
 	}

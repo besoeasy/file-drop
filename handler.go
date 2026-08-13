@@ -1,4 +1,4 @@
-package api
+package main
 
 import (
 	"encoding/json"
@@ -7,23 +7,19 @@ import (
 	"net/http"
 	"strconv"
 	"time"
-
-	"github.com/besoeasy/originless/internal/config"
-	"github.com/besoeasy/originless/internal/ipfs"
-	"github.com/besoeasy/originless/internal/janitor"
 )
 
 type Handler struct {
-	ipfs      *ipfs.Client
-	janitor   *janitor.Manager
+	ipfs      *Client
+	janitor   *Manager
 	semaphore chan struct{}
 }
 
-func NewHandler(ipfsClient *ipfs.Client, janitorManager *janitor.Manager) *Handler {
+func NewHandler(ipfsClient *Client, janitorManager *Manager) *Handler {
 	return &Handler{
 		ipfs:      ipfsClient,
 		janitor:   janitorManager,
-		semaphore: make(chan struct{}, config.MaxConcurrentOps),
+		semaphore: make(chan struct{}, MaxConcurrentOps),
 	}
 }
 
@@ -71,14 +67,14 @@ func (h *Handler) Status(w http.ResponseWriter, r *http.Request) {
 		"node":      stats.Node,
 		"peers":     stats.Peers,
 		"storageLimit": map[string]any{
-			"configured": config.StorageMax,
-			"current":    config.FormatBytes(stats.Repository.StorageMax),
+			"configured": StorageMax,
+			"current":    FormatBytes(stats.Repository.StorageMax),
 		},
 		"fileLimit": map[string]any{
-			"configured": config.FormatBytes(config.FileLimit),
-			"bytes":      config.FileLimit,
+			"configured": FormatBytes(FileLimit),
+			"bytes":      FileLimit,
 		},
-		"appVersion": config.AppVersion,
+		"appVersion": AppVersion,
 	})
 }
 
@@ -96,16 +92,16 @@ func (h *Handler) Upload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	r.Body = http.MaxBytesReader(w, r.Body, config.FileLimit+1024*1024)
+	r.Body = http.MaxBytesReader(w, r.Body, FileLimit+1024*1024)
 
-	saved, err := SaveMultipartFile(r, config.FileLimit)
+	saved, err := SaveMultipartFile(r, FileLimit)
 	if err != nil {
 		h.handleUploadError(w, err)
 		return
 	}
 	defer RemovePath(saved.Path)
 
-	mimeType := ipfs.MimeType(saved.OriginalName)
+	mimeType := MimeType(saved.OriginalName)
 	start := time.Now()
 	log.Printf("Starting IPFS upload for %s ...", saved.OriginalName)
 
@@ -155,9 +151,9 @@ func (h *Handler) UploadFolder(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	r.Body = http.MaxBytesReader(w, r.Body, config.FileLimit+1024*1024)
+	r.Body = http.MaxBytesReader(w, r.Body, FileLimit+1024*1024)
 
-	saved, err := SaveMultipartFiles(r, config.FileLimit)
+	saved, err := SaveMultipartFiles(r, FileLimit)
 	if err != nil {
 		h.handleUploadError(w, err)
 		return
@@ -211,7 +207,7 @@ func (h *Handler) handleUploadError(w http.ResponseWriter, err error) {
 		writeJSON(w, http.StatusRequestEntityTooLarge, map[string]any{
 			"error":   "File too large",
 			"message": err.Error(),
-			"maxSize": config.FormatBytes(config.FileLimit),
+			"maxSize": FormatBytes(FileLimit),
 		})
 	default:
 		writeJSON(w, http.StatusBadRequest, map[string]any{
@@ -270,9 +266,9 @@ func (h *Handler) PinStats(w http.ResponseWriter, r *http.Request) {
 		"status":        "success",
 		"pinnedCount":   count,
 		"pinnedSize":    size,
-		"pinnedSizeStr": config.FormatBytes(size),
-		"storageLimit":  config.StorageMax,
-		"threshold":     config.PinThreshold,
+		"pinnedSizeStr": FormatBytes(size),
+		"storageLimit":  StorageMax,
+		"threshold":     PinThreshold,
 	})
 }
 

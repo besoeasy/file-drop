@@ -1,30 +1,26 @@
-package janitor
+package main
 
 import (
 	"context"
 	"log"
 	"time"
-
-	"github.com/besoeasy/originless/internal/config"
-	"github.com/besoeasy/originless/internal/db"
-	"github.com/besoeasy/originless/internal/ipfs"
 )
 
 type Manager struct {
-	store     *db.Store
-	ipfs      *ipfs.Client
+	store     *Store
+	ipfs      *Client
 	limit     int64
 	threshold float64
 	expiry    time.Duration
 }
 
-func New(store *db.Store, ipfsClient *ipfs.Client, limit int64) *Manager {
+func NewJanitor(store *Store, ipfsClient *Client, limit int64) *Manager {
 	return &Manager{
 		store:     store,
 		ipfs:      ipfsClient,
 		limit:     limit,
-		threshold: float64(config.PinThreshold) / 100.0,
-		expiry:    time.Duration(config.PinExpiryDays) * 24 * time.Hour,
+		threshold: float64(PinThreshold) / 100.0,
+		expiry:    time.Duration(PinExpiryDays) * 24 * time.Hour,
 	}
 }
 
@@ -47,10 +43,10 @@ func (m *Manager) PinOnUpload(cid, filename string, size int64) error {
 
 	pinnedSize, _ := m.store.GetPinnedSize()
 	log.Printf("[janitor] pinned %s (%s) — total pinned: %s",
-		cid, config.FormatBytes(size), config.FormatBytes(pinnedSize))
+		cid, FormatBytes(size), FormatBytes(pinnedSize))
 
 	if float64(pinnedSize) > float64(m.limit)*m.threshold {
-		log.Printf("[janitor] storage exceeds %d%% threshold, evicting oldest", config.PinThreshold)
+		log.Printf("[janitor] storage exceeds %d%% threshold, evicting oldest", PinThreshold)
 		if err := m.EvictOldest(); err != nil {
 			log.Printf("[janitor] eviction failed: %v", err)
 		}
@@ -111,14 +107,14 @@ func (m *Manager) Reconcile() error {
 	pinnedCount, _ := m.store.GetPinnedCount()
 	pinnedSize, _ := m.store.GetPinnedSize()
 	log.Printf("[janitor] reconciliation done: %d orphaned imported, %d missing marked — %d pinned (%s)",
-		orphaned, len(missing), pinnedCount, config.FormatBytes(pinnedSize))
+		orphaned, len(missing), pinnedCount, FormatBytes(pinnedSize))
 
 	return nil
 }
 
 func (m *Manager) Run(ctx context.Context, interval time.Duration) {
 	log.Printf("[janitor] started (interval: %s, expiry: %s, threshold: %d%%)",
-		interval, m.expiry, config.PinThreshold)
+		interval, m.expiry, PinThreshold)
 
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
@@ -168,7 +164,7 @@ func (m *Manager) UnpinExpired() error {
 	}
 
 	pinnedSize, _ := m.store.GetPinnedSize()
-	log.Printf("[janitor] unpinned %d expired files — pinned: %s", unpinned, config.FormatBytes(pinnedSize))
+	log.Printf("[janitor] unpinned %d expired files — pinned: %s", unpinned, FormatBytes(pinnedSize))
 	return nil
 }
 
@@ -183,7 +179,7 @@ func (m *Manager) CheckThreshold() error {
 	}
 
 	log.Printf("[janitor] pinned size %s exceeds %d%% of %s, evicting",
-		config.FormatBytes(pinnedSize), config.PinThreshold, config.FormatBytes(m.limit))
+		FormatBytes(pinnedSize), PinThreshold, FormatBytes(m.limit))
 
 	return m.EvictOldest()
 }
@@ -228,7 +224,7 @@ func (m *Manager) EvictOldest() error {
 
 			freed += u.Size
 			unpinned++
-			log.Printf("[janitor] evicted %s (%s)", u.Filename, config.FormatBytes(u.Size))
+			log.Printf("[janitor] evicted %s (%s)", u.Filename, FormatBytes(u.Size))
 		}
 
 		pinnedSize, _ = m.store.GetPinnedSize()
@@ -236,11 +232,11 @@ func (m *Manager) EvictOldest() error {
 
 	newSize, _ := m.store.GetPinnedSize()
 	log.Printf("[janitor] eviction done: unpinned %d files, freed %s — now at %s",
-		unpinned, config.FormatBytes(freed), config.FormatBytes(newSize))
+		unpinned, FormatBytes(freed), FormatBytes(newSize))
 	return nil
 }
 
-func (m *Manager) GetHistory(limit, offset int) ([]db.Upload, error) {
+func (m *Manager) GetHistory(limit, offset int) ([]Upload, error) {
 	return m.store.GetUploadHistory(limit, offset)
 }
 
