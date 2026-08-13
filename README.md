@@ -159,6 +159,34 @@ curl -X POST \
 curl http://localhost:3232/pins
 ```
 
+### Health Check
+```bash
+curl http://localhost:3232/health
+```
+*Response:*
+```json
+{
+  "status": "healthy",
+  "peers": 140
+}
+```
+
+### Prometheus Metrics
+Exposes Prometheus text-format metrics (request counts, uploads, pinned storage, IPFS health) for scraping by Prometheus, Grafana, or any metrics collector:
+```bash
+curl http://localhost:3232/metrics
+```
+*Sample output:*
+```
+originless_http_requests_total{path="/upload"} 42
+originless_uploads_total 42
+originless_upload_bytes_total 1048576
+originless_pinned_count 12
+originless_pinned_bytes 52428800
+originless_ipfs_healthy 1
+originless_ipfs_peers 140
+```
+
 ---
 
 ## ⚙️ Environment Configuration
