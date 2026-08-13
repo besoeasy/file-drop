@@ -20,8 +20,6 @@ RUN apk add --no-cache curl tar && \
 FROM alpine:3.20
 
 ENV STORAGE_MAX=100GB
-ENV DATA_DIR=/data
-ENV IPFS_PATH=/data
 
 RUN apk add --no-cache ca-certificates gcompat && \
   adduser -D -h /app originless
@@ -42,6 +40,7 @@ VOLUME ["/data"]
 STOPSIGNAL SIGTERM
 
 CMD ["sh", "-c", "\
+  export IPFS_PATH=/data && \
   if [ ! -f \"$IPFS_PATH/config\" ]; then ipfs init --profile=lowpower; fi && \
   ipfs config Datastore.StorageMax ${STORAGE_MAX} && \
   ipfs config --json Routing.Type '\"dhtclient\"' && \

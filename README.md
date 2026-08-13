@@ -170,8 +170,8 @@ curl http://localhost:3232/pins
 | Variable | Default | Description |
 | :--- | :--- | :--- |
 | `STORAGE_MAX` | `100GB` | Maximum storage limit allocated to IPFS data. |
-| `PORT` | `3232` | API server & UI HTTP listening port. |
-| `DATA_DIR` | `/data` | Path to store SQLite database & IPFS node config. |
+
+> All other paths are fixed: the SQLite database and IPFS node repository live at `/data` (the container's persistent volume).
 
 ---
 
