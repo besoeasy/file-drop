@@ -8,25 +8,15 @@ RUN go mod download
 COPY . .
 RUN CGO_ENABLED=0 go build -ldflags="-s -w" -o /originless ./cmd/originless
 
-FROM alpine:3.20 AS kubo
-
-RUN apk add --no-cache curl tar && \
-  ARCH="$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')" && \
-  curl -fsSL "https://dist.ipfs.tech/kubo/v0.42.0/kubo_v0.42.0_linux-${ARCH}.tar.gz" | \
-  tar -xz -C /tmp && \
-  mv /tmp/kubo/ipfs /ipfs && \
-  rm -rf /tmp/kubo
-
-FROM alpine:3.20
+FROM alpine:latest
 
 ENV STORAGE_MAX=100GB
 
-RUN apk add --no-cache ca-certificates gcompat && \
+RUN apk add --no-cache ca-certificates gcompat kubo && \
   adduser -D -h /app originless
 
 WORKDIR /app
 
-COPY --from=kubo /ipfs /usr/local/bin/ipfs
 COPY --from=builder /originless /app/originless
 
 RUN mkdir -p /tmp/originless /data && chown -R originless:originless /app /tmp/originless /data
@@ -46,8 +36,17 @@ CMD ["sh", "-c", "\
   ipfs config --json Routing.Type '\"dhtclient\"' && \
   ipfs config --json Swarm.RelayService.Enabled false && \
   ipfs config --json Swarm.RelayClient.Enabled true && \
-  ipfs daemon --enable-gc --routing=dhtclient & \
-  until ipfs id >/dev/null 2>&1; do \
-  echo 'Waiting for IPFS daemon...'; sleep 3; \
-  done && \
+  sleep 3 && \
+  for i in 1 2 3 4 5; do \
+    rm -f \"$IPFS_PATH/repo.lock\"; \
+    (ipfs daemon --enable-gc --routing=dhtclient &); \
+    for j in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20; do \
+      ipfs swarm peers >/dev/null 2>&1 && break 2; \
+      sleep 2; \
+    done; \
+    echo \"IPFS daemon not ready (attempt $i), retrying...\"; \
+    pkill -x ipfs 2>/dev/null || true; \
+    while pgrep -x ipfs >/dev/null 2>&1; do sleep 1; done; \
+    sleep 2; \
+  done; \
   exec /app/originless"]
