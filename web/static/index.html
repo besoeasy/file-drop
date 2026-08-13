@@ -216,7 +216,7 @@
     <div class="bg-white rounded-2xl border border-gray-100 shadow-card p-6 mb-8 hover:shadow-lift transition-all duration-300">
       <div class="flex justify-between items-baseline mb-4">
         <div class="label">Storage Utilization</div>
-        <div class="font-mono text-xs text-gray-500">{{ status.repoSize }} of {{ status.fileLimit }} file limit</div>
+        <div class="font-mono text-xs text-gray-500">{{ status.repoSize }} used · per-file limit {{ status.fileLimit }}</div>
       </div>
       <div class="h-2.5 w-full bg-gray-100 rounded-full overflow-hidden">
         <div class="h-full bg-gradient-to-r from-red-500 to-red-600 rounded-full transition-all duration-700" :style="{ width: storagePercent + '%' }"></div>
@@ -424,7 +424,7 @@
               <span class="font-mono text-xs">{{ pinStats.sizeStr }}</span>
             </div>
             <div class="flex justify-between items-baseline border-b border-gray-100 pb-3">
-              <span class="label">Storage Limit</span>
+              <span class="label">Per-File Limit</span>
               <span class="font-mono text-xs">{{ status.fileLimit }}</span>
             </div>
             <div class="flex justify-between items-baseline">
