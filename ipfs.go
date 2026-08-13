@@ -438,3 +438,19 @@ func (c *Client) ObjectStat(ctx context.Context, cid string) (int64, error) {
 	}
 	return jsonInt64(data["CumulativeSize"]), nil
 }
+
+// Cat fetches the raw content of a CID, capped at maxBytes.
+func (c *Client) Cat(ctx context.Context, cid string, maxBytes int64) ([]byte, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+"/api/v0/cat?arg="+url.QueryEscape(cid), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	reader, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer reader.Close()
+
+	return io.ReadAll(io.LimitReader(reader, maxBytes))
+}
