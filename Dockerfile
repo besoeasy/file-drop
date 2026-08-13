@@ -48,6 +48,6 @@ CMD ["sh", "-c", "\
     pkill -x ipfs 2>/dev/null || true; \
     while pgrep -x ipfs >/dev/null 2>&1; do sleep 1; done; \
     ipfs daemon --enable-gc --routing=dhtclient & \
-    sleep 3; \
+    sleep 60; \
   done; \
   exec /app/originless"]
