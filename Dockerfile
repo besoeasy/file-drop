@@ -35,19 +35,7 @@ CMD ["sh", "-c", "\
   if [ ! -f \"$IPFS_PATH/config\" ]; then ipfs init --profile=lowpower; fi && \
   ipfs config Datastore.StorageMax ${STORAGE_MAX} && \
   ipfs config --json Routing.Type '\"dhtclient\"' && \
-  attempts=0; \
-  delay=5; \
-  until nc -z 127.0.0.1 5001 >/dev/null 2>&1; do \
-    attempts=$((attempts+1)); \
-    if [ \"$attempts\" -gt 5 ]; then \
-      echo 'IPFS daemon failed to start after 5 attempts'; \
-      exit 1; \
-    fi; \
-    rm -f \"$IPFS_PATH/repo.lock\"; \
-    pkill -x ipfs 2>/dev/null || true; \
-    while pgrep -x ipfs >/dev/null 2>&1; do sleep 1; done; \
-    ipfs daemon --enable-gc --routing=dhtclient & \
-    sleep $delay; \
-    delay=$((delay*2)); \
-  done; \
+  rm -f \"$IPFS_PATH/repo.lock\"; \
+  ipfs daemon --enable-gc --routing=dhtclient & \
+  sleep 10 && \
   exec /app/originless"]
