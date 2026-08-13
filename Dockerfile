@@ -37,17 +37,17 @@ CMD ["sh", "-c", "\
   ipfs config --json Routing.Type '\"dhtclient\"' && \
   ipfs config --json Swarm.RelayService.Enabled false && \
   ipfs config --json Swarm.RelayClient.Enabled true && \
-  sleep 3 && \
-  for i in 1 2 3 4 5; do \
+  attempts=0; \
+  until nc -z 127.0.0.1 5001 >/dev/null 2>&1; do \
+    attempts=$((attempts+1)); \
+    if [ \"$attempts\" -gt 5 ]; then \
+      echo 'IPFS daemon failed to start after 5 attempts'; \
+      exit 1; \
+    fi; \
     rm -f \"$IPFS_PATH/repo.lock\"; \
-    (ipfs daemon --enable-gc --routing=dhtclient &); \
-    for j in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15; do \
-      nc -z 127.0.0.1 5001 >/dev/null 2>&1 && break 2; \
-      sleep 2; \
-    done; \
-    echo \"IPFS daemon not ready (attempt $i), retrying...\"; \
     pkill -x ipfs 2>/dev/null || true; \
     while pgrep -x ipfs >/dev/null 2>&1; do sleep 1; done; \
-    sleep 2; \
+    ipfs daemon --enable-gc --routing=dhtclient & \
+    sleep 3; \
   done; \
   exec /app/originless"]
