@@ -637,7 +637,7 @@
   createApp({
     data() {
       return {
-        currentPage: "dashboard",
+        currentPage: "upload",
         navItems: [
           { id: "dashboard", label: "Dashboard", icon: "fa-gauge-high" },
           { id: "upload", label: "Upload", icon: "fa-cloud-arrow-up" },
@@ -751,7 +751,7 @@
         if (this.navItems.some((n) => n.id === page)) {
           this.currentPage = page;
         } else {
-          this.currentPage = "dashboard";
+          this.currentPage = "upload";
         }
         // Refresh data when navigating to data-driven pages
         if (this.currentPage === "files") {
