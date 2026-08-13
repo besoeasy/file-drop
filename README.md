@@ -23,8 +23,6 @@ docker run -d \
   --name originless \
   --restart unless-stopped \
   -p 3232:3232 \
-  -p 4001:4001/tcp \
-  -p 4001:4001/udp \
   -e STORAGE_MAX=100GB \
   ghcr.io/besoeasy/originless:latest
 ```
