@@ -13,7 +13,7 @@ const (
 	Port             = 3232
 	Host             = "0.0.0.0"
 	UploadTempDir    = "/tmp/originless"
-	AppVersion       = "0.4.6"
+	AppVersion       = "0.4.7"
 	MaxConcurrentOps = 3
 	PinThreshold     = 75
 	JanitorInterval  = 60 // minutes

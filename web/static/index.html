@@ -188,11 +188,11 @@
       </div>
       <div class="bg-white rounded-2xl border border-gray-100 shadow-card p-5 hover:shadow-lift hover:-translate-y-0.5 transition-all duration-300">
         <div class="flex items-center justify-between mb-4">
-          <span class="label">Repository</span>
+          <span class="label">Repo Objects</span>
           <span class="w-9 h-9 rounded-xl bg-blue-50 text-blue-500 flex items-center justify-center"><i class="fas fa-database"></i></span>
         </div>
-        <div class="font-mono text-3xl font-bold">{{ status.repoSize }}</div>
-        <div class="text-xs text-gray-400 mt-1.5">used / max</div>
+        <div class="font-mono text-3xl font-bold">{{ status.repoObjects }}</div>
+        <div class="text-xs text-gray-400 mt-1.5">keys in object map</div>
       </div>
       <div class="bg-white rounded-2xl border border-gray-100 shadow-card p-5 hover:shadow-lift hover:-translate-y-0.5 transition-all duration-300">
         <div class="flex items-center justify-between mb-4">
@@ -204,11 +204,11 @@
       </div>
       <div class="bg-white rounded-2xl border border-gray-100 shadow-card p-5 hover:shadow-lift hover:-translate-y-0.5 transition-all duration-300">
         <div class="flex items-center justify-between mb-4">
-          <span class="label">Bandwidth</span>
-          <span class="w-9 h-9 rounded-xl bg-violet-50 text-violet-500 flex items-center justify-center"><i class="fas fa-arrow-right-arrow-left"></i></span>
+          <span class="label">Client</span>
+          <span class="w-9 h-9 rounded-xl bg-violet-50 text-violet-500 flex items-center justify-center"><i class="fas fa-cube"></i></span>
         </div>
-        <div class="font-mono text-3xl font-bold">{{ status.bandwidthIn }}</div>
-        <div class="text-xs text-gray-400 mt-1.5">in / out</div>
+        <div class="font-mono text-3xl font-bold">{{ status.version }}</div>
+        <div class="text-xs text-gray-400 mt-1.5">IPFS client</div>
       </div>
     </div>
 
@@ -216,7 +216,7 @@
     <div class="bg-white rounded-2xl border border-gray-100 shadow-card p-6 mb-8 hover:shadow-lift transition-all duration-300">
       <div class="flex justify-between items-baseline mb-4">
         <div class="label">Storage Utilization</div>
-        <div class="font-mono text-xs text-gray-500">{{ status.repoSize }} used · per-file limit {{ status.fileLimit }}</div>
+        <div class="font-mono text-xs text-gray-500">{{ status.repoSize }} used</div>
       </div>
       <div class="h-2.5 w-full bg-gray-100 rounded-full overflow-hidden">
         <div class="h-full bg-gradient-to-r from-red-500 to-red-600 rounded-full transition-all duration-700" :style="{ width: storagePercent + '%' }"></div>
@@ -259,18 +259,6 @@
           <div class="flex justify-between items-baseline border-b border-gray-100 pb-3">
             <span class="label">Peer ID</span>
             <span class="font-mono text-xs">{{ status.nodeId }}</span>
-          </div>
-          <div class="flex justify-between items-baseline border-b border-gray-100 pb-3">
-            <span class="label">Client</span>
-            <span class="font-mono text-[10px] text-gray-500">{{ status.version }}</span>
-          </div>
-          <div class="flex justify-between items-baseline border-b border-gray-100 pb-3">
-            <span class="label">Object Map</span>
-            <span class="font-mono text-xs">{{ status.repoObjects }} keys</span>
-          </div>
-          <div class="flex justify-between items-baseline border-b border-gray-100 pb-3">
-            <span class="label">App Version</span>
-            <span class="font-mono text-xs">{{ status.appver }}</span>
           </div>
           <div class="flex justify-between items-baseline">
             <span class="label">Sync</span>
@@ -436,24 +424,12 @@
       <aside class="lg:col-span-4 flex flex-col gap-6">
         <section class="bg-white rounded-2xl border border-gray-100 shadow-card overflow-hidden hover:shadow-lift transition-all duration-300">
           <div class="px-6 py-4 border-b border-gray-100">
-            <h2 class="text-sm font-bold">Pin Status</h2>
+            <h2 class="text-sm font-bold">Upload Limits</h2>
           </div>
           <div class="p-6 space-y-4">
-            <div class="flex justify-between items-baseline border-b border-gray-100 pb-3">
-              <span class="label">Pinned Files</span>
-              <span class="font-mono text-xs">{{ pinStats.count }}</span>
-            </div>
-            <div class="flex justify-between items-baseline border-b border-gray-100 pb-3">
-              <span class="label">Pinned Size</span>
-              <span class="font-mono text-xs">{{ pinStats.sizeStr }}</span>
-            </div>
-            <div class="flex justify-between items-baseline border-b border-gray-100 pb-3">
+            <div class="flex justify-between items-baseline">
               <span class="label">Per-File Limit</span>
               <span class="font-mono text-xs">{{ status.fileLimit }}</span>
-            </div>
-            <div class="flex justify-between items-baseline">
-              <span class="label">Eviction Threshold</span>
-              <span class="font-mono text-xs">{{ pinStats.threshold }}%</span>
             </div>
           </div>
         </section>
