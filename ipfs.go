@@ -62,7 +62,10 @@ func NewClient() *Client {
 	return &Client{
 		baseURL: IPFSAPI,
 		// Single shared client — connection to 127.0.0.1:5001 is reused across requests.
-		httpClient: &http.Client{Timeout: 0},
+		// Overall timeout bounds hung-daemon scenarios (e.g. large uploads). Quick
+		// operations like health checks still fail fast via their per-call context
+		// timeouts, which fire before this cap.
+		httpClient: &http.Client{Timeout: 10 * time.Minute},
 	}
 }
 
