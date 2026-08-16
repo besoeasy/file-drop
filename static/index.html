@@ -76,7 +76,7 @@
         No npubs configured. Set <span class="mono">NOSTR_NPUBS</span> to back up IPFS media from those accounts onto this node.
       </div>
       <div v-else>
-        <div class="card-pad grid grid-4" style="border-bottom:1px solid var(--line)">
+        <div class="card-pad grid grid-4">
           <div>
             <div class="kicker">Accounts</div>
             <div class="stat-value" style="font-size:1.25rem">{{ archive.accounts.length }}</div>
@@ -95,7 +95,7 @@
             <div class="mono" style="font-size:.9rem">every {{ archive.repinHours }}h</div>
           </div>
         </div>
-        <div v-for="acc in archive.accounts" :key="acc.npub" class="card-pad between" style="border-top:1px solid #f0ebe4">
+        <div v-for="acc in archive.accounts" :key="acc.npub" class="card-pad between">
           <div class="mono faint grow truncate" :title="acc.npub">{{ acc.npub }}</div>
           <div class="stat-sub" style="flex-shrink:0">{{ acc.objects || 0 }} objects · {{ acc.sizeStr || '0 Bytes' }}</div>
         </div>
@@ -110,7 +110,7 @@
         </div>
         <div v-if="history.length === 0" class="empty">No uploads yet</div>
         <div v-else>
-          <div v-for="item in recentUploads" :key="item.cid" class="card-pad between" style="border-top:1px solid #f0ebe4">
+          <div v-for="item in recentUploads" :key="item.cid" class="card-pad between">
             <div class="grow">
               <div class="mono faint truncate" :title="item.cid">{{ item.cid.slice(0, 14) }}…</div>
               <div class="muted truncate" style="margin-top:.2rem">{{ item.filename }}</div>
