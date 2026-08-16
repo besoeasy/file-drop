@@ -33,6 +33,20 @@ docker run -d \
 
 - Access **Originless Web UI & API** at **[http://localhost:3232](http://localhost:3232)**
 
+To also archive IPFS media from Nostr accounts onto `/archive`, pass `NOSTR_NPUBS`:
+
+```bash
+docker run -d \
+  --name originless \
+  --restart unless-stopped \
+  -p 3232:3232 \
+  -e STORAGE_MAX=100GB \
+  -e NOSTR_NPUBS=npub1...,npub1... \
+  -v originless-data:/data \
+  -v originless-archive:/archive \
+  ghcr.io/besoeasy/originless:latest
+```
+
 ---
 
 ## 🔥 Key Features
@@ -43,8 +57,8 @@ docker run -d \
 - **🔒 Zero-Friction & Accountless**: No API keys, passwords, or authentication overhead needed for uploads. Perfect for local dev, public APIs, or AI agent integration.
 - **📁 Full Folder & DApp Uploads**: Upload complete static websites, React/Vite build directories (`dist/`), or asset folders with intact relative paths (unlike single-file media servers).
 - **🛡️ Tamper-Proof Cryptographic Verification**: Content-addressed by unique IPFS CIDs (`ipfs://QmX...`). Downloads can be cryptographically verified against the hash.
-- **🧹 Automated Smart Janitor**: Intelligent disk space management. Keeps uploads pinned for 7 days minimum and automatically evicts oldest files at 75% capacity to prevent disk overflow.
-- **📡 Nostr IPFS Archive**: Walks configured `npub`s, finds `ipfs://` links, gateway URLs, and NIP-94 (kind 1063) file events, and copies verified media onto a separate Docker volume that the janitor never GCs.
+- **🧹 Automated Smart Janitor**: Intelligent disk space management. Keeps uploads pinned for 30 days by default and automatically evicts oldest files at 75% capacity to prevent disk overflow.
+- **📡 Nostr IPFS Archive**: Walks configured `npub`s, finds `ipfs://` links, gateway URLs, NIP-92 `imeta` tags, and NIP-94 (kind 1063) file events, and copies verified media onto a separate Docker volume that the janitor never GCs.
 - **🤖 Built for Autonomous AI Agents**: Native endpoint design allows LLMs (Claude, Copilot, Cursor, Custom Agents) to host generated media, code snippets, or sites instantly.
 
 ---
@@ -67,6 +81,7 @@ docker run -d \
 | :--- | :--- |
 | **🚀 Decentralized DApp Hosting** | Drag-and-drop or upload your frontend `dist/` folder to host permanent, censorship-resistant web applications on IPFS. |
 | **💬 Nostr Media Attachments** | Instant, zero-auth media uploader for decentralized social apps (e.g., [0xchat](https://0xchat.com/)). |
+| **📡 Personal Nostr IPFS Archive** | Mirror IPFS media from your (or followed) `npub`s onto a local volume so kind 1063 files, `ipfs://` notes, and gateway links survive even if the original pin disappears. |
 | **🤖 Autonomous AI Agent Outputs** | Give AI assistants the ability to publish reports, interactive charts, and generated images with zero setup or API keys. |
 | **🖼️ Anonymous Image & Screenshot Sharing** | Instant backend for screenshot capture tools, screen recordings, and temporary image uploads. |
 | **📝 Pastebin & Code Snippet Sharing** | Share text, log files, or code snippets without fear of link rot or centralized deletion. |
@@ -87,11 +102,24 @@ docker run -d \
  ┌──────────────┐      Cryptographic CID         ┌──────────────────┐
  │ Public Peers │ <───────────────────────────── │  IPFS P2P Swarm  │
  └──────────────┘    Helia / Gateway Access      └──────────────────┘
+
+ ┌──────────────┐      Notes / kind 1063         ┌──────────────────┐
+ │ Nostr Relays │ ─────────────────────────────> │  Originless Node │
+ └──────────────┘                                └─────────┬────────┘
+                                                           │
+                                      Extract CIDs → Kubo fetch → verify
+                                                           │
+                                                           ▼
+                                                 ┌──────────────────┐
+                                                 │  /archive volume │
+                                                 │  (never GC'd)    │
+                                                 └──────────────────┘
 ```
 
 1. **Upload**: Send single files or directory trees via the Web UI or simple HTTP POST endpoint.
 2. **Pin & Distribute**: Originless pins the content locally on IPFS and broadcasts it to global P2P peers.
-3. **Automated Lifecycle**: Files are guaranteed pinned for 7 days. An automated janitor routine reconciles storage to keep usage below limits.
+3. **Automated Lifecycle**: Uploads stay pinned for `PIN_EXPIRY_DAYS` (default 30). An automated janitor reconciles storage and evicts oldest pins at 75% of `STORAGE_MAX`.
+4. **Nostr Archive** (optional): When `NOSTR_NPUBS` is set, Originless scans those accounts, downloads discovered IPFS objects through Kubo (gateway fallback + `x` sha256 when needed), and writes them to `/archive`. That volume is never janitor-evicted.
 
 ---
 
@@ -157,13 +185,35 @@ curl -X POST \
   http://localhost:3232/uploadfolder
 ```
 
+### Paste Text
+```bash
+curl -X POST -H "Content-Type: application/json" \
+  -d '{"content":"hello world","title":"note"}' \
+  http://localhost:3232/paste
+```
+
 ### Check Storage & Pins
 ```bash
 curl http://localhost:3232/pins
+curl http://localhost:3232/history
+curl http://localhost:3232/status
 ```
 
 ### Nostr IPFS Archive
-When `NOSTR_NPUBS` is set, Originless walks those accounts on a timer, extracts IPFS CIDs from notes, NIP-92 `imeta` tags, NIP-94 kind `1063` file events, `ipfs://` URLs, and public gateways, then copies the bytes to `/archive` (a separate volume the janitor never evicts). Kubo verifies CIDs; gateway fallbacks are hashed against the NIP-94 `x` tag when present.
+When `NOSTR_NPUBS` is set, Originless walks those accounts every `ARCHIVE_INTERVAL` minutes (first scan at startup), extracts IPFS CIDs, and copies the bytes to `/archive`.
+
+**Sources scanned**
+
+| Source | Example |
+| :--- | :--- |
+| `ipfs://` in note content | `ipfs://bafybei...` |
+| Public gateway URLs | `https://ipfs.io/ipfs/bafybei...`, `https://dweb.link/ipfs/...`, Pinata, Cloudflare, `<cid>.ipfs.*` subdomains |
+| NIP-94 kind `1063` | `["url", "ipfs://..."]`, `["m", "image/png"]`, `["x", "<sha256>"]` |
+| NIP-92 `imeta` tags | `["imeta", "url https://.../ipfs/<cid>", "m image/jpeg", "x <sha256>"]` |
+
+**Kinds:** `1` notes, `6` reposts, `20` pictures, `1063` files, `30023`/`30024` long-form, `9802` highlights.
+
+Kubo `cat`/`get` is preferred (CID-verified). If the swarm miss, HTTP gateways are tried and hashed against the NIP-94 `x` tag when present. Failed CIDs are retried up to 5 times; the janitor never deletes `/archive`.
 
 ```bash
 # List archived objects
@@ -171,14 +221,6 @@ curl http://localhost:3232/archive
 
 # Fetch a stored file (or directory tree)
 curl -O http://localhost:3232/archive/<cid>
-```
-
-Example events that are archived:
-
-```json
-{"kind": 1063, "tags": [["url", "ipfs://bafybeigdyrzt5sfp7udw7d4zseegik7bhgb55m6w7u3pj64jef7nyyd6ia"], ["m", "image/png"], ["x", "sha256-hex"]]}
-{"kind": 1, "content": "https://ipfs.io/ipfs/bafybeigdyrzt5sfp7udw7d4zseegik7bhgb55m6w7u3pj64jef7nyyd6ia"}
-{"kind": 1, "content": "ipfs://bafybeigdyrzt5sfp7udw7d4zseegik7bhgb55m6w7u3pj64jef7nyyd6ia"}
 ```
 
 ### Health Check
@@ -194,7 +236,7 @@ curl http://localhost:3232/health
 ```
 
 ### Prometheus Metrics
-Exposes Prometheus text-format metrics (request counts, uploads, pinned storage, IPFS health) for scraping by Prometheus, Grafana, or any metrics collector:
+Exposes Prometheus text-format metrics (request counts, uploads, pinned storage, IPFS health, Nostr archive size) for scraping by Prometheus, Grafana, or any metrics collector:
 ```bash
 curl http://localhost:3232/metrics
 ```
@@ -207,6 +249,8 @@ originless_pinned_count 12
 originless_pinned_bytes 52428800
 originless_ipfs_healthy 1
 originless_ipfs_peers 140
+originless_archive_count 8
+originless_archive_bytes 2097152
 ```
 
 ---
@@ -218,11 +262,16 @@ originless_ipfs_peers 140
 | `STORAGE_MAX` | `100GB` | Maximum storage limit allocated to IPFS data. |
 | `PIN_EXPIRY_DAYS` | `30` | Days a file stays pinned before the janitor may evict it. |
 | `NOSTR_NPUBS` | `""` | Comma-separated list or JSON array of Nostr `npub` public keys. Enables the IPFS media archiver. |
-| `NOSTR_RELAYS` | (famous relays) | Comma-separated list or JSON array of WebSocket Nostr relay URLs. |
+| `NOSTR_RELAYS` | famous relays | WebSocket relay URLs (comma-separated or JSON). Defaults: `wss://relay.damus.io`, `wss://nos.lol`, `wss://relay.nostr.band`, `wss://relay.primal.net`, `wss://nostr.mom`, `wss://purplerelay.com`, `wss://offchain.pub`, `wss://eden.nostr.land`. |
 | `ARCHIVE_DIR` | `/archive` | Directory (Docker volume) for permanent Nostr IPFS media. Never garbage-collected. |
-| `ARCHIVE_INTERVAL` | `15` | Minutes between Nostr archive scans. |
+| `ARCHIVE_INTERVAL` | `15` | Minutes between Nostr archive scans. First scan runs at startup. |
 
-> `/data` holds the SQLite database and IPFS repository (janitor may unpin). `/archive` holds permanent copies of IPFS media discovered on configured Nostr accounts.
+**Volumes**
+
+| Path | Role |
+| :--- | :--- |
+| `/data` | SQLite database and Kubo IPFS repository. Janitor may unpin content here. |
+| `/archive` | Permanent copies of IPFS media discovered on configured Nostr accounts. Never GC'd. |
 
 ---
 
