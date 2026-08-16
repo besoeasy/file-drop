@@ -27,37 +27,34 @@
   <div data-ol-nav></div>
 
   <main class="wrap">
-    <div class="hero hero-row">
-      <div>
-        <p class="kicker">[*] Private · Decentralized · Origin-independent</p>
-        <h1>Pin files to IPFS without a server</h1>
-        <p>Durable, cryptographic file hosting. Zero API keys, zero accounts, zero friction.</p>
-      </div>
-      <a class="btn btn-brand" href="/publish.html">Publish</a>
+    <div class="hero mb">
+      <p class="kicker">[*] Private · Decentralized · Origin-independent</p>
+      <h1>Pin files to IPFS without a server</h1>
+      <p>Durable, cryptographic file hosting. Zero API keys, zero accounts, zero friction.</p>
     </div>
 
     <div class="grid grid-4 stagger mb">
-      <article class="card card-pad">
+      <article class="tile">
         <div class="stat-value">{{ status.peerscount }}</div>
-        <div class="fig" style="margin-top:.55rem"><span>Fig 1.</span> <strong>Peers</strong> online</div>
+        <div class="fig">peers</div>
       </article>
-      <article class="card card-pad">
+      <article class="tile">
         <div class="stat-value">{{ status.repoObjects }}</div>
-        <div class="fig" style="margin-top:.55rem"><span>Fig 2.</span> <strong>Repo</strong> objects</div>
+        <div class="fig">objects</div>
       </article>
-      <article class="card card-pad">
+      <article class="tile">
         <div class="stat-value">{{ pinStats.count }}</div>
-        <div class="fig" style="margin-top:.55rem"><span>Fig 3.</span> <strong>Pinned</strong> · {{ pinStats.sizeStr }}</div>
+        <div class="fig">pinned · {{ pinStats.sizeStr }}</div>
       </article>
-      <article class="card card-pad">
+      <article class="tile">
         <div class="stat-value" style="font-size:1.15rem">{{ status.version }}</div>
-        <div class="fig" style="margin-top:.55rem"><span>Fig 4.</span> <strong>IPFS</strong> client</div>
+        <div class="fig">client</div>
       </article>
     </div>
 
-    <section class="card card-pad mb">
+    <section class="mb">
       <div class="between" style="margin-bottom:1rem">
-        <span class="kicker" style="margin:0">Storage</span>
+        <h2 class="kicker" style="margin:0">Storage</h2>
         <span class="mono faint" style="font-size:.75rem">{{ status.repoSize }}</span>
       </div>
       <div class="meter"><span :style="{ width: storagePercent + '%' }"></span></div>
@@ -67,16 +64,16 @@
       </div>
     </section>
 
-    <section class="card mb">
+    <section class="mb">
       <div class="card-head">
         <h2>Nostr backup</h2>
-        <a class="link-more" href="/archive.html">Details <i class="fas fa-arrow-right"></i></a>
+        <a class="link-more" href="/archive.html">Details →</a>
       </div>
-      <div v-if="!archive.enabled" class="card-pad muted">
-        No npubs configured. Set <span class="mono">NOSTR_NPUBS</span> to back up IPFS media from those accounts onto this node.
+      <div v-if="!archive.enabled" class="empty">
+        [*] No npubs configured. Set <span class="mono">NOSTR_NPUBS</span> to back up IPFS media from those accounts.
       </div>
-      <div v-else>
-        <div class="card-pad grid grid-4">
+      <div v-else class="stack">
+        <div class="grid grid-4">
           <div>
             <div class="kicker">Accounts</div>
             <div class="stat-value" style="font-size:1.25rem">{{ archive.accounts.length }}</div>
@@ -95,22 +92,24 @@
             <div class="mono" style="font-size:.9rem">every {{ archive.repinHours }}h</div>
           </div>
         </div>
-        <div v-for="acc in archive.accounts" :key="acc.npub" class="card-pad between">
+        <div v-for="acc in archive.accounts" :key="acc.npub" class="between list-row">
           <div class="mono faint grow truncate" :title="acc.npub">{{ acc.npub }}</div>
           <div class="stat-sub" style="flex-shrink:0">{{ acc.objects || 0 }} objects · {{ acc.sizeStr || '0 Bytes' }}</div>
         </div>
       </div>
     </section>
 
-    <div class="grid grid-12">
-      <section class="card">
+    <div class="grid grid-12 mb">
+      <section>
         <div class="card-head">
           <h2>Recent uploads</h2>
-          <a class="link-more" href="/library.html">View all <i class="fas fa-arrow-right"></i></a>
+          <a class="link-more" href="/library.html">View all →</a>
         </div>
-        <div v-if="history.length === 0" class="empty">No uploads yet</div>
+        <div v-if="history.length === 0" class="empty">
+          [*] No uploads yet. <a href="/publish.html">Publish</a> a file to pin it on this node.
+        </div>
         <div v-else>
-          <div v-for="item in recentUploads" :key="item.cid" class="card-pad between">
+          <div v-for="item in recentUploads" :key="item.cid" class="between list-row">
             <div class="grow">
               <div class="mono faint truncate" :title="item.cid">{{ item.cid.slice(0, 14) }}…</div>
               <div class="muted truncate" style="margin-top:.2rem">{{ item.filename }}</div>
@@ -124,9 +123,9 @@
         </div>
       </section>
 
-      <section class="card">
+      <section>
         <div class="card-head"><h2>Node</h2></div>
-        <div class="card-pad space">
+        <div class="stack">
           <div class="between">
             <span class="kicker" style="margin:0">Peer ID</span>
             <span class="mono" style="font-size:.75rem">{{ status.nodeId }}</span>
@@ -139,21 +138,21 @@
       </section>
     </div>
 
-    <section class="card mt">
+    <section>
       <div class="card-head"><h2>Bandwidth</h2></div>
-      <div class="card-pad grid" style="grid-template-columns:repeat(auto-fit,minmax(12rem,1fr));gap:1.5rem">
+      <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(12rem,1fr));gap:1.5rem">
         <div>
-          <div class="kicker"><i class="fas fa-arrow-down"></i> Ingress</div>
+          <div class="kicker">Ingress</div>
           <div class="stat-value">{{ status.bandwidthIn }}</div>
           <div class="stat-sub">total received</div>
         </div>
         <div>
-          <div class="kicker"><i class="fas fa-arrow-up"></i> Egress</div>
+          <div class="kicker">Egress</div>
           <div class="stat-value">{{ status.bandwidthOut }}</div>
           <div class="stat-sub">total sent</div>
         </div>
         <div>
-          <div class="kicker"><i class="fas fa-gauge-high"></i> Rate</div>
+          <div class="kicker">Rate</div>
           <div class="mono muted" style="font-size:.9rem">{{ status.bandwidthRate }}</div>
           <div class="stat-sub">current in / out</div>
         </div>

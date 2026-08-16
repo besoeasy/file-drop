@@ -21,11 +21,11 @@
         <p>These npubs are scanned on this node. Discovered IPFS media is copied to <span class="mono">{{ archive.dir }}</span> and never garbage-collected.</p>
       </div>
       <div class="hero-stats">
-        <div class="card card-pad hero-stat">
+        <div class="tile hero-stat">
           <div class="kicker">Objects</div>
           <div class="stat-value">{{ archive.count }}</div>
         </div>
-        <div class="card card-pad hero-stat">
+        <div class="tile hero-stat">
           <div class="kicker">Size</div>
           <div class="stat-value">{{ archive.sizeStr }}</div>
         </div>
@@ -33,32 +33,32 @@
     </div>
 
     <div class="grid grid-4 stagger mb">
-      <article class="card card-pad">
+      <article class="tile">
         <div class="kicker">Status</div>
-        <div style="font-weight:650">{{ archive.enabled ? (archive.scanning ? 'Scanning…' : 'Watching') : 'Idle' }}</div>
+        <div style="font-weight:600">{{ archive.enabled ? (archive.scanning ? 'Scanning…' : 'Watching') : 'Idle' }}</div>
         <div class="stat-sub">{{ archive.enabled ? (archive.accounts.length + ' npub' + (archive.accounts.length === 1 ? '' : 's')) : 'NOSTR_NPUBS unset' }}</div>
       </article>
-      <article class="card card-pad">
+      <article class="tile">
         <div class="kicker">Scan interval</div>
         <div class="stat-value" style="font-size:1.35rem">{{ archive.scanMinutes }}m</div>
         <div class="stat-sub">last {{ formatUnix(archive.lastScan) }}</div>
       </article>
-      <article class="card card-pad">
+      <article class="tile">
         <div class="kicker">Re-pin</div>
         <div class="stat-value" style="font-size:1.35rem">{{ archive.repinHours }}h</div>
         <div class="stat-sub">last {{ formatUnix(archive.lastRepin) }}</div>
       </article>
-      <article class="card card-pad">
+      <article class="tile">
         <div class="kicker">Volume</div>
         <div class="mono" style="font-size:.8rem;word-break:break-all">{{ archive.dir }}</div>
         <div class="stat-sub">janitor skip list</div>
       </article>
     </div>
 
-    <section class="card mb">
+    <section class="mb">
       <div class="card-head"><h2>Accounts this node backs up</h2></div>
       <div v-if="!archive.enabled" class="empty">
-        Set <span class="mono">NOSTR_NPUBS</span> on the container to start backing up Nostr IPFS media locally.
+        [*] Set <span class="mono">NOSTR_NPUBS</span> on the container to start backing up Nostr IPFS media locally.
       </div>
       <div v-else class="table-wrap">
         <table>
@@ -79,7 +79,7 @@
                     <div class="mono" style="font-size:.75rem;word-break:break-all">{{ acc.npub }}</div>
                     <div v-if="acc.pubkey" class="mono faint" style="font-size:.62rem;margin-top:.3rem;word-break:break-all">{{ acc.pubkey }}</div>
                   </div>
-                  <button class="icon-btn" type="button" @click="copyText(acc.npub, acc.npub)" :title="copied === acc.npub ? 'Copied' : 'Copy npub'">
+                  <button class="icon-btn" type="button" @click="copyText(acc.npub, acc.npub)" :class="{ 'is-copied': copied === acc.npub }" :title="copied === acc.npub ? 'Copied' : 'Copy npub'">
                     <i class="fas fa-copy"></i>
                   </button>
                   <a class="icon-btn" :href="'https://njump.me/' + acc.npub" target="_blank" rel="noopener" title="Open profile">
@@ -97,19 +97,19 @@
       </div>
     </section>
 
-    <section v-if="nostrRelays.length" class="card mb">
+    <section v-if="nostrRelays.length" class="mb">
       <div class="card-head"><h2>Relays</h2></div>
       <div class="card-pad row">
         <span v-for="relay in nostrRelays" :key="relay" class="chip">{{ relay }}</span>
       </div>
     </section>
 
-    <section class="card">
+    <section>
       <div class="card-head">
         <h2>Recent archived objects</h2>
-        <a class="link-more" href="/archive">JSON <i class="fas fa-arrow-right"></i></a>
+        <a class="link-more" href="/archive">JSON →</a>
       </div>
-      <div v-if="archiveItems.length === 0" class="empty">No archived objects yet</div>
+      <div v-if="archiveItems.length === 0" class="empty">[*] No archived objects yet. Scan runs automatically when npubs are configured.</div>
       <div v-else class="table-wrap">
         <table>
           <thead>

@@ -24,9 +24,9 @@
       <div>
         <section class="card relative">
           <div class="tabs">
-            <button class="tab" :class="{ 'is-on': mode === 'file' }" @click="setMode('file')"><i class="fas fa-file"></i> File</button>
-            <button class="tab" :class="{ 'is-on': mode === 'folder' }" @click="setMode('folder')"><i class="fas fa-folder"></i> Folder</button>
-            <button class="tab" :class="{ 'is-on': mode === 'paste' }" @click="setMode('paste')"><i class="fas fa-paste"></i> Paste</button>
+            <button class="tab" :class="{ 'is-on': mode === 'file' }" @click="setMode('file')">File</button>
+            <button class="tab" :class="{ 'is-on': mode === 'folder' }" @click="setMode('folder')">Folder</button>
+            <button class="tab" :class="{ 'is-on': mode === 'paste' }" @click="setMode('paste')">Paste</button>
           </div>
 
           <div v-if="mode !== 'paste'" class="card-pad">
@@ -202,7 +202,7 @@
         <section class="card">
           <div class="card-head">
             <h2>Quick reference</h2>
-            <button class="link-more" type="button" @click="copySnippet">{{ copied === 'curl' ? 'Copied' : 'Copy' }}</button>
+            <button class="link-more" type="button" :class="{ 'is-copied': copied === 'curl' }" @click="copySnippet">{{ copied === 'curl' ? 'Copied' : 'Copy' }}</button>
           </div>
           <div class="card-pad">
             <code class="code">{{ snippet }}</code>

@@ -142,7 +142,7 @@
           <nav class="nav-groups">${desktop}</nav>
           <div class="top-actions">
             <div class="peers"><span class="dot"></span><span class="mono" data-ol-peers>{{ status.peerscount }} peers</span></div>
-            <a class="btn btn-brand" href="/publish.html">Publish</a>
+            ${active === "publish" ? "" : '<a class="btn btn-brand" href="/publish.html">Publish</a>'}
           </div>
         </div>
         <nav class="mobile-nav">${mobile}</nav>

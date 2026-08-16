@@ -21,18 +21,18 @@
         <p>Recent uploads on this node. Search by filename or CID.</p>
       </div>
       <div class="hero-stats">
-        <div class="card card-pad hero-stat">
+        <div class="tile hero-stat">
           <div class="kicker">Pinned</div>
           <div class="stat-value">{{ pinStats.count }}</div>
         </div>
-        <div class="card card-pad hero-stat">
+        <div class="tile hero-stat">
           <div class="kicker">Size</div>
           <div class="stat-value">{{ pinStats.sizeStr }}</div>
         </div>
       </div>
     </div>
 
-    <section class="card">
+    <section>
       <div class="card-head">
         <h2>Upload history</h2>
         <div class="search">
@@ -41,7 +41,8 @@
         </div>
       </div>
       <div v-if="filteredHistory.length === 0" class="empty">
-        {{ history.length === 0 ? 'No uploads yet' : 'No matches for your search' }}
+        <template v-if="history.length === 0">[*] No uploads yet. <a href="/publish.html">Publish</a> a file to pin it on this node.</template>
+        <template v-else>[*] No matches for “{{ searchQuery }}”.</template>
       </div>
       <div v-else class="table-wrap">
         <table>
