@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Originless — Nostr IPFS post</title>
+  <style>
+    :root { --fg: #0a0a0a; --muted: #6b7280; --line: #e5e7eb; --brand: #ef4444; --ok: #059669; }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; font-family: Inter, system-ui, sans-serif; color: var(--fg);
+      background: #fff; max-width: 40rem; margin-inline: auto; padding: 1.5rem;
+    }
+    h1 { font-size: 1.25rem; margin: 0 0 .25rem; }
+    p.lead { color: var(--muted); font-size: .9rem; margin: 0 0 1.25rem; }
+    label { display: block; font-size: .7rem; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: .9rem 0 .35rem; }
+    input[type="text"], input[type="url"], textarea {
+      width: 100%; border: 1px solid var(--line); border-radius: 8px; padding: .6rem .75rem; font: inherit;
+    }
+    textarea { min-height: 6rem; resize: vertical; }
+    button {
+      border: 0; border-radius: 8px; padding: .7rem 1rem; font: inherit; font-weight: 600; cursor: pointer;
+      background: var(--brand); color: #fff;
+    }
+    button:disabled { opacity: .5; cursor: not-allowed; }
+    button.secondary { background: #111; }
+    .row { display: flex; gap: .5rem; flex-wrap: wrap; margin-top: 1rem; }
+    .status { font-size: .85rem; margin-top: 1rem; white-space: pre-wrap; color: var(--muted); }
+    .status.ok { color: var(--ok); }
+    .status.err { color: var(--brand); }
+    .preview { max-width: 100%; max-height: 220px; border-radius: 8px; margin-top: .5rem; display: none; }
+    .pubkey { font-family: ui-monospace, monospace; font-size: .8rem; word-break: break-all; }
+  </style>
+</head>
+<body>
+  <h1>Post to Nostr with ipfs://</h1>
+  <p class="lead">Uses your Nostr browser extension (NIP-07). The image is pinned on this Originless node, then the note is signed and sent to relays with an <code>ipfs://</code> link.</p>
+
+  <label>Originless URL</label>
+  <input id="origin" type="url" />
+
+  <label>Relays (one per line)</label>
+  <textarea id="relays">wss://relay.damus.io
+wss://nos.lol
+wss://relay.nostr.band
+wss://relay.primal.net</textarea>
+
+  <label>Image</label>
+  <input id="file" type="file" accept="image/*" />
+  <img id="preview" class="preview" alt="preview" />
+
+  <label>Caption</label>
+  <textarea id="caption" placeholder="What's happening?"></textarea>
+
+  <div class="row">
+    <button type="button" class="secondary" id="connect">Connect extension</button>
+    <button type="button" id="post" disabled>Upload &amp; post</button>
+  </div>
+  <p class="pubkey" id="pubkey"></p>
+  <p class="status" id="status"></p>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const statusEl = $("status");
+    let pubkey = "";
+
+    $("origin").value = window.location.origin;
+
+    function setStatus(msg, kind) {
+      statusEl.textContent = msg;
+      statusEl.className = "status" + (kind ? " " + kind : "");
+    }
+
+    $("file").addEventListener("change", () => {
+      const file = $("file").files[0];
+      const img = $("preview");
+      if (!file) { img.style.display = "none"; return; }
+      img.src = URL.createObjectURL(file);
+      img.style.display = "block";
+    });
+
+    $("connect").addEventListener("click", async () => {
+      try {
+        if (!window.nostr) {
+          setStatus("No Nostr extension found. Install Alby, nos2x, or another NIP-07 signer.", "err");
+          return;
+        }
+        pubkey = await window.nostr.getPublicKey();
+        $("pubkey").textContent = "Connected: " + pubkey;
+        $("post").disabled = false;
+        setStatus("Extension connected. Pick an image and post.", "ok");
+      } catch (err) {
+        setStatus("Connect failed: " + err.message, "err");
+      }
+    });
+
+    $("post").addEventListener("click", async () => {
+      const file = $("file").files[0];
+      const caption = $("caption").value.trim();
+      const origin = $("origin").value.replace(/\/$/, "");
+      const relays = $("relays").value.split(/\s+/).map((s) => s.trim()).filter(Boolean);
+      if (!pubkey) { setStatus("Connect the extension first.", "err"); return; }
+      if (!file) { setStatus("Choose an image.", "err"); return; }
+      if (!relays.length) { setStatus("Add at least one relay.", "err"); return; }
+
+      $("post").disabled = true;
+      try {
+        setStatus("Hashing image…");
+        const sha = await sha256Hex(file);
+
+        setStatus("Uploading to Originless…");
+        const form = new FormData();
+        form.append("file", file, file.name);
+        const res = await fetch(origin + "/upload", { method: "POST", body: form });
+        const body = await res.json();
+        if (!res.ok || !body.cid) {
+          throw new Error(body.details || body.error || body.message || ("upload HTTP " + res.status));
+        }
+        const cid = body.cid;
+        const ipfsUrl = "ipfs://" + cid;
+        const mime = body.type || file.type || "application/octet-stream";
+        const size = String(body.size || file.size);
+
+        setStatus("Uploaded " + ipfsUrl + "\nSigning with extension…");
+        const now = Math.floor(Date.now() / 1000);
+        const noteContent = caption ? caption + "\n\n" + ipfsUrl : ipfsUrl;
+        const imeta = ["imeta", "url " + ipfsUrl, "m " + mime, "x " + sha, "size " + size];
+
+        const kind1 = await window.nostr.signEvent({
+          kind: 1,
+          created_at: now,
+          tags: [imeta],
+          content: noteContent,
+        });
+        const kind1063 = await window.nostr.signEvent({
+          kind: 1063,
+          created_at: now,
+          tags: [
+            ["url", ipfsUrl],
+            ["m", mime],
+            ["x", sha],
+            ["size", size],
+            ["filename", file.name],
+          ],
+          content: caption || file.name,
+        });
+
+        setStatus("Publishing to " + relays.length + " relay(s)…");
+        const results = await publish(relays, [kind1, kind1063]);
+        setStatus(
+          "Posted.\n" + ipfsUrl + "\nkind 1: " + kind1.id + "\nkind 1063: " + kind1063.id + "\n\n" + results.join("\n"),
+          "ok"
+        );
+      } catch (err) {
+        setStatus("Failed: " + (err.message || err), "err");
+      } finally {
+        $("post").disabled = false;
+      }
+    });
+
+    async function sha256Hex(blob) {
+      const buf = await blob.arrayBuffer();
+      const hash = await crypto.subtle.digest("SHA-256", buf);
+      return [...new Uint8Array(hash)].map((b) => b.toString(16).padStart(2, "0")).join("");
+    }
+
+    function publish(relays, events) {
+      return Promise.all(relays.map((url) => publishToRelay(url, events)));
+    }
+
+    function publishToRelay(url, events) {
+      return new Promise((resolve) => {
+        let ws;
+        const timer = setTimeout(() => {
+          try { ws.close(); } catch (_) {}
+          resolve(url + ": timeout");
+        }, 8000);
+        try {
+          ws = new WebSocket(url);
+        } catch (err) {
+          clearTimeout(timer);
+          resolve(url + ": " + err.message);
+          return;
+        }
+        const oks = [];
+        ws.onopen = () => {
+          for (const evt of events) ws.send(JSON.stringify(["EVENT", evt]));
+        };
+        ws.onmessage = (ev) => {
+          try {
+            const msg = JSON.parse(ev.data);
+            if (msg[0] === "OK") oks.push(msg[1].slice(0, 8) + (msg[2] ? " ok" : " rejected"));
+            if (oks.length >= events.length) {
+              clearTimeout(timer);
+              ws.close();
+              resolve(url + ": " + oks.join(", "));
+            }
+          } catch (_) {}
+        };
+        ws.onerror = () => {
+          clearTimeout(timer);
+          resolve(url + ": error");
+        };
+      });
+    }
+  </script>
+</body>
+</html>

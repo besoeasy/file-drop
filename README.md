@@ -47,6 +47,10 @@ docker run -d \
   ghcr.io/besoeasy/originless:latest
 ```
 
+### Post an image to Nostr (`ipfs://`)
+
+With Originless running, open **[http://localhost:3232/examples/post.html](http://localhost:3232/examples/post.html)** in a browser with a NIP-07 extension (Alby, nos2x, …). It uploads the image to this node, then signs a kind `1` note (NIP-92 `imeta`) and a kind `1063` file event pointing at `ipfs://<cid>`.
+
 ---
 
 ## 🔥 Key Features

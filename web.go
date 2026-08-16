@@ -5,7 +5,7 @@ import (
 	"io/fs"
 )
 
-//go:embed static/*
+//go:embed static
 var staticFS embed.FS
 
 // GetFS returns the embedded static filesystem for web UI.
