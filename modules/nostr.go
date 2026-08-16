@@ -188,10 +188,10 @@ func QueryRelays(ctx context.Context, relays []string, filter NostrFilter, timeo
 }
 
 // FetchAllUserPosts fetches all posts for a single Nostr account (by npub or hex pubkey) across relays with pagination.
-func FetchAllUserPosts(ctx context.Context, npubOrHex string, opts FetchOptions) ([]NostrEvent, error) {
+func FetchAllUserPosts(ctx context.Context, npubOrHex string, opts FetchOptions) ([]NostrEvent, bool, error) {
 	pubkeyHex, err := DecodeNpubToHex(npubOrHex)
 	if err != nil {
-		return nil, fmt.Errorf("invalid account pubkey/npub: %w", err)
+		return nil, false, fmt.Errorf("invalid account pubkey/npub: %w", err)
 	}
 
 	relays := opts.Relays
@@ -226,6 +226,7 @@ func FetchAllUserPosts(ctx context.Context, npubOrHex string, opts FetchOptions)
 		allEvents = make(map[string]NostrEvent)
 		until     = opts.Until
 		pageCount = 0
+		complete  = false
 	)
 
 	if until <= 0 {
@@ -242,7 +243,12 @@ func FetchAllUserPosts(ctx context.Context, npubOrHex string, opts FetchOptions)
 		}
 
 		events, err := QueryRelays(ctx, relays, filter, reqTimeout)
-		if err != nil || len(events) == 0 {
+		if err != nil {
+			result := mapsToSlice(allEvents, opts.Limit)
+			return result, false, err
+		}
+		if len(events) == 0 {
+			complete = true
 			break
 		}
 
@@ -258,7 +264,12 @@ func FetchAllUserPosts(ctx context.Context, npubOrHex string, opts FetchOptions)
 			}
 		}
 
-		if newCount == 0 || minTimestamp >= until || (opts.Limit > 0 && len(allEvents) >= opts.Limit) {
+		if newCount == 0 || minTimestamp <= opts.Since {
+			complete = true
+			break
+		}
+		if opts.Limit > 0 && len(allEvents) >= opts.Limit {
+			complete = true
 			break
 		}
 
@@ -266,20 +277,21 @@ func FetchAllUserPosts(ctx context.Context, npubOrHex string, opts FetchOptions)
 		pageCount++
 	}
 
+	return mapsToSlice(allEvents, opts.Limit), complete, nil
+}
+
+func mapsToSlice(allEvents map[string]NostrEvent, limit int) []NostrEvent {
 	result := make([]NostrEvent, 0, len(allEvents))
 	for _, evt := range allEvents {
 		result = append(result, evt)
 	}
-
 	sort.Slice(result, func(i, j int) bool {
 		return result[i].CreatedAt > result[j].CreatedAt
 	})
-
-	if opts.Limit > 0 && len(result) > opts.Limit {
-		result = result[:opts.Limit]
+	if limit > 0 && len(result) > limit {
+		return result[:limit]
 	}
-
-	return result, nil
+	return result
 }
 
 // FetchPostsForConfiguredAccounts queries posts for all configured NostrNpubs and returns them mapped by account.
@@ -299,10 +311,13 @@ func FetchPostsForConfiguredAccounts(ctx context.Context, opts FetchOptions) (ma
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			posts, err := FetchAllUserPosts(ctx, npub, opts)
+			posts, complete, err := FetchAllUserPosts(ctx, npub, opts)
 			if err != nil {
 				log.Printf("[nostr] error fetching posts for %s: %v", npub, err)
 				return
+			}
+			if !complete {
+				log.Printf("[nostr] fetch for %s did not reach history start; will continue next cycle", npub)
 			}
 			mu.Lock()
 			results[npub] = posts

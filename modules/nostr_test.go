@@ -120,6 +120,7 @@ func TestExtractIPFSRefs(t *testing.T) {
 		wantCID string
 		wantX   string
 		wantM   string
+		wantFB  string
 	}{
 		{
 			name: "kind 1063 ipfs url tag",
@@ -164,6 +165,19 @@ func TestExtractIPFSRefs(t *testing.T) {
 			wantM:   "image/jpeg",
 		},
 		{
+			name: "imeta ipfs url with blossom fallback",
+			evt: NostrEvent{
+				Kind:    1,
+				Content: " ipfs://" + fileCID + " ",
+				Tags: [][]string{
+					{"imeta", "url ipfs://" + fileCID, "m image/jpeg", "fallback https://blossom.primal.net/photo.jpg"},
+				},
+			},
+			wantCID: fileCID,
+			wantM:   "image/jpeg",
+			wantFB:  "https://blossom.primal.net/photo.jpg",
+		},
+		{
 			name: "subdomain gateway",
 			evt: NostrEvent{
 				Kind:    1,
@@ -195,6 +209,9 @@ func TestExtractIPFSRefs(t *testing.T) {
 			}
 			if tt.wantM != "" && refs[0].Mime != tt.wantM {
 				t.Errorf("Mime = %s, want %s", refs[0].Mime, tt.wantM)
+			}
+			if tt.wantFB != "" && refs[0].Fallback != tt.wantFB {
+				t.Errorf("Fallback = %s, want %s", refs[0].Fallback, tt.wantFB)
 			}
 		})
 	}

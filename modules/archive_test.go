@@ -253,3 +253,74 @@ func TestExtractTarSafeOK(t *testing.T) {
 		t.Fatalf("body = %q", body)
 	}
 }
+
+func TestAdvanceCursorDoesNotSkipGaps(t *testing.T) {
+	dir := t.TempDir()
+	store, err := NewStore(filepath.Join(dir, "test.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer store.Close()
+	a := NewArchiver(store, nil, dir)
+	npub := "npub1gaptest"
+
+	cid := "QmZtmD2qtMeK4B6usxBaTm2WpuFiHg8wf5YDrQj83b27Bm"
+	e1 := NostrEvent{ID: "e1", PubKey: "pk", CreatedAt: 11}
+	e2 := NostrEvent{ID: "e2", PubKey: "pk", CreatedAt: 12, Content: "ipfs://" + cid}
+	e3 := NostrEvent{ID: "e3", PubKey: "pk", CreatedAt: 13}
+	if err := store.InsertArchiveEvent("e1", "pk", 11); err != nil {
+		t.Fatal(err)
+	}
+	if err := store.InsertArchiveEvent("e3", "pk", 13); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := a.advanceCursor(npub, 10, []NostrEvent{e3, e2, e1}, true); err != nil {
+		t.Fatal(err)
+	}
+	ts, err := store.GetNostrCursor(npub)
+	if err != nil || ts != 11 {
+		t.Fatalf("cursor=%d err=%v, want 11 (stop before missing media)", ts, err)
+	}
+
+	hold := "npub1holdcursor"
+	if err := store.InsertArchiveEvent("h1", "pk", 20); err != nil {
+		t.Fatal(err)
+	}
+	h1 := NostrEvent{ID: "h1", PubKey: "pk", CreatedAt: 20}
+	if err := a.advanceCursor(hold, 10, []NostrEvent{h1}, false); err != nil {
+		t.Fatal(err)
+	}
+	ts, err = store.GetNostrCursor(hold)
+	if err != nil || ts != 0 {
+		t.Fatalf("incomplete fetch must not advance cursor, got %d", ts)
+	}
+}
+
+func TestEventPendingRetriesRecordedEventsWithMissingCID(t *testing.T) {
+	dir := t.TempDir()
+	store, err := NewStore(filepath.Join(dir, "test.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer store.Close()
+	a := NewArchiver(store, nil, dir)
+
+	cid := "QmZtmD2qtMeK4B6usxBaTm2WpuFiHg8wf5YDrQj83b27Bm"
+	evt := NostrEvent{ID: "evt-miss", PubKey: "pk", CreatedAt: 1, Content: "ipfs://" + cid}
+	if err := store.InsertArchiveEvent(evt.ID, evt.PubKey, evt.CreatedAt); err != nil {
+		t.Fatal(err)
+	}
+	pending, err := a.eventPending(evt)
+	if err != nil || !pending {
+		t.Fatalf("expected pending retry, pending=%v err=%v", pending, err)
+	}
+
+	if err := store.InsertArchive(ArchiveItem{CID: cid, Filename: "x", Size: 1}); err != nil {
+		t.Fatal(err)
+	}
+	pending, err = a.eventPending(evt)
+	if err != nil || pending {
+		t.Fatalf("expected complete after archive hit, pending=%v err=%v", pending, err)
+	}
+}

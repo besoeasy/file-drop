@@ -155,7 +155,7 @@ func (a *Archiver) scanNpub(ctx context.Context, npub string) error {
 		return err
 	}
 
-	posts, err := FetchAllUserPosts(ctx, npub, FetchOptions{
+	posts, complete, err := FetchAllUserPosts(ctx, npub, FetchOptions{
 		Kinds:      ArchiveFetchKinds,
 		Since:      cursor,
 		PageSize:   250,
@@ -168,26 +168,22 @@ func (a *Archiver) scanNpub(ctx context.Context, npub string) error {
 
 	sort.Slice(posts, func(i, j int) bool {
 		if posts[i].CreatedAt == posts[j].CreatedAt {
-			return posts[i].ID < posts[j].ID
+			return posts[i].ID > posts[j].ID
 		}
-		return posts[i].CreatedAt < posts[j].CreatedAt
+		return posts[i].CreatedAt > posts[j].CreatedAt
 	})
 
-	log.Printf("[archive] npub=%s events=%d since=%d", npub, len(posts), cursor)
+	log.Printf("[archive] npub=%s events=%d since=%d complete=%v", npub, len(posts), cursor, complete)
 
 	for _, evt := range posts {
 		if ctx.Err() != nil {
 			return ctx.Err()
 		}
-		done, err := a.store.HasArchiveEvent(evt.ID)
+		pending, err := a.eventPending(evt)
 		if err != nil {
 			return err
 		}
-		if done {
-			if evt.CreatedAt > cursor {
-				cursor = evt.CreatedAt
-				_ = a.store.SetNostrCursor(npub, cursor)
-			}
+		if !pending {
 			continue
 		}
 
@@ -198,23 +194,68 @@ func (a *Archiver) scanNpub(ctx context.Context, npub string) error {
 				log.Printf("[archive] cid=%s event=%s: %v", ref.CID, evt.ID, err)
 				a.errors.Add(1)
 				blocked = true
-				break
 			}
 		}
 		if blocked {
-			return fmt.Errorf("download failed for event %s, will retry", evt.ID)
+			continue
 		}
 		if err := a.store.InsertArchiveEvent(evt.ID, evt.PubKey, evt.CreatedAt); err != nil {
 			return err
 		}
-		if evt.CreatedAt > cursor {
-			cursor = evt.CreatedAt
-			if err := a.store.SetNostrCursor(npub, cursor); err != nil {
-				return err
-			}
+	}
+
+	return a.advanceCursor(npub, cursor, posts, complete)
+}
+
+func (a *Archiver) eventPending(evt NostrEvent) (bool, error) {
+	refs := ExtractIPFSRefs(evt)
+	for _, ref := range refs {
+		has, err := a.store.HasArchive(ref.CID)
+		if err != nil {
+			return false, err
+		}
+		if !has {
+			return true, nil
 		}
 	}
-	return nil
+	done, err := a.store.HasArchiveEvent(evt.ID)
+	if err != nil {
+		return false, err
+	}
+	return !done, nil
+}
+
+func (a *Archiver) advanceCursor(npub string, cursor int64, posts []NostrEvent, complete bool) error {
+	if !complete {
+		log.Printf("[archive] npub=%s history fetch incomplete, holding cursor at %d", npub, cursor)
+		return nil
+	}
+
+	sorted := append([]NostrEvent(nil), posts...)
+	sort.Slice(sorted, func(i, j int) bool {
+		if sorted[i].CreatedAt == sorted[j].CreatedAt {
+			return sorted[i].ID < sorted[j].ID
+		}
+		return sorted[i].CreatedAt < sorted[j].CreatedAt
+	})
+
+	next := cursor
+	for _, evt := range sorted {
+		pending, err := a.eventPending(evt)
+		if err != nil {
+			return err
+		}
+		if pending {
+			break
+		}
+		if evt.CreatedAt > next {
+			next = evt.CreatedAt
+		}
+	}
+	if next <= cursor {
+		return nil
+	}
+	return a.store.SetNostrCursor(npub, next)
 }
 
 func (a *Archiver) archiveRef(ctx context.Context, npub string, evt NostrEvent, ref IPFSRef) error {
@@ -231,9 +272,10 @@ func (a *Archiver) archiveRef(ctx context.Context, npub string, evt NostrEvent, 
 		return err
 	}
 	if attempts >= maxArchiveAttempts {
-		log.Printf("[archive] giving up cid=%s after %d attempts", ref.CID, attempts)
-		return nil
+		log.Printf("[archive] cid=%s still missing after %d attempts, will retry next cycle", ref.CID, attempts)
 	}
+
+	log.Printf("[archive] fetching cid=%s event=%s npub=%s", ref.CID, evt.ID, npub)
 
 	dest := filepath.Join(a.dir, ref.CID)
 	tmp := filepath.Join(UploadTempDir, "archive-"+ref.CID)
@@ -300,6 +342,7 @@ func (a *Archiver) download(ctx context.Context, ref IPFSRef, dest string) (size
 
 	var last error
 	for _, u := range urls {
+		log.Printf("[archive] gateway fetch cid=%s url=%s", ref.CID, u)
 		size, sha, err = a.downloadHTTP(ctx, u, dest, FileLimit)
 		if err != nil {
 			last = err
@@ -324,6 +367,8 @@ func (a *Archiver) download(ctx context.Context, ref IPFSRef, dest string) (size
 }
 
 func (a *Archiver) downloadKubo(ctx context.Context, cid, dest string) (size int64, isDir bool, sha string, err error) {
+	ctx, cancel := context.WithTimeout(ctx, 25*time.Second)
+	defer cancel()
 	size, err = a.ipfs.CatToFile(ctx, cid, dest, FileLimit)
 	if err == nil {
 		sha, err = fileSHA256(dest)
@@ -347,6 +392,8 @@ func (a *Archiver) downloadKubo(ctx context.Context, cid, dest string) (size int
 }
 
 func (a *Archiver) downloadHTTP(ctx context.Context, rawURL, dest string, maxBytes int64) (int64, string, error) {
+	ctx, cancel := context.WithTimeout(ctx, 20*time.Second)
+	defer cancel()
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, rawURL, nil)
 	if err != nil {
 		return 0, "", err
@@ -543,6 +590,7 @@ func gatewayURLs(ref IPFSRef) []string {
 		urls = append(urls, u)
 	}
 	add(ref.URL)
+	add(ref.Fallback)
 	add("https://ipfs.io/ipfs/" + ref.CID)
 	add("https://dweb.link/ipfs/" + ref.CID)
 	return urls

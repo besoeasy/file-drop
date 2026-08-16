@@ -13,6 +13,7 @@ type IPFSRef struct {
 	Mime     string
 	SHA256   string
 	Filename string
+	Fallback string
 }
 
 var (
@@ -61,6 +62,9 @@ func ExtractIPFSRefs(evt NostrEvent) []IPFSRef {
 		}
 		if existing.Filename == "" {
 			existing.Filename = ref.Filename
+		}
+		if existing.Fallback == "" {
+			existing.Fallback = ref.Fallback
 		}
 	}
 
@@ -146,6 +150,10 @@ func parseImeta(parts []string) IPFSRef {
 			}
 		case "filename", "name":
 			ref.Filename = val
+		case "fallback":
+			if strings.HasPrefix(val, "http://") || strings.HasPrefix(val, "https://") {
+				ref.Fallback = val
+			}
 		}
 	}
 	if ref.Filename == "" {
