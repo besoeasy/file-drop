@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Originless</title>
   <meta name="description" content="Originless — pin files to IPFS without a server. Upload, pin, and share content directly from your browser." />
-  <meta name="theme-color" content="#e11d2e" />
+  <meta name="theme-color" content="#211e1e" />
   <link rel="icon" type="image/svg+xml" href="/logo.svg" />
   <link rel="apple-touch-icon" href="/logo.svg" />
   <meta property="og:type" content="website" />
@@ -29,45 +29,29 @@
   <main class="wrap">
     <div class="hero hero-row">
       <div>
-        <p class="kicker">Live telemetry · Private · Decentralized</p>
-        <h1>Originless<span style="color:var(--brand)">.</span></h1>
-        <p>Durable, cryptographic file hosting powered by IPFS. Zero API keys, zero accounts, zero friction.</p>
+        <p class="kicker">[*] Private · Decentralized · Origin-independent</p>
+        <h1>Pin files to IPFS without a server</h1>
+        <p>Durable, cryptographic file hosting. Zero API keys, zero accounts, zero friction.</p>
       </div>
-      <a class="btn btn-brand" href="/publish.html"><i class="fas fa-cloud-arrow-up"></i> Publish</a>
+      <a class="btn btn-brand" href="/publish.html">Publish</a>
     </div>
 
     <div class="grid grid-4 stagger mb">
       <article class="card card-pad">
-        <div class="between mb" style="margin-bottom:.9rem">
-          <span class="kicker" style="margin:0">Peers</span>
-          <span class="stat-icon"><i class="fas fa-share-nodes"></i></span>
-        </div>
         <div class="stat-value">{{ status.peerscount }}</div>
-        <div class="stat-sub">libp2p swarm</div>
+        <div class="fig" style="margin-top:.55rem"><span>Fig 1.</span> <strong>Peers</strong> online</div>
       </article>
       <article class="card card-pad">
-        <div class="between mb" style="margin-bottom:.9rem">
-          <span class="kicker" style="margin:0">Repo</span>
-          <span class="stat-icon"><i class="fas fa-database"></i></span>
-        </div>
         <div class="stat-value">{{ status.repoObjects }}</div>
-        <div class="stat-sub">objects on disk</div>
+        <div class="fig" style="margin-top:.55rem"><span>Fig 2.</span> <strong>Repo</strong> objects</div>
       </article>
       <article class="card card-pad">
-        <div class="between mb" style="margin-bottom:.9rem">
-          <span class="kicker" style="margin:0">Pinned</span>
-          <span class="stat-icon"><i class="fas fa-thumbtack"></i></span>
-        </div>
         <div class="stat-value">{{ pinStats.count }}</div>
-        <div class="stat-sub">{{ pinStats.sizeStr }}</div>
+        <div class="fig" style="margin-top:.55rem"><span>Fig 3.</span> <strong>Pinned</strong> · {{ pinStats.sizeStr }}</div>
       </article>
       <article class="card card-pad">
-        <div class="between mb" style="margin-bottom:.9rem">
-          <span class="kicker" style="margin:0">Client</span>
-          <span class="stat-icon"><i class="fas fa-cube"></i></span>
-        </div>
         <div class="stat-value" style="font-size:1.15rem">{{ status.version }}</div>
-        <div class="stat-sub">IPFS daemon</div>
+        <div class="fig" style="margin-top:.55rem"><span>Fig 4.</span> <strong>IPFS</strong> client</div>
       </article>
     </div>
 

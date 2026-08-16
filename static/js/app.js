@@ -123,23 +123,10 @@
   }
 
   function navHTML(active) {
-    const groups = [];
-    for (const page of PAGES) {
-      const last = groups[groups.length - 1];
-      if (!last || last.label !== page.group) groups.push({ label: page.group, items: [page] });
-      else last.items.push(page);
-    }
-
     const links = (page) =>
       `<a href="${page.href}" class="nav-link${page.id === active ? " is-active" : ""}">${page.label}</a>`;
 
-    const desktop = groups
-      .map(
-        (g) =>
-          `<div class="nav-group"><span class="nav-label">${g.label}</span>${g.items.map(links).join("")}</div>`
-      )
-      .join("");
-
+    const desktop = PAGES.map(links).join("");
     const mobile = PAGES.map(
       (page) =>
         `<a href="${page.href}" class="${page.id === active ? "is-active" : ""}"><i class="fas ${page.icon}"></i>${page.label}</a>`
@@ -149,13 +136,13 @@
       <header class="topbar">
         <div class="topbar-inner">
           <a class="brand" href="/">
-            <span class="brand-mark"><i class="fas fa-infinity"></i></span>
-            <span class="brand-name">Originless<span>.</span></span>
+            <span class="brand-mark" aria-hidden="true"></span>
+            <span class="brand-name">originless</span>
           </a>
           <nav class="nav-groups">${desktop}</nav>
           <div class="top-actions">
             <div class="peers"><span class="dot"></span><span class="mono" data-ol-peers>{{ status.peerscount }} peers</span></div>
-            <a class="btn btn-brand" href="/publish.html"><i class="fas fa-cloud-arrow-up"></i> Publish</a>
+            <a class="btn btn-brand" href="/publish.html">Publish</a>
           </div>
         </div>
         <nav class="mobile-nav">${mobile}</nav>
@@ -166,7 +153,9 @@
     return `
       <footer class="foot">
         <div class="foot-inner">
-          <a href="https://github.com/besoeasy/Originless" target="_blank" rel="noopener"><i class="fab fa-github"></i> Source</a>
+          <a href="https://github.com/besoeasy/Originless" target="_blank" rel="noopener">GitHub</a>
+          <a href="/docs.html">Docs</a>
+          <a href="/examples/">Examples</a>
           <span data-ol-ver>v{{ status.appver }}</span>
         </div>
       </footer>`;
