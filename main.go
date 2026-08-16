@@ -39,11 +39,18 @@ func main() {
 	ipfsClient := NewClient()
 	janitorMgr := NewJanitor(database, ipfsClient, storageMaxBytes)
 
+	if err := os.MkdirAll(ArchiveDir, 0o755); err != nil {
+		log.Fatalf("failed to create archive directory: %v", err)
+	}
+	archiver := NewArchiver(database, ipfsClient, ArchiveDir)
+
 	log.Printf("[STARTUP] running janitor reconciliation...")
 	janitorMgr.Reconcile()
+	archiver.Reconcile()
 
-	janitorCtx, janitorCancel := context.WithCancel(context.Background())
-	go janitorMgr.Run(janitorCtx, time.Duration(JanitorInterval)*time.Minute)
+	workerCtx, workerCancel := context.WithCancel(context.Background())
+	go janitorMgr.Run(workerCtx, time.Duration(JanitorInterval)*time.Minute)
+	go archiver.Run(workerCtx, time.Duration(ArchiveInterval)*time.Minute)
 
 	if len(NostrNpubs) > 0 {
 		log.Printf("[STARTUP] NOSTR_NPUBS configured count=%d keys=%v", len(NostrNpubs), NostrNpubs)
@@ -55,7 +62,7 @@ func main() {
 		log.Printf("[STARTUP] NOSTR_RELAYS configured count=%d relays=%v", len(NostrRelays), NostrRelays)
 	}
 
-	router := NewRouter(ipfsClient, janitorMgr)
+	router := NewRouter(ipfsClient, janitorMgr, archiver)
 
 	server := &http.Server{
 		Addr:              fmt.Sprintf("%s:%d", Host, Port),
@@ -83,7 +90,7 @@ func main() {
 	// container tears down.
 	forwardSignalToIPFS(sig)
 
-	janitorCancel()
+	workerCancel()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()

@@ -16,10 +16,10 @@ const (
 	Port             = 3232
 	Host             = "0.0.0.0"
 	UploadTempDir    = "/tmp/originless"
-	AppVersion       = "0.4.7"
+	AppVersion       = "0.5.0"
 	MaxConcurrentOps = 3
 	PinThreshold     = 75
-	JanitorInterval  = 60 // minutes
+	JanitorInterval  = 60      // minutes
 	PasteLimit       = 1 << 20 // 1 MiB max paste size
 )
 
@@ -30,6 +30,8 @@ var (
 	PinExpiryDays   = 30
 	NostrNpubs      []string
 	NostrRelays     []string
+	ArchiveDir      string
+	ArchiveInterval int
 )
 
 var DefaultFamousRelays = []string{
@@ -63,6 +65,8 @@ func init() {
 	PinExpiryDays = envOrDefaultInt("PIN_EXPIRY_DAYS", 30)
 	NostrNpubs = envOrDefaultSlice([]string{"NOSTR_NPUBS", "NPUBS", "NPUB", "NOSTR_ALLOWED_NPUBS"}, []string{})
 	NostrRelays = envOrDefaultSlice([]string{"NOSTR_RELAYS", "RELAYS"}, DefaultFamousRelays)
+	ArchiveDir = envOrDefault("ARCHIVE_DIR", "/archive")
+	ArchiveInterval = envOrDefaultInt("ARCHIVE_INTERVAL", 15)
 
 	storageMaxBytes, err := ParseSize(StorageMax)
 	if err != nil {

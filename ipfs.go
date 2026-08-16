@@ -1,6 +1,7 @@
 package main
 
 import (
+	"archive/tar"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -102,14 +103,14 @@ func (c *Client) GetStats(ctx context.Context) (*Stats, error) {
 		return ch
 	}
 
-	bwCh    := fetch("/api/v0/stats/bw?interval=5m")
-	repoCh  := fetch("/api/v0/repo/stat")
-	idCh    := fetch("/api/v0/id")
+	bwCh := fetch("/api/v0/stats/bw?interval=5m")
+	repoCh := fetch("/api/v0/repo/stat")
+	idCh := fetch("/api/v0/id")
 	peersCh := fetch("/api/v0/swarm/peers")
 
-	bwR    := <-bwCh
-	repoR  := <-repoCh
-	idR    := <-idCh
+	bwR := <-bwCh
+	repoR := <-repoCh
+	idR := <-idCh
 	peersR := <-peersCh
 
 	if bwR.err != nil {
@@ -125,27 +126,27 @@ func (c *Client) GetStats(ctx context.Context) (*Stats, error) {
 		return nil, peersR.err
 	}
 
-	bw    := bwR.data
-	repo  := repoR.data
-	id    := idR.data
+	bw := bwR.data
+	repo := repoR.data
+	id := idR.data
 	peers := peersR.data
 
 	stats := &Stats{}
-	stats.Bandwidth.TotalIn  = jsonInt64(bw["TotalIn"])
+	stats.Bandwidth.TotalIn = jsonInt64(bw["TotalIn"])
 	stats.Bandwidth.TotalOut = jsonInt64(bw["TotalOut"])
-	stats.Bandwidth.RateIn   = jsonInt64(bw["RateIn"])
-	stats.Bandwidth.RateOut  = jsonInt64(bw["RateOut"])
+	stats.Bandwidth.RateIn = jsonInt64(bw["RateIn"])
+	stats.Bandwidth.RateOut = jsonInt64(bw["RateOut"])
 	stats.Bandwidth.Interval = "1h"
 
-	stats.Repository.Size       = jsonInt64(repo["RepoSize"])
+	stats.Repository.Size = jsonInt64(repo["RepoSize"])
 	stats.Repository.StorageMax = jsonInt64(repo["StorageMax"])
 	stats.Repository.NumObjects = jsonInt64(repo["NumObjects"])
-	stats.Repository.Path       = jsonString(repo["RepoPath"])
-	stats.Repository.Version    = jsonString(repo["Version"])
+	stats.Repository.Path = jsonString(repo["RepoPath"])
+	stats.Repository.Version = jsonString(repo["Version"])
 
-	stats.Node.ID              = jsonString(id["ID"])
-	stats.Node.PublicKey       = jsonString(id["PublicKey"])
-	stats.Node.AgentVersion    = jsonString(id["AgentVersion"])
+	stats.Node.ID = jsonString(id["ID"])
+	stats.Node.PublicKey = jsonString(id["PublicKey"])
+	stats.Node.AgentVersion = jsonString(id["AgentVersion"])
 	stats.Node.ProtocolVersion = jsonString(id["ProtocolVersion"])
 
 	if rawPeers, ok := peers["Peers"].([]any); ok {
@@ -456,4 +457,142 @@ func (c *Client) Cat(ctx context.Context, cid string, maxBytes int64) ([]byte, e
 	defer reader.Close()
 
 	return io.ReadAll(io.LimitReader(reader, maxBytes))
+}
+
+// CatToFile streams a CID's raw bytes to dest, capped at maxBytes. Returns bytes written.
+func (c *Client) CatToFile(ctx context.Context, cid, dest string, maxBytes int64) (int64, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+"/api/v0/cat?arg="+url.QueryEscape(cid), nil)
+	if err != nil {
+		return 0, err
+	}
+
+	reader, err := c.do(req)
+	if err != nil {
+		return 0, err
+	}
+	defer reader.Close()
+
+	f, err := os.Create(dest)
+	if err != nil {
+		return 0, err
+	}
+	defer f.Close()
+
+	written, err := io.Copy(f, io.LimitReader(reader, maxBytes+1))
+	if err != nil {
+		return written, err
+	}
+	if written > maxBytes {
+		return written, fmt.Errorf("content exceeds max size %d", maxBytes)
+	}
+	return written, nil
+}
+
+func isDirectoryError(err error) bool {
+	if err == nil {
+		return false
+	}
+	msg := strings.ToLower(err.Error())
+	return strings.Contains(msg, "directory") || strings.Contains(msg, "this dag node is a directory")
+}
+
+// GetDirToPath extracts a CID directory (tar from /api/v0/get) into dest.
+func (c *Client) GetDirToPath(ctx context.Context, cid, dest string, maxBytes int64) (int64, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+"/api/v0/get?arg="+url.QueryEscape(cid), nil)
+	if err != nil {
+		return 0, err
+	}
+
+	reader, err := c.do(req)
+	if err != nil {
+		return 0, err
+	}
+	defer reader.Close()
+
+	if err := os.MkdirAll(dest, 0o755); err != nil {
+		return 0, err
+	}
+
+	return extractTarSafe(reader, dest, cid, maxBytes)
+}
+
+func extractTarSafe(r io.Reader, dest, cid string, maxBytes int64) (int64, error) {
+	tr := tar.NewReader(r)
+	var total int64
+	for {
+		hdr, err := tr.Next()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return total, err
+		}
+
+		rel := stripTarRoot(hdr.Name, cid)
+		if rel == "" && hdr.FileInfo().IsDir() {
+			continue
+		}
+		target, err := safeJoin(dest, rel)
+		if err != nil {
+			return total, err
+		}
+
+		switch hdr.Typeflag {
+		case tar.TypeDir:
+			if err := os.MkdirAll(target, 0o755); err != nil {
+				return total, err
+			}
+		case tar.TypeReg, tar.TypeGNUSparse:
+			if err := os.MkdirAll(filepath.Dir(target), 0o755); err != nil {
+				return total, err
+			}
+			if total+hdr.Size > maxBytes {
+				return total, fmt.Errorf("content exceeds max size %d", maxBytes)
+			}
+			f, err := os.OpenFile(target, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o644)
+			if err != nil {
+				return total, err
+			}
+			n, copyErr := io.Copy(f, io.LimitReader(tr, hdr.Size))
+			f.Close()
+			total += n
+			if copyErr != nil {
+				return total, copyErr
+			}
+		default:
+			continue
+		}
+	}
+	return total, nil
+}
+
+func stripTarRoot(name, cid string) string {
+	name = strings.TrimPrefix(name, "./")
+	name = strings.ReplaceAll(name, "\\", "/")
+	if name == cid || name == cid+"/" {
+		return ""
+	}
+	if strings.HasPrefix(name, cid+"/") {
+		return strings.TrimPrefix(name, cid+"/")
+	}
+	return name
+}
+
+func safeJoin(root, rel string) (string, error) {
+	if rel == "" {
+		return root, nil
+	}
+	cleaned := filepath.Clean(rel)
+	if cleaned == "." {
+		return root, nil
+	}
+	if strings.HasPrefix(cleaned, "..") || filepath.IsAbs(cleaned) {
+		return "", fmt.Errorf("invalid archive path %q", rel)
+	}
+	joined := filepath.Join(root, cleaned)
+	relToRoot, err := filepath.Rel(root, joined)
+	if err != nil || strings.HasPrefix(relToRoot, "..") {
+		return "", fmt.Errorf("invalid archive path %q", rel)
+	}
+	return joined, nil
 }

@@ -72,15 +72,129 @@ func TestExtractCIDsFromContent(t *testing.T) {
 	}
 
 	expected := map[string]bool{
-		"QmZtmD2qtMeK4B6usxBaTm2WpuFiHg8wf5YDrQj83b27Bm":                   true,
-		"bafybeicg2oxl5gah64cvk44phwsr33m42x3fvwg6b2kdt6v2iylndr2mqu":     true,
-		"QmXoypizjW3WknFiJnKLwHCnL72vedxjQkDDP1mXWo6uco":                   true,
+		"QmZtmD2qtMeK4B6usxBaTm2WpuFiHg8wf5YDrQj83b27Bm":              true,
+		"bafybeicg2oxl5gah64cvk44phwsr33m42x3fvwg6b2kdt6v2iylndr2mqu": true,
+		"QmXoypizjW3WknFiJnKLwHCnL72vedxjQkDDP1mXWo6uco":              true,
 	}
 
 	for _, cid := range cids {
 		if !expected[cid] {
 			t.Errorf("unexpected CID found: %s", cid)
 		}
+	}
+}
+
+func TestExtractIPFSRefs(t *testing.T) {
+	fileCID := "bafybeicg2oxl5gah64cvk44phwsr33m42x3fvwg6b2kdt6v2iylndr2mqu"
+	sha := "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+
+	tests := []struct {
+		name    string
+		evt     NostrEvent
+		wantCID string
+		wantX   string
+		wantM   string
+	}{
+		{
+			name: "kind 1063 ipfs url tag",
+			evt: NostrEvent{
+				Kind: 1063,
+				Tags: [][]string{
+					{"url", "ipfs://" + fileCID},
+					{"m", "image/png"},
+					{"x", sha},
+				},
+			},
+			wantCID: fileCID,
+			wantX:   sha,
+			wantM:   "image/png",
+		},
+		{
+			name: "kind 1 gateway link",
+			evt: NostrEvent{
+				Kind:    1,
+				Content: "https://ipfs.io/ipfs/" + fileCID,
+			},
+			wantCID: fileCID,
+		},
+		{
+			name: "kind 1 ipfs scheme",
+			evt: NostrEvent{
+				Kind:    1,
+				Content: "ipfs://" + fileCID,
+			},
+			wantCID: fileCID,
+		},
+		{
+			name: "imeta tag",
+			evt: NostrEvent{
+				Kind: 1,
+				Tags: [][]string{
+					{"imeta", "url https://cloudflare-ipfs.com/ipfs/" + fileCID, "m image/jpeg", "x " + sha},
+				},
+			},
+			wantCID: fileCID,
+			wantX:   sha,
+			wantM:   "image/jpeg",
+		},
+		{
+			name: "subdomain gateway",
+			evt: NostrEvent{
+				Kind:    1,
+				Content: "see https://" + fileCID + ".ipfs.dweb.link/photo.png",
+			},
+			wantCID: fileCID,
+		},
+		{
+			name: "pinata gateway",
+			evt: NostrEvent{
+				Kind:    1,
+				Content: "https://gateway.pinata.cloud/ipfs/" + fileCID + "?filename=shot.png",
+			},
+			wantCID: fileCID,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			refs := ExtractIPFSRefs(tt.evt)
+			if len(refs) != 1 {
+				t.Fatalf("expected 1 ref, got %d: %+v", len(refs), refs)
+			}
+			if refs[0].CID != tt.wantCID {
+				t.Errorf("CID = %s, want %s", refs[0].CID, tt.wantCID)
+			}
+			if tt.wantX != "" && refs[0].SHA256 != tt.wantX {
+				t.Errorf("SHA256 = %s, want %s", refs[0].SHA256, tt.wantX)
+			}
+			if tt.wantM != "" && refs[0].Mime != tt.wantM {
+				t.Errorf("Mime = %s, want %s", refs[0].Mime, tt.wantM)
+			}
+		})
+	}
+}
+
+func TestSafeJoin(t *testing.T) {
+	root := "/archive/bafy"
+	got, err := safeJoin(root, "index.html")
+	if err != nil || got != "/archive/bafy/index.html" {
+		t.Fatalf("safe join file: got %q err %v", got, err)
+	}
+	if _, err := safeJoin(root, "../etc/passwd"); err == nil {
+		t.Fatal("expected error for path escape")
+	}
+	if _, err := safeJoin(root, "/etc/passwd"); err == nil {
+		t.Fatal("expected error for absolute path")
+	}
+}
+
+func TestStripTarRoot(t *testing.T) {
+	cid := "bafybeicg2oxl5gah64cvk44phwsr33m42x3fvwg6b2kdt6v2iylndr2mqu"
+	if got := stripTarRoot(cid+"/photo.png", cid); got != "photo.png" {
+		t.Fatalf("strip nested = %q", got)
+	}
+	if got := stripTarRoot(cid, cid); got != "" {
+		t.Fatalf("strip root = %q", got)
 	}
 }
 

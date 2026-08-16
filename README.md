@@ -24,6 +24,8 @@ docker run -d \
   --restart unless-stopped \
   -p 3232:3232 \
   -e STORAGE_MAX=100GB \
+  -v originless-data:/data \
+  -v originless-archive:/archive \
   ghcr.io/besoeasy/originless:latest
 ```
 
@@ -42,6 +44,7 @@ docker run -d \
 - **📁 Full Folder & DApp Uploads**: Upload complete static websites, React/Vite build directories (`dist/`), or asset folders with intact relative paths (unlike single-file media servers).
 - **🛡️ Tamper-Proof Cryptographic Verification**: Content-addressed by unique IPFS CIDs (`ipfs://QmX...`). Downloads can be cryptographically verified against the hash.
 - **🧹 Automated Smart Janitor**: Intelligent disk space management. Keeps uploads pinned for 7 days minimum and automatically evicts oldest files at 75% capacity to prevent disk overflow.
+- **📡 Nostr IPFS Archive**: Walks configured `npub`s, finds `ipfs://` links, gateway URLs, and NIP-94 (kind 1063) file events, and copies verified media onto a separate Docker volume that the janitor never GCs.
 - **🤖 Built for Autonomous AI Agents**: Native endpoint design allows LLMs (Claude, Copilot, Cursor, Custom Agents) to host generated media, code snippets, or sites instantly.
 
 ---
@@ -159,6 +162,25 @@ curl -X POST \
 curl http://localhost:3232/pins
 ```
 
+### Nostr IPFS Archive
+When `NOSTR_NPUBS` is set, Originless walks those accounts on a timer, extracts IPFS CIDs from notes, NIP-92 `imeta` tags, NIP-94 kind `1063` file events, `ipfs://` URLs, and public gateways, then copies the bytes to `/archive` (a separate volume the janitor never evicts). Kubo verifies CIDs; gateway fallbacks are hashed against the NIP-94 `x` tag when present.
+
+```bash
+# List archived objects
+curl http://localhost:3232/archive
+
+# Fetch a stored file (or directory tree)
+curl -O http://localhost:3232/archive/<cid>
+```
+
+Example events that are archived:
+
+```json
+{"kind": 1063, "tags": [["url", "ipfs://bafybeigdyrzt5sfp7udw7d4zseegik7bhgb55m6w7u3pj64jef7nyyd6ia"], ["m", "image/png"], ["x", "sha256-hex"]]}
+{"kind": 1, "content": "https://ipfs.io/ipfs/bafybeigdyrzt5sfp7udw7d4zseegik7bhgb55m6w7u3pj64jef7nyyd6ia"}
+{"kind": 1, "content": "ipfs://bafybeigdyrzt5sfp7udw7d4zseegik7bhgb55m6w7u3pj64jef7nyyd6ia"}
+```
+
 ### Health Check
 ```bash
 curl http://localhost:3232/health
@@ -195,10 +217,12 @@ originless_ipfs_peers 140
 | :--- | :--- | :--- |
 | `STORAGE_MAX` | `100GB` | Maximum storage limit allocated to IPFS data. |
 | `PIN_EXPIRY_DAYS` | `30` | Days a file stays pinned before the janitor may evict it. |
-| `NOSTR_NPUBS` | `""` | Comma-separated list or JSON array of Nostr `npub` public keys. |
+| `NOSTR_NPUBS` | `""` | Comma-separated list or JSON array of Nostr `npub` public keys. Enables the IPFS media archiver. |
 | `NOSTR_RELAYS` | (famous relays) | Comma-separated list or JSON array of WebSocket Nostr relay URLs. |
+| `ARCHIVE_DIR` | `/archive` | Directory (Docker volume) for permanent Nostr IPFS media. Never garbage-collected. |
+| `ARCHIVE_INTERVAL` | `15` | Minutes between Nostr archive scans. |
 
-> All other paths are fixed: the SQLite database and IPFS node repository live at `/data` (the container's persistent volume).
+> `/data` holds the SQLite database and IPFS repository (janitor may unpin). `/archive` holds permanent copies of IPFS media discovered on configured Nostr accounts.
 
 ---
 

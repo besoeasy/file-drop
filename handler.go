@@ -15,14 +15,16 @@ type Handler struct {
 	ipfs      *Client
 	janitor   *Manager
 	metrics   *Metrics
+	archive   *Archiver
 	semaphore chan struct{}
 }
 
-func NewHandler(ipfsClient *Client, janitorManager *Manager, metrics *Metrics) *Handler {
+func NewHandler(ipfsClient *Client, janitorManager *Manager, metrics *Metrics, archiver *Archiver) *Handler {
 	return &Handler{
 		ipfs:      ipfsClient,
 		janitor:   janitorManager,
 		metrics:   metrics,
+		archive:   archiver,
 		semaphore: make(chan struct{}, MaxConcurrentOps),
 	}
 }
@@ -63,13 +65,13 @@ func (h *Handler) Status(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJSON(w, http.StatusOK, map[string]any{
-		"status":    "success",
-		"timestamp": time.Now().UTC().Format(time.RFC3339),
-		"bandwidth": stats.Bandwidth,
+	payload := map[string]any{
+		"status":     "success",
+		"timestamp":  time.Now().UTC().Format(time.RFC3339),
+		"bandwidth":  stats.Bandwidth,
 		"repository": stats.Repository,
-		"node":      stats.Node,
-		"peers":     stats.Peers,
+		"node":       stats.Node,
+		"peers":      stats.Peers,
 		"storageLimit": map[string]any{
 			"configured": StorageMax,
 			"current":    FormatBytes(stats.Repository.StorageMax),
@@ -78,10 +80,21 @@ func (h *Handler) Status(w http.ResponseWriter, r *http.Request) {
 			"configured": FormatBytes(FileLimit),
 			"bytes":      FileLimit,
 		},
-		"nostrNpubs":   NostrNpubs,
-		"nostrRelays":  NostrRelays,
-		"appVersion":   AppVersion,
-	})
+		"nostrNpubs":  NostrNpubs,
+		"nostrRelays": NostrRelays,
+		"appVersion":  AppVersion,
+	}
+	if h.archive != nil {
+		if count, size, err := h.archive.GetStats(); err == nil {
+			payload["archive"] = map[string]any{
+				"count":   count,
+				"size":    size,
+				"sizeStr": FormatBytes(size),
+				"dir":     ArchiveDir,
+			}
+		}
+	}
+	writeJSON(w, http.StatusOK, payload)
 }
 
 func (h *Handler) Upload(w http.ResponseWriter, r *http.Request) {
@@ -422,6 +435,97 @@ func (h *Handler) PinStats(w http.ResponseWriter, r *http.Request) {
 		"storageLimit":  StorageMax,
 		"threshold":     PinThreshold,
 	})
+}
+
+func (h *Handler) ArchiveList(w http.ResponseWriter, r *http.Request) {
+	if h.archive == nil {
+		writeJSON(w, http.StatusOK, map[string]any{
+			"status": "success",
+			"items":  []ArchiveItem{},
+		})
+		return
+	}
+
+	limit := 50
+	offset := 0
+	if v := r.URL.Query().Get("limit"); v != "" {
+		if parsed, err := strconv.Atoi(v); err == nil && parsed > 0 && parsed <= 200 {
+			limit = parsed
+		}
+	}
+	if v := r.URL.Query().Get("offset"); v != "" {
+		if parsed, err := strconv.Atoi(v); err == nil && parsed >= 0 {
+			offset = parsed
+		}
+	}
+
+	items, err := h.archive.List(limit, offset)
+	if err != nil {
+		log.Printf("Archive list error: %v", err)
+		writeJSON(w, http.StatusInternalServerError, map[string]any{
+			"error":   "Failed to list archive",
+			"details": err.Error(),
+		})
+		return
+	}
+	if items == nil {
+		items = []ArchiveItem{}
+	}
+
+	count, size, _ := h.archive.GetStats()
+	writeJSON(w, http.StatusOK, map[string]any{
+		"status":  "success",
+		"items":   items,
+		"count":   count,
+		"size":    size,
+		"sizeStr": FormatBytes(size),
+		"limit":   limit,
+		"offset":  offset,
+	})
+}
+
+func (h *Handler) ArchiveGet(w http.ResponseWriter, r *http.Request) {
+	if h.archive == nil {
+		writeJSON(w, http.StatusNotFound, map[string]any{"error": "Archive not available"})
+		return
+	}
+
+	cid := r.PathValue("cid")
+	if !ValidCID(cid) {
+		writeJSON(w, http.StatusBadRequest, map[string]any{"error": "Invalid CID"})
+		return
+	}
+
+	root := h.archive.Path(cid)
+	info, err := os.Stat(root)
+	if err != nil {
+		writeJSON(w, http.StatusNotFound, map[string]any{"error": "Not in archive"})
+		return
+	}
+
+	rest := r.PathValue("path")
+	if !info.IsDir() {
+		if rest != "" {
+			writeJSON(w, http.StatusNotFound, map[string]any{"error": "Not a directory"})
+			return
+		}
+		if item, _ := h.archive.Get(cid); item != nil {
+			if item.Mime != "" {
+				w.Header().Set("Content-Type", item.Mime)
+			}
+			name := item.Filename
+			if name == "" {
+				name = cid
+			}
+			w.Header().Set("Content-Disposition", "inline; filename=\""+name+"\"")
+		}
+		http.ServeFile(w, r, root)
+		return
+	}
+
+	prefix := "/archive/" + cid
+	fs := http.StripPrefix(prefix, http.FileServer(http.Dir(root)))
+	fs.ServeHTTP(w, r)
 }
 
 func writeJSON(w http.ResponseWriter, status int, payload any) {

@@ -8,9 +8,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"regexp"
 	"sort"
-	"strings"
 	"sync"
 	"time"
 
@@ -50,14 +48,11 @@ type FetchOptions struct {
 	ReqTimeout time.Duration
 }
 
-// DefaultFetchKinds includes standard text notes (1), reposts (6), long-form articles (30023, 30024), and highlights (9802).
-var DefaultFetchKinds = []int{1, 6, 30023, 30024, 9802}
+// DefaultFetchKinds includes notes, reposts, pictures, NIP-94 files, long-form, and highlights.
+var DefaultFetchKinds = []int{1, 6, 20, 1063, 30023, 30024, 9802}
 
-var (
-	cidV0Pattern    = regexp.MustCompile(`\bQm[1-9A-HJ-NP-Za-km-z]{44}\b`)
-	cidV1Pattern    = regexp.MustCompile(`\b[bB][a-zA-Z2-7]{58,}\b`)
-	ipfsURLPattern  = regexp.MustCompile(`(?i)\b(?:ipfs://|https?://(?:[^/]+\.)?(?:dweb\.link|ipfs\.io)/ipfs/)([A-Za-z0-9]+(?:[A-Za-z0-9._-]*))`)
-)
+// ArchiveFetchKinds is the subset scanned for IPFS media to pin permanently.
+var ArchiveFetchKinds = []int{1, 6, 20, 1063, 30023, 30024, 9802}
 
 func randomSubID() string {
 	b := make([]byte, 8)
@@ -318,32 +313,4 @@ func FetchPostsForConfiguredAccounts(ctx context.Context, opts FetchOptions) (ma
 
 	wg.Wait()
 	return results, nil
-}
-
-// ExtractCIDsFromContent scans event text content for IPFS CIDs (v0, v1, and ipfs:// URLs).
-func ExtractCIDsFromContent(content string) []string {
-	var found []string
-	seen := make(map[string]bool)
-
-	add := func(raw string) {
-		clean := strings.Trim(raw, `"'<>(),;[]{}* `)
-		if len(clean) >= 46 && len(clean) <= 120 && !seen[clean] {
-			seen[clean] = true
-			found = append(found, clean)
-		}
-	}
-
-	for _, m := range ipfsURLPattern.FindAllStringSubmatch(content, -1) {
-		if len(m) > 1 {
-			add(m[1])
-		}
-	}
-	for _, m := range cidV0Pattern.FindAllString(content, -1) {
-		add(m)
-	}
-	for _, m := range cidV1Pattern.FindAllString(content, -1) {
-		add(m)
-	}
-
-	return found
 }

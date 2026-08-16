@@ -14,6 +14,8 @@ ENV STORAGE_MAX=100GB
 ENV PIN_EXPIRY_DAYS=30
 ENV NOSTR_NPUBS=""
 ENV NOSTR_RELAYS=""
+ENV ARCHIVE_DIR=/archive
+ENV ARCHIVE_INTERVAL=15
 
 RUN apk add --no-cache ca-certificates gcompat kubo && \
   adduser -D -h /app originless
@@ -22,13 +24,13 @@ WORKDIR /app
 
 COPY --from=builder /originless /app/originless
 
-RUN mkdir -p /tmp/originless /data && chown -R originless:originless /app /tmp/originless /data
+RUN mkdir -p /tmp/originless /data /archive && chown -R originless:originless /app /tmp/originless /data /archive
 
 USER originless
 
 EXPOSE 3232 4001/tcp 4001/udp
 
-VOLUME ["/data"]
+VOLUME ["/data", "/archive"]
 
 STOPSIGNAL SIGTERM
 

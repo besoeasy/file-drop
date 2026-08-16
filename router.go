@@ -4,9 +4,9 @@ import (
 	"net/http"
 )
 
-func NewRouter(ipfsClient *Client, janitorManager *Manager) http.Handler {
+func NewRouter(ipfsClient *Client, janitorManager *Manager, archiver *Archiver) http.Handler {
 	metrics := NewMetrics()
-	handler := NewHandler(ipfsClient, janitorManager, metrics)
+	handler := NewHandler(ipfsClient, janitorManager, metrics, archiver)
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /health", handler.Health)
@@ -17,7 +17,10 @@ func NewRouter(ipfsClient *Client, janitorManager *Manager) http.Handler {
 	mux.HandleFunc("GET /paste/{cid}", handler.GetPaste)
 	mux.HandleFunc("GET /history", handler.History)
 	mux.HandleFunc("GET /pins", handler.PinStats)
-	mux.HandleFunc("GET /metrics", metrics.Handler(janitorManager, ipfsClient))
+	mux.HandleFunc("GET /archive", handler.ArchiveList)
+	mux.HandleFunc("GET /archive/{cid}", handler.ArchiveGet)
+	mux.HandleFunc("GET /archive/{cid}/{path...}", handler.ArchiveGet)
+	mux.HandleFunc("GET /metrics", metrics.Handler(janitorManager, ipfsClient, archiver))
 
 	// Serve embedded web UI assets directly
 	staticFS := GetFS()
