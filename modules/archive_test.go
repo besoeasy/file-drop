@@ -1,4 +1,4 @@
-package main
+package modules
 
 import (
 	"archive/tar"
@@ -73,6 +73,26 @@ func TestStoreArchive(t *testing.T) {
 	count, size, err := store.GetArchiveStats()
 	if err != nil || count != 1 || size != 42 {
 		t.Fatalf("stats count=%d size=%d err=%v", count, size, err)
+	}
+
+	if err := store.InsertArchive(ArchiveItem{
+		CID:          "QmZtmD2qtMeK4B6usxBaTm2WpuFiHg8wf5YDrQj83b27Bm",
+		Filename:     "other.png",
+		Size:         10,
+		SourcePubkey: "3bf0c63fcb93463407af97a5e5ee64fa883d107ef9e558472c4eb9aaaefa459d",
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if err := store.InsertArchiveEvent("evt-a", "3bf0c63fcb93463407af97a5e5ee64fa883d107ef9e558472c4eb9aaaefa459d", 1); err != nil {
+		t.Fatal(err)
+	}
+	pc, psz, err := store.GetArchiveStatsForPubkey("3bf0c63fcb93463407af97a5e5ee64fa883d107ef9e558472c4eb9aaaefa459d")
+	if err != nil || pc != 1 || psz != 10 {
+		t.Fatalf("pubkey stats count=%d size=%d err=%v", pc, psz, err)
+	}
+	ev, err := store.CountArchiveEventsForPubkey("3bf0c63fcb93463407af97a5e5ee64fa883d107ef9e558472c4eb9aaaefa459d")
+	if err != nil || ev != 1 {
+		t.Fatalf("events=%d err=%v", ev, err)
 	}
 }
 

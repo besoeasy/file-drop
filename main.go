@@ -2,7 +2,9 @@ package main
 
 import (
 	"context"
+	"embed"
 	"fmt"
+	"io/fs"
 	"log"
 	"net/http"
 	"os"
@@ -12,10 +14,23 @@ import (
 	"strings"
 	"syscall"
 	"time"
+
+	"github.com/besoeasy/originless/modules"
 )
 
+//go:embed static
+var staticFS embed.FS
+
+func uiFS() fs.FS {
+	sub, err := fs.Sub(staticFS, "static")
+	if err != nil {
+		panic(err)
+	}
+	return sub
+}
+
 func main() {
-	if err := os.MkdirAll(UploadTempDir, 0o755); err != nil {
+	if err := os.MkdirAll(modules.UploadTempDir, 0o755); err != nil {
 		log.Fatalf("failed to create upload temp directory: %v", err)
 	}
 
@@ -25,47 +40,47 @@ func main() {
 	}
 
 	dbPath := filepath.Join(dataDir, "originless.db")
-	database, err := NewStore(dbPath)
+	database, err := modules.NewStore(dbPath)
 	if err != nil {
 		log.Fatalf("failed to open database: %v", err)
 	}
 	defer database.Close()
 
-	storageMaxBytes, err := ParseSize(StorageMax)
+	storageMaxBytes, err := modules.ParseSize(modules.StorageMax)
 	if err != nil {
 		log.Fatalf("invalid STORAGE_MAX: %v", err)
 	}
 
-	ipfsClient := NewClient()
-	janitorMgr := NewJanitor(database, ipfsClient, storageMaxBytes)
+	ipfsClient := modules.NewClient()
+	janitorMgr := modules.NewJanitor(database, ipfsClient, storageMaxBytes)
 
-	if err := os.MkdirAll(ArchiveDir, 0o755); err != nil {
+	if err := os.MkdirAll(modules.ArchiveDir, 0o755); err != nil {
 		log.Fatalf("failed to create archive directory: %v", err)
 	}
-	archiver := NewArchiver(database, ipfsClient, ArchiveDir)
+	archiver := modules.NewArchiver(database, ipfsClient, modules.ArchiveDir)
 
 	log.Printf("[STARTUP] running janitor reconciliation...")
 	janitorMgr.Reconcile()
 	archiver.Reconcile()
 
 	workerCtx, workerCancel := context.WithCancel(context.Background())
-	go janitorMgr.Run(workerCtx, time.Duration(JanitorInterval)*time.Minute)
-	go archiver.Run(workerCtx, time.Duration(ArchiveInterval)*time.Minute, time.Duration(ArchiveRepinHours)*time.Hour)
+	go janitorMgr.Run(workerCtx, time.Duration(modules.JanitorInterval)*time.Minute)
+	go archiver.Run(workerCtx, time.Duration(modules.ArchiveInterval)*time.Minute, time.Duration(modules.ArchiveRepinHours)*time.Hour)
 
-	if len(NostrNpubs) > 0 {
-		log.Printf("[STARTUP] NOSTR_NPUBS configured count=%d keys=%v", len(NostrNpubs), NostrNpubs)
-		for _, npub := range NostrNpubs {
-			if !IsValidNpub(npub) {
+	if len(modules.NostrNpubs) > 0 {
+		log.Printf("[STARTUP] NOSTR_NPUBS configured count=%d keys=%v", len(modules.NostrNpubs), modules.NostrNpubs)
+		for _, npub := range modules.NostrNpubs {
+			if !modules.IsValidNpub(npub) {
 				log.Printf("[STARTUP] WARNING: invalid Nostr npub key format: %q", npub)
 			}
 		}
-		log.Printf("[STARTUP] NOSTR_RELAYS configured count=%d relays=%v", len(NostrRelays), NostrRelays)
+		log.Printf("[STARTUP] NOSTR_RELAYS configured count=%d relays=%v", len(modules.NostrRelays), modules.NostrRelays)
 	}
 
-	router := NewRouter(ipfsClient, janitorMgr, archiver)
+	router := modules.NewRouter(ipfsClient, janitorMgr, archiver, uiFS())
 
 	server := &http.Server{
-		Addr:              fmt.Sprintf("%s:%d", Host, Port),
+		Addr:              fmt.Sprintf("%s:%d", modules.Host, modules.Port),
 		Handler:           router,
 		ReadHeaderTimeout: 10 * time.Second,
 		ReadTimeout:       30 * time.Second,
@@ -74,7 +89,7 @@ func main() {
 	}
 
 	go func() {
-		log.Printf("[STARTUP] SERVER_LISTENING host=%s port=%d url=http://%s:%d", Host, Port, Host, Port)
+		log.Printf("[STARTUP] SERVER_LISTENING host=%s port=%d url=http://%s:%d", modules.Host, modules.Port, modules.Host, modules.Port)
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("server failed: %v", err)
 		}

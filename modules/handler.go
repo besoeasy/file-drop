@@ -1,4 +1,4 @@
-package main
+package modules
 
 import (
 	"encoding/json"
@@ -85,14 +85,7 @@ func (h *Handler) Status(w http.ResponseWriter, r *http.Request) {
 		"appVersion":  AppVersion,
 	}
 	if h.archive != nil {
-		if count, size, err := h.archive.GetStats(); err == nil {
-			payload["archive"] = map[string]any{
-				"count":   count,
-				"size":    size,
-				"sizeStr": FormatBytes(size),
-				"dir":     ArchiveDir,
-			}
-		}
+		payload["archive"] = h.archive.StatusMap()
 	}
 	writeJSON(w, http.StatusOK, payload)
 }
@@ -481,6 +474,7 @@ func (h *Handler) ArchiveList(w http.ResponseWriter, r *http.Request) {
 		"sizeStr": FormatBytes(size),
 		"limit":   limit,
 		"offset":  offset,
+		"npubs":   NostrNpubs,
 	})
 }
 

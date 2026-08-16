@@ -1,4 +1,4 @@
-package main
+package modules
 
 import (
 	"context"
@@ -19,17 +19,19 @@ import (
 const maxArchiveAttempts = 5
 
 type Archiver struct {
-	store     *Store
-	ipfs      *Client
-	dir       string
-	http      *http.Client
-	running   atomic.Bool
-	saved     atomic.Int64
-	savedSize atomic.Int64
-	errors    atomic.Int64
-	repinned  atomic.Int64
-	repinErrs atomic.Int64
-	repinning atomic.Bool
+	store         *Store
+	ipfs          *Client
+	dir           string
+	http          *http.Client
+	running       atomic.Bool
+	saved         atomic.Int64
+	savedSize     atomic.Int64
+	errors        atomic.Int64
+	repinned      atomic.Int64
+	repinErrs     atomic.Int64
+	repinning     atomic.Bool
+	lastScanUnix  atomic.Int64
+	lastRepinUnix atomic.Int64
 }
 
 func NewArchiver(store *Store, ipfsClient *Client, dir string) *Archiver {
@@ -143,6 +145,7 @@ func (a *Archiver) Cycle(ctx context.Context) {
 	}
 
 	count, total, _ := a.store.GetArchiveStats()
+	a.lastScanUnix.Store(time.Now().Unix())
 	log.Printf("[archive] cycle done items=%d size=%s", count, FormatBytes(total))
 }
 
@@ -378,6 +381,64 @@ func (a *Archiver) GetStats() (count, size int64, err error) {
 	return a.store.GetArchiveStats()
 }
 
+func unixRFC3339(ts int64) string {
+	if ts <= 0 {
+		return ""
+	}
+	return time.Unix(ts, 0).UTC().Format(time.RFC3339)
+}
+
+func (a *Archiver) Accounts() []map[string]any {
+	out := make([]map[string]any, 0, len(NostrNpubs))
+	for _, npub := range NostrNpubs {
+		acc := map[string]any{
+			"npub":    npub,
+			"cursor":  int64(0),
+			"objects": int64(0),
+			"size":    int64(0),
+			"sizeStr": FormatBytes(0),
+			"events":  int64(0),
+		}
+		if cursor, err := a.store.GetNostrCursor(npub); err == nil {
+			acc["cursor"] = cursor
+			if at := unixRFC3339(cursor); at != "" {
+				acc["cursorAt"] = at
+			}
+		}
+		if hexKey, err := DecodeNpubToHex(npub); err == nil {
+			acc["pubkey"] = hexKey
+			if c, sz, err := a.store.GetArchiveStatsForPubkey(hexKey); err == nil {
+				acc["objects"] = c
+				acc["size"] = sz
+				acc["sizeStr"] = FormatBytes(sz)
+			}
+			if n, err := a.store.CountArchiveEventsForPubkey(hexKey); err == nil {
+				acc["events"] = n
+			}
+		}
+		out = append(out, acc)
+	}
+	return out
+}
+
+func (a *Archiver) StatusMap() map[string]any {
+	count, size, _ := a.GetStats()
+	return map[string]any{
+		"enabled":     len(NostrNpubs) > 0,
+		"count":       count,
+		"size":        size,
+		"sizeStr":     FormatBytes(size),
+		"dir":         ArchiveDir,
+		"scanMinutes": ArchiveInterval,
+		"repinHours":  ArchiveRepinHours,
+		"scanning":    a.running.Load(),
+		"repinning":   a.repinning.Load(),
+		"lastScan":    unixRFC3339(a.lastScanUnix.Load()),
+		"lastRepin":   unixRFC3339(a.lastRepinUnix.Load()),
+		"accounts":    a.Accounts(),
+	}
+}
+
 func (a *Archiver) pinFromDisk(ctx context.Context, cid, diskPath string, isDir bool) error {
 	if err := a.ipfs.PinAddWait(ctx, cid, 2*time.Minute); err == nil {
 		return nil
@@ -409,6 +470,7 @@ func (a *Archiver) Repin(ctx context.Context) {
 		return
 	}
 	if len(items) == 0 {
+		a.lastRepinUnix.Store(time.Now().Unix())
 		return
 	}
 
@@ -428,6 +490,7 @@ func (a *Archiver) Repin(ctx context.Context) {
 		a.repinned.Add(1)
 		ok++
 	}
+	a.lastRepinUnix.Store(time.Now().Unix())
 	log.Printf("[archive] re-pin done ok=%d failed=%d", ok, fail)
 }
 

@@ -34,7 +34,7 @@
 </head>
 <body>
   <h1>Post to Nostr with ipfs://</h1>
-  <p class="lead">Uses your Nostr browser extension (NIP-07). The image is pinned on this Originless node, then the note is signed and sent to relays with an <code>ipfs://</code> link.</p>
+  <p class="lead">Uses your Nostr browser extension (NIP-07: Alby, nos2x, nos2x-fox, …). Unlock the extension first, then connect. Prefer <code>http://localhost:3232/examples/post.html</code> if the permission popup never appears.</p>
 
   <label>Originless URL</label>
   <input id="origin" type="url" />
@@ -71,6 +71,42 @@ wss://relay.primal.net</textarea>
       statusEl.className = "status" + (kind ? " " + kind : "");
     }
 
+    function errText(err) {
+      if (!err) return "unknown error";
+      if (typeof err === "string") return err;
+      return err.message || err.msg || JSON.stringify(err);
+    }
+
+    function waitForNostr(ms) {
+      const deadline = Date.now() + ms;
+      return new Promise((resolve) => {
+        const tick = () => {
+          if (window.nostr) return resolve(window.nostr);
+          if (Date.now() >= deadline) return resolve(null);
+          setTimeout(tick, 100);
+        };
+        tick();
+      });
+    }
+
+    function withTimeout(promise, ms, label) {
+      return Promise.race([
+        promise,
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error(label + " timed out after " + ms / 1000 + "s — check the extension popup")), ms)
+        ),
+      ]);
+    }
+
+    async function getNostr() {
+      const nostr = window.nostr || await waitForNostr(2500);
+      if (!nostr) return null;
+      if (typeof nostr.enable === "function") {
+        await withTimeout(Promise.resolve(nostr.enable()), 20000, "extension.enable()");
+      }
+      return nostr;
+    }
+
     $("file").addEventListener("change", () => {
       const file = $("file").files[0];
       const img = $("preview");
@@ -80,17 +116,27 @@ wss://relay.primal.net</textarea>
     });
 
     $("connect").addEventListener("click", async () => {
+      $("connect").disabled = true;
       try {
-        if (!window.nostr) {
-          setStatus("No Nostr extension found. Install Alby, nos2x, or another NIP-07 signer.", "err");
+        setStatus("Looking for a Nostr extension… approve the popup if one appears.");
+        const nostr = await getNostr();
+        if (!nostr) {
+          setStatus(
+            "No window.nostr found.\n• Install Alby or nos2x and unlock it\n• Reload this tab\n• Use http://localhost:3232 (not 127.0.0.1) and allow this site in the extension",
+            "err"
+          );
           return;
         }
-        pubkey = await window.nostr.getPublicKey();
+        setStatus("Waiting for extension approval…");
+        pubkey = await withTimeout(Promise.resolve(nostr.getPublicKey()), 30000, "getPublicKey()");
+        if (!pubkey) throw new Error("extension returned an empty pubkey");
         $("pubkey").textContent = "Connected: " + pubkey;
         $("post").disabled = false;
         setStatus("Extension connected. Pick an image and post.", "ok");
       } catch (err) {
-        setStatus("Connect failed: " + err.message, "err");
+        setStatus("Connect failed: " + errText(err) + "\nUnlock the extension and click Connect again.", "err");
+      } finally {
+        $("connect").disabled = false;
       }
     });
 
@@ -122,17 +168,19 @@ wss://relay.primal.net</textarea>
         const size = String(body.size || file.size);
 
         setStatus("Uploaded " + ipfsUrl + "\nSigning with extension…");
+        const nostr = await getNostr();
+        if (!nostr) throw new Error("extension disappeared; reconnect");
         const now = Math.floor(Date.now() / 1000);
         const noteContent = caption ? caption + "\n\n" + ipfsUrl : ipfsUrl;
         const imeta = ["imeta", "url " + ipfsUrl, "m " + mime, "x " + sha, "size " + size];
 
-        const kind1 = await window.nostr.signEvent({
+        const kind1 = await nostr.signEvent({
           kind: 1,
           created_at: now,
           tags: [imeta],
           content: noteContent,
         });
-        const kind1063 = await window.nostr.signEvent({
+        const kind1063 = await nostr.signEvent({
           kind: 1063,
           created_at: now,
           tags: [

@@ -1,4 +1,4 @@
-package main
+package modules
 
 import (
 	"context"
@@ -53,14 +53,40 @@ func TestDecodeNpubToHex(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			hexVal, err := DecodeNpubToHex(tt.input)
-			if (err != nil) != tt.expectErr {
-				t.Fatalf("DecodeNpubToHex(%q) error = %v, expectErr = %v", tt.input, err, tt.expectErr)
+			got, err := DecodeNpubToHex(tt.input)
+			if tt.expectErr {
+				if err == nil {
+					t.Fatalf("expected error, got hex %s", got)
+				}
+				return
 			}
-			if hexVal != tt.expectedHex {
-				t.Errorf("DecodeNpubToHex(%q) = %q, want %q", tt.input, hexVal, tt.expectedHex)
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if got != tt.expectedHex {
+				t.Fatalf("got %s want %s", got, tt.expectedHex)
 			}
 		})
+	}
+}
+
+func TestEncodeNpubFromHexRoundTrip(t *testing.T) {
+	npubs := []string{
+		"npub180cvv07tjdrrgpa0j7j7tmnyl2yr6yr7l8j4s3evf6u64th6gkwsyjh6w6",
+		"npub1sg6plzptd64u62a878hep2kev88swjh3tw00gjsfl8f237lmu63q0uf63m",
+	}
+	for _, npub := range npubs {
+		hexKey, err := DecodeNpubToHex(npub)
+		if err != nil {
+			t.Fatalf("decode %s: %v", npub, err)
+		}
+		got, err := EncodeNpubFromHex(hexKey)
+		if err != nil {
+			t.Fatalf("encode %s: %v", hexKey, err)
+		}
+		if got != npub {
+			t.Fatalf("roundtrip: got %s want %s", got, npub)
+		}
 	}
 }
 

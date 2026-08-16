@@ -1,4 +1,4 @@
-package main
+package modules
 
 import (
 	"encoding/hex"
@@ -269,6 +269,40 @@ func DecodeNpubToHex(input string) (string, error) {
 		return "", fmt.Errorf("invalid pubkey length: expected 32 bytes, got %d", len(eightBitData))
 	}
 	return hex.EncodeToString(eightBitData), nil
+}
+
+func bech32CreateChecksum(hrp string, data []byte) []byte {
+	values := append(bech32HRPExpand(hrp), data...)
+	values = append(values, 0, 0, 0, 0, 0, 0)
+	mod := bech32Polymod(values) ^ 1
+	ret := make([]byte, 6)
+	for i := 0; i < 6; i++ {
+		ret[i] = byte((mod >> uint(5*(5-i))) & 31)
+	}
+	return ret
+}
+
+// EncodeNpubFromHex encodes a 32-byte hex pubkey as a bech32 npub.
+func EncodeNpubFromHex(hexKey string) (string, error) {
+	hexKey = strings.TrimSpace(strings.ToLower(hexKey))
+	raw, err := hex.DecodeString(hexKey)
+	if err != nil {
+		return "", fmt.Errorf("invalid hex pubkey: %w", err)
+	}
+	if len(raw) != 32 {
+		return "", fmt.Errorf("invalid pubkey length: expected 32 bytes, got %d", len(raw))
+	}
+	data, err := convertBits(raw, 8, 5, true)
+	if err != nil {
+		return "", err
+	}
+	combined := append(data, bech32CreateChecksum("npub", data)...)
+	var b strings.Builder
+	b.WriteString("npub1")
+	for _, v := range combined {
+		b.WriteByte(bech32Charset[v])
+	}
+	return b.String(), nil
 }
 
 func ParseSize(sizeStr string) (int64, error) {

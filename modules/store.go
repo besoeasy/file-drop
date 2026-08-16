@@ -1,4 +1,4 @@
-package main
+package modules
 
 import (
 	"database/sql"
@@ -356,6 +356,24 @@ func (s *Store) GetArchiveStats() (count, size int64, err error) {
 		return 0, 0, err
 	}
 	return c.Int64, ssum.Int64, nil
+}
+
+func (s *Store) GetArchiveStatsForPubkey(pubkey string) (count, size int64, err error) {
+	var c, ssum sql.NullInt64
+	err = s.db.QueryRow(
+		`SELECT COUNT(*), COALESCE(SUM(size), 0) FROM archive WHERE source_pubkey = ?`,
+		pubkey,
+	).Scan(&c, &ssum)
+	if err != nil {
+		return 0, 0, err
+	}
+	return c.Int64, ssum.Int64, nil
+}
+
+func (s *Store) CountArchiveEventsForPubkey(pubkey string) (int64, error) {
+	var n sql.NullInt64
+	err := s.db.QueryRow(`SELECT COUNT(*) FROM archive_events WHERE pubkey = ?`, pubkey).Scan(&n)
+	return n.Int64, err
 }
 
 func (s *Store) HasArchiveEvent(eventID string) (bool, error) {

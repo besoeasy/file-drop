@@ -1,10 +1,11 @@
-package main
+package modules
 
 import (
+	"io/fs"
 	"net/http"
 )
 
-func NewRouter(ipfsClient *Client, janitorManager *Manager, archiver *Archiver) http.Handler {
+func NewRouter(ipfsClient *Client, janitorManager *Manager, archiver *Archiver, uiFS fs.FS) http.Handler {
 	metrics := NewMetrics()
 	handler := NewHandler(ipfsClient, janitorManager, metrics, archiver)
 
@@ -22,9 +23,7 @@ func NewRouter(ipfsClient *Client, janitorManager *Manager, archiver *Archiver) 
 	mux.HandleFunc("GET /archive/{cid}/{path...}", handler.ArchiveGet)
 	mux.HandleFunc("GET /metrics", metrics.Handler(janitorManager, ipfsClient, archiver))
 
-	// Serve embedded web UI assets directly
-	staticFS := GetFS()
-	mux.Handle("/", http.FileServer(http.FS(staticFS)))
+	mux.Handle("/", http.FileServer(http.FS(uiFS)))
 
 	return Chain(
 		metrics.Middleware(mux),

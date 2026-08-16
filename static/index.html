@@ -152,6 +152,10 @@
                     currentPage === item.id ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-900']">
           <i :class="['fas', item.icon, 'mr-1.5']"></i>{{ item.label }}
         </a>
+        <a href="/examples/"
+           class="px-4 py-2 text-xs font-semibold rounded-full text-gray-500 hover:text-gray-900 transition-all duration-300">
+          <i class="fas fa-flask mr-1.5"></i>Examples
+        </a>
       </div>
 
       <div class="flex items-center gap-3 shrink-0">
@@ -171,6 +175,10 @@
          :class="['flex-1 min-w-[80px] text-center py-3 text-[10px] font-semibold transition-all duration-300',
                   currentPage === item.id ? 'text-red-600' : 'text-gray-500']">
         <i :class="['fas', item.icon, 'block mb-1 text-sm']"></i>{{ item.label }}
+      </a>
+      <a href="/examples/"
+         class="flex-1 min-w-[80px] text-center py-3 text-[10px] font-semibold text-gray-500">
+        <i class="fas fa-flask block mb-1 text-sm"></i>Examples
       </a>
     </div>
   </nav>
@@ -238,6 +246,42 @@
         <span>threshold {{ pinStats.threshold }}%</span>
       </div>
     </div>
+
+    <!-- Nostr backup -->
+    <section class="bg-white rounded-2xl border border-gray-100 shadow-card overflow-hidden mb-8 hover:shadow-lift transition-all duration-300">
+      <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center">
+        <h2 class="text-sm font-bold">Nostr backup</h2>
+        <a href="#/archive" class="text-xs font-semibold text-gray-400 hover:text-red-500 transition-colors duration-300">Details <i class="fas fa-arrow-right ml-1"></i></a>
+      </div>
+      <div v-if="!archive.enabled" class="p-6 text-sm text-gray-500">
+        No npubs configured. Set <code class="font-mono text-xs bg-gray-50 px-1.5 py-0.5 rounded">NOSTR_NPUBS</code> to back up IPFS media from those accounts onto this node.
+      </div>
+      <div v-else>
+        <div class="px-6 py-4 grid grid-cols-2 md:grid-cols-4 gap-4 border-b border-gray-50">
+          <div>
+            <div class="label mb-1">Accounts</div>
+            <div class="font-mono text-lg font-bold">{{ archive.accounts.length }}</div>
+          </div>
+          <div>
+            <div class="label mb-1">Archived</div>
+            <div class="font-mono text-lg font-bold">{{ archive.count }}</div>
+            <div class="text-xs text-gray-400">{{ archive.sizeStr }}</div>
+          </div>
+          <div>
+            <div class="label mb-1">Scan</div>
+            <div class="font-mono text-sm">every {{ archive.scanMinutes }}m</div>
+          </div>
+          <div>
+            <div class="label mb-1">Re-pin</div>
+            <div class="font-mono text-sm">every {{ archive.repinHours }}h</div>
+          </div>
+        </div>
+        <div v-for="acc in archive.accounts" :key="acc.npub" class="px-6 py-3 border-b border-gray-50 last:border-0 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div class="font-mono text-xs break-all min-w-0">{{ acc.npub }}</div>
+          <div class="text-xs text-gray-400 shrink-0">{{ acc.objects || 0 }} objects · {{ acc.sizeStr || '0 Bytes' }}</div>
+        </div>
+      </div>
+    </section>
 
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
       <!-- Recent uploads -->
@@ -662,6 +706,140 @@
     </section>
   </main>
 
+  <!-- ============ PAGE: ARCHIVE ============ -->
+  <main v-else-if="currentPage === 'archive'" class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-8 py-8 md:py-12 animate-fade-in">
+    <div class="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
+      <div>
+        <div class="label mb-3"><i class="fas fa-box-archive mr-1.5 text-red-500"></i>Local Nostr IPFS backup</div>
+        <h1 class="text-3xl md:text-4xl font-extrabold tracking-tight">Archive<span class="accent-text">.</span></h1>
+        <p class="text-gray-500 mt-3 max-w-xl">These npubs are scanned on this node. Discovered IPFS media is copied to <span class="font-mono text-xs">{{ archive.dir }}</span> and never garbage-collected.</p>
+      </div>
+      <div class="flex gap-3">
+        <div class="bg-white rounded-2xl border border-gray-100 shadow-card px-5 py-3 text-center">
+          <div class="label mb-1">Objects</div>
+          <div class="font-mono text-lg font-bold">{{ archive.count }}</div>
+        </div>
+        <div class="bg-white rounded-2xl border border-gray-100 shadow-card px-5 py-3 text-center">
+          <div class="label mb-1">Size</div>
+          <div class="font-mono text-lg font-bold">{{ archive.sizeStr }}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+      <div class="bg-white rounded-2xl border border-gray-100 shadow-card p-5">
+        <div class="label mb-2">Status</div>
+        <div class="text-sm font-semibold">{{ archive.enabled ? (archive.scanning ? 'Scanning…' : 'Watching') : 'Idle' }}</div>
+        <div class="text-xs text-gray-400 mt-1">{{ archive.enabled ? (archive.accounts.length + ' npub' + (archive.accounts.length === 1 ? '' : 's')) : 'NOSTR_NPUBS unset' }}</div>
+      </div>
+      <div class="bg-white rounded-2xl border border-gray-100 shadow-card p-5">
+        <div class="label mb-2">Scan interval</div>
+        <div class="font-mono text-lg font-bold">{{ archive.scanMinutes }}m</div>
+        <div class="text-xs text-gray-400 mt-1">last {{ formatUnix(archive.lastScan) }}</div>
+      </div>
+      <div class="bg-white rounded-2xl border border-gray-100 shadow-card p-5">
+        <div class="label mb-2">Re-pin</div>
+        <div class="font-mono text-lg font-bold">{{ archive.repinHours }}h</div>
+        <div class="text-xs text-gray-400 mt-1">last {{ formatUnix(archive.lastRepin) }}</div>
+      </div>
+      <div class="bg-white rounded-2xl border border-gray-100 shadow-card p-5">
+        <div class="label mb-2">Volume</div>
+        <div class="font-mono text-sm break-all">{{ archive.dir }}</div>
+        <div class="text-xs text-gray-400 mt-1">janitor skip list</div>
+      </div>
+    </div>
+
+    <section class="bg-white rounded-2xl border border-gray-100 shadow-card overflow-hidden mb-8 hover:shadow-lift transition-all duration-300">
+      <div class="px-6 py-4 border-b border-gray-100">
+        <h2 class="text-sm font-bold">Accounts this node backs up</h2>
+      </div>
+      <div v-if="!archive.enabled" class="p-10 text-center text-gray-400 text-sm">
+        Set <span class="font-mono text-xs">NOSTR_NPUBS</span> on the container to start backing up Nostr IPFS media locally.
+      </div>
+      <div v-else class="overflow-x-auto">
+        <table class="w-full text-left text-sm">
+          <thead>
+            <tr class="text-xs text-gray-400 border-b border-gray-100 bg-gray-50/50">
+              <th class="px-6 py-3 font-semibold">npub</th>
+              <th class="px-6 py-3 font-semibold text-right">Objects</th>
+              <th class="px-6 py-3 font-semibold text-right">Size</th>
+              <th class="px-6 py-3 font-semibold text-right">Events seen</th>
+              <th class="px-6 py-3 font-semibold text-right">Caught up to</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="acc in archive.accounts" :key="acc.npub" class="border-b border-gray-50 hover:bg-gray-50/60 transition-colors duration-200">
+              <td class="px-6 py-3.5 min-w-0">
+                <div class="flex items-start gap-2">
+                  <div class="min-w-0">
+                    <div class="font-mono text-xs break-all" :title="acc.npub">{{ acc.npub }}</div>
+                    <div v-if="acc.pubkey" class="font-mono text-[10px] text-gray-400 mt-1 break-all">{{ acc.pubkey }}</div>
+                  </div>
+                  <button type="button" @click="copyText(acc.npub, acc.npub)" class="text-gray-400 hover:text-red-500 shrink-0 mt-0.5" :title="copied === acc.npub ? 'Copied' : 'Copy npub'">
+                    <i class="fas fa-copy text-xs"></i>
+                  </button>
+                  <a :href="'https://njump.me/' + acc.npub" target="_blank" rel="noopener" class="text-gray-400 hover:text-red-500 shrink-0 mt-0.5" title="Open profile">
+                    <i class="fas fa-external-link-alt text-xs"></i>
+                  </a>
+                </div>
+              </td>
+              <td class="px-6 py-3.5 text-right font-mono">{{ acc.objects || 0 }}</td>
+              <td class="px-6 py-3.5 text-right text-gray-500 whitespace-nowrap">{{ acc.sizeStr || '0 Bytes' }}</td>
+              <td class="px-6 py-3.5 text-right font-mono">{{ acc.events || 0 }}</td>
+              <td class="px-6 py-3.5 text-right text-gray-400 whitespace-nowrap">{{ acc.cursorAt ? formatUnix(acc.cursorAt) : 'not scanned yet' }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section v-if="nostrRelays.length" class="bg-white rounded-2xl border border-gray-100 shadow-card overflow-hidden mb-8 hover:shadow-lift transition-all duration-300">
+      <div class="px-6 py-4 border-b border-gray-100">
+        <h2 class="text-sm font-bold">Relays</h2>
+      </div>
+      <div class="p-6 flex flex-wrap gap-2">
+        <span v-for="relay in nostrRelays" :key="relay" class="font-mono text-[11px] bg-gray-50 border border-gray-100 rounded-full px-3 py-1 text-gray-600">{{ relay }}</span>
+      </div>
+    </section>
+
+    <section class="bg-white rounded-2xl border border-gray-100 shadow-card overflow-hidden hover:shadow-lift transition-all duration-300">
+      <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center">
+        <h2 class="text-sm font-bold">Recent archived objects</h2>
+        <a href="/archive" class="text-xs font-semibold text-gray-400 hover:text-red-500 transition-colors duration-300">JSON <i class="fas fa-arrow-right ml-1"></i></a>
+      </div>
+      <div v-if="archiveItems.length === 0" class="p-10 text-center text-gray-400 text-sm">No archived objects yet</div>
+      <div v-else class="overflow-x-auto">
+        <table class="w-full text-left text-sm">
+          <thead>
+            <tr class="text-xs text-gray-400 border-b border-gray-100 bg-gray-50/50">
+              <th class="px-6 py-3 font-semibold">File</th>
+              <th class="px-6 py-3 font-semibold">CID</th>
+              <th class="px-6 py-3 font-semibold text-right">Size</th>
+              <th class="px-6 py-3 font-semibold text-right">Verified</th>
+              <th class="px-6 py-3 font-semibold text-right">Date</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="item in archiveItems" :key="item.cid" class="border-b border-gray-50 hover:bg-gray-50/60 transition-colors duration-200">
+              <td class="px-6 py-3.5 min-w-0 max-w-[220px]">
+                <a :href="'/archive/' + item.cid" class="truncate font-medium hover:text-red-500" target="_blank">{{ item.filename || item.cid }}</a>
+              </td>
+              <td class="px-6 py-3.5">
+                <div class="font-mono text-xs text-gray-500 truncate max-w-[180px]" :title="item.cid">{{ item.cid }}</div>
+              </td>
+              <td class="px-6 py-3.5 text-right text-gray-500 whitespace-nowrap">{{ formatBytes(item.size) }}</td>
+              <td class="px-6 py-3.5 text-right whitespace-nowrap">
+                <span v-if="item.verified" class="text-[10px] text-emerald-600 uppercase bg-emerald-50 rounded-full px-2.5 py-1">yes</span>
+                <span v-else class="text-[10px] text-gray-400 uppercase bg-gray-100 rounded-full px-2.5 py-1">no</span>
+              </td>
+              <td class="px-6 py-3.5 text-right text-gray-400 whitespace-nowrap">{{ formatDate(item.created_at) }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
   <!-- ============ PAGE: API ============ -->
   <main v-else-if="currentPage === 'api'" class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-8 py-8 md:py-12 animate-fade-in">
     <div class="mb-8">
@@ -724,6 +902,7 @@
           { id: "upload", label: "Upload", icon: "fa-cloud-arrow-up" },
           { id: "paste", label: "Paste", icon: "fa-paste" },
           { id: "files", label: "Files", icon: "fa-folder-open" },
+          { id: "archive", label: "Archive", icon: "fa-box-archive" },
           { id: "api", label: "API", icon: "fa-terminal" },
         ],
         file: null,
@@ -767,6 +946,22 @@
           repoSizeBytes: 0,
           storageMaxBytes: 0,
         },
+        archive: {
+          enabled: false,
+          count: 0,
+          size: 0,
+          sizeStr: "0 Bytes",
+          dir: "/archive",
+          scanMinutes: 15,
+          repinHours: 6,
+          scanning: false,
+          repinning: false,
+          lastScan: "",
+          lastRepin: "",
+          accounts: [],
+        },
+        nostrRelays: [],
+        archiveItems: [],
         apiEndpoints: [
           {
             method: "POST",
@@ -809,6 +1004,12 @@
             path: "/history",
             description: "Upload history with CID, filename, size and pin status.",
             curl: "curl 'http://localhost:3232/history?limit=20'",
+          },
+          {
+            method: "GET",
+            path: "/archive",
+            description: "List IPFS objects permanently archived from configured Nostr npubs.",
+            curl: "curl http://localhost:3232/archive",
           },
           {
             method: "GET",
@@ -861,6 +1062,9 @@
         if (this.currentPage === "stats") {
           this.fetchHistory();
           this.fetchPinStats();
+        }
+        if (this.currentPage === "archive") {
+          this.fetchArchive();
         }
         window.scrollTo(0, 0);
       },
@@ -1067,6 +1271,21 @@
               repoSizeBytes: data.repository.size || 0,
               storageMaxBytes: data.repository.storageMax || 0,
             };
+            this.archive = {
+              enabled: !!(data.archive && data.archive.enabled),
+              count: data.archive?.count || 0,
+              size: data.archive?.size || 0,
+              sizeStr: data.archive?.sizeStr || "0 Bytes",
+              dir: data.archive?.dir || "/archive",
+              scanMinutes: data.archive?.scanMinutes || 15,
+              repinHours: data.archive?.repinHours || 6,
+              scanning: !!(data.archive && data.archive.scanning),
+              repinning: !!(data.archive && data.archive.repinning),
+              lastScan: data.archive?.lastScan || "",
+              lastRepin: data.archive?.lastRepin || "",
+              accounts: data.archive?.accounts || (data.nostrNpubs || []).map((npub) => ({ npub })),
+            };
+            this.nostrRelays = data.nostrRelays || [];
           }
         } catch (error) {
           console.error(error);
@@ -1098,6 +1317,24 @@
         } catch (error) {
           console.error(error);
         }
+      },
+      async fetchArchive() {
+        try {
+          const response = await fetch("/archive?limit=20");
+          const data = await response.json();
+          if (data.status === "success" && data.items) {
+            this.archiveItems = data.items;
+          }
+        } catch (error) {
+          console.error(error);
+        }
+      },
+      formatUnix(value) {
+        if (!value) return "never";
+        if (typeof value === "number") {
+          return this.formatDate(new Date(value * 1000).toISOString());
+        }
+        return this.formatDate(value);
       },
       formatDate(dateStr) {
         if (!dateStr) return "";
