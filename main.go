@@ -52,6 +52,7 @@ func main() {
 				log.Printf("[STARTUP] WARNING: invalid Nostr npub key format: %q", npub)
 			}
 		}
+		log.Printf("[STARTUP] NOSTR_RELAYS configured count=%d relays=%v", len(NostrRelays), NostrRelays)
 	}
 
 	router := NewRouter(ipfsClient, janitorMgr)

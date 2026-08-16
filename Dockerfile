@@ -13,6 +13,7 @@ FROM alpine:latest
 ENV STORAGE_MAX=100GB
 ENV PIN_EXPIRY_DAYS=30
 ENV NOSTR_NPUBS=""
+ENV NOSTR_RELAYS=""
 
 RUN apk add --no-cache ca-certificates gcompat kubo && \
   adduser -D -h /app originless

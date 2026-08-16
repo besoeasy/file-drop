@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"math"
@@ -28,7 +29,19 @@ var (
 	FileLimit       int64
 	PinExpiryDays   = 30
 	NostrNpubs      []string
+	NostrRelays     []string
 )
+
+var DefaultFamousRelays = []string{
+	"wss://relay.damus.io",
+	"wss://nos.lol",
+	"wss://relay.nostr.band",
+	"wss://relay.primal.net",
+	"wss://nostr.mom",
+	"wss://purplerelay.com",
+	"wss://offchain.pub",
+	"wss://eden.nostr.land",
+}
 
 var sizePattern = regexp.MustCompile(`(?i)^(\d+(?:\.\d+)?)\s*(B|KB|MB|GB|TB)$`)
 
@@ -49,6 +62,7 @@ func init() {
 	StorageMax = envOrDefault("STORAGE_MAX", "100GB")
 	PinExpiryDays = envOrDefaultInt("PIN_EXPIRY_DAYS", 30)
 	NostrNpubs = envOrDefaultSlice([]string{"NOSTR_NPUBS", "NPUBS", "NPUB", "NOSTR_ALLOWED_NPUBS"}, []string{})
+	NostrRelays = envOrDefaultSlice([]string{"NOSTR_RELAYS", "RELAYS"}, DefaultFamousRelays)
 
 	storageMaxBytes, err := ParseSize(StorageMax)
 	if err != nil {
@@ -185,6 +199,70 @@ func IsValidNpub(s string) bool {
 		data[i] = byte(val)
 	}
 	return bech32VerifyChecksum(hrp, data)
+}
+
+func convertBits(data []byte, fromBits, toBits uint8, pad bool) ([]byte, error) {
+	acc := uint32(0)
+	bits := uint8(0)
+	var ret []byte
+	maxv := uint32((1 << toBits) - 1)
+	maxAcc := uint32((1 << (fromBits + toBits - 1)) - 1)
+	for _, value := range data {
+		if uint32(value)>>fromBits != 0 {
+			return nil, fmt.Errorf("invalid data range")
+		}
+		acc = ((acc << fromBits) | uint32(value)) & maxAcc
+		bits += fromBits
+		for bits >= toBits {
+			bits -= toBits
+			ret = append(ret, byte((acc>>bits)&maxv))
+		}
+	}
+	if pad {
+		if bits > 0 {
+			ret = append(ret, byte((acc<<(toBits-bits))&maxv))
+		}
+	} else if bits >= fromBits || ((acc<<(toBits-bits))&maxv) != 0 {
+		return nil, fmt.Errorf("invalid padding")
+	}
+	return ret, nil
+}
+
+// DecodeNpubToHex converts a Nostr npub key (bech32) or 64-char hex pubkey to a 64-character lowercase hex string.
+func DecodeNpubToHex(input string) (string, error) {
+	input = strings.TrimSpace(input)
+	if len(input) == 64 {
+		if _, err := hex.DecodeString(input); err == nil {
+			return strings.ToLower(input), nil
+		}
+	}
+	lower := strings.ToLower(input)
+	if !strings.HasPrefix(lower, "npub1") || len(lower) != 63 {
+		return "", fmt.Errorf("invalid npub format: %s", input)
+	}
+	hrp := "npub"
+	dataPart := lower[5:]
+	data := make([]byte, len(dataPart))
+	for i := 0; i < len(dataPart); i++ {
+		c := dataPart[i]
+		val := bech32CharValues[c]
+		if val < 0 {
+			return "", fmt.Errorf("invalid bech32 character: %c", c)
+		}
+		data[i] = byte(val)
+	}
+	if !bech32VerifyChecksum(hrp, data) {
+		return "", fmt.Errorf("invalid bech32 checksum for npub: %s", input)
+	}
+	fiveBitData := data[:len(data)-6]
+	eightBitData, err := convertBits(fiveBitData, 5, 8, false)
+	if err != nil {
+		return "", fmt.Errorf("failed to convert bits: %w", err)
+	}
+	if len(eightBitData) != 32 {
+		return "", fmt.Errorf("invalid pubkey length: expected 32 bytes, got %d", len(eightBitData))
+	}
+	return hex.EncodeToString(eightBitData), nil
 }
 
 func ParseSize(sizeStr string) (int64, error) {

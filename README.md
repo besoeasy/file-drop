@@ -196,6 +196,7 @@ originless_ipfs_peers 140
 | `STORAGE_MAX` | `100GB` | Maximum storage limit allocated to IPFS data. |
 | `PIN_EXPIRY_DAYS` | `30` | Days a file stays pinned before the janitor may evict it. |
 | `NOSTR_NPUBS` | `""` | Comma-separated list or JSON array of Nostr `npub` public keys. |
+| `NOSTR_RELAYS` | (famous relays) | Comma-separated list or JSON array of WebSocket Nostr relay URLs. |
 
 > All other paths are fixed: the SQLite database and IPFS node repository live at `/data` (the container's persistent volume).
 
