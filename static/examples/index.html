@@ -3,35 +3,33 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Originless — Examples</title>
-  <link rel="icon" type="image/png" href="/logo.png" />
-  <style>
-    :root { --fg: #0a0a0a; --muted: #6b7280; --line: #e5e7eb; --brand: #ef4444; }
-    * { box-sizing: border-box; }
-    body {
-      margin: 0; font-family: Inter, system-ui, sans-serif; color: var(--fg);
-      background: #fff; max-width: 40rem; margin-inline: auto; padding: 1.5rem;
-    }
-    h1 { font-size: 1.25rem; margin: 0 0 .25rem; }
-    p.lead { color: var(--muted); font-size: .9rem; margin: 0 0 1.25rem; }
-    a.back { color: var(--muted); font-size: .8rem; text-decoration: none; display: inline-block; margin-bottom: 1.25rem; }
-    a.back:hover { color: var(--fg); }
-    a.card {
-      display: block; border: 1px solid var(--line); border-radius: 12px;
-      padding: 1rem 1.1rem; text-decoration: none; color: inherit;
-    }
-    a.card:hover { border-color: #fca5a5; }
-    a.card h2 { font-size: 1rem; margin: 0 0 .35rem; }
-    a.card p { margin: 0; color: var(--muted); font-size: .85rem; }
-  </style>
+  <title>Examples — Originless</title>
+  <meta name="theme-color" content="#e11d2e" />
+  <link rel="icon" type="image/svg+xml" href="/logo.svg" />
+  <link rel="stylesheet" href="/css/app.css" />
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
 </head>
 <body>
-  <a class="back" href="/">← Originless</a>
-  <h1>Examples</h1>
-  <p class="lead">Small pages that talk to this node. Open them in the same origin as Originless.</p>
-  <a class="card" href="/examples/post.html">
-    <h2>Post to Nostr with ipfs://</h2>
-    <p>Connect a NIP-07 extension, upload an image, and publish kind 1 + 1063 events.</p>
-  </a>
+<div class="shell">
+  <div data-ol-nav></div>
+  <main class="wrap">
+    <div class="hero mb">
+      <p class="kicker">Same origin</p>
+      <h1>Examples<span style="color:var(--brand)">.</span></h1>
+      <p>Small pages that talk to this node. Open them from the Originless origin so uploads and NIP-07 stay on the same host.</p>
+    </div>
+    <a class="card card-pad" href="/examples/post.html" style="display:block;max-width:36rem">
+      <p class="kicker">NIP-07</p>
+      <h2 style="margin:0 0 .4rem">Post to Nostr with ipfs://</h2>
+      <p class="muted" style="margin:0">Connect a browser extension, upload an image, and publish kind 1 + 1063 events.</p>
+    </a>
+  </main>
+  <div data-ol-foot></div>
+</div>
+<script src="/js/app.js"></script>
+<script>
+  OL.injectChrome("docs", { vue: false });
+  OL.hydrateChrome();
+</script>
 </body>
 </html>

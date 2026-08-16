@@ -3,254 +3,246 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Originless — Nostr IPFS post</title>
-  <style>
-    :root { --fg: #0a0a0a; --muted: #6b7280; --line: #e5e7eb; --brand: #ef4444; --ok: #059669; }
-    * { box-sizing: border-box; }
-    body {
-      margin: 0; font-family: Inter, system-ui, sans-serif; color: var(--fg);
-      background: #fff; max-width: 40rem; margin-inline: auto; padding: 1.5rem;
-    }
-    h1 { font-size: 1.25rem; margin: 0 0 .25rem; }
-    p.lead { color: var(--muted); font-size: .9rem; margin: 0 0 1.25rem; }
-    label { display: block; font-size: .7rem; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: .9rem 0 .35rem; }
-    input[type="text"], input[type="url"], textarea {
-      width: 100%; border: 1px solid var(--line); border-radius: 8px; padding: .6rem .75rem; font: inherit;
-    }
-    textarea { min-height: 6rem; resize: vertical; }
-    button {
-      border: 0; border-radius: 8px; padding: .7rem 1rem; font: inherit; font-weight: 600; cursor: pointer;
-      background: var(--brand); color: #fff;
-    }
-    button:disabled { opacity: .5; cursor: not-allowed; }
-    button.secondary { background: #111; }
-    .row { display: flex; gap: .5rem; flex-wrap: wrap; margin-top: 1rem; }
-    .status { font-size: .85rem; margin-top: 1rem; white-space: pre-wrap; color: var(--muted); }
-    .status.ok { color: var(--ok); }
-    .status.err { color: var(--brand); }
-    .preview { max-width: 100%; max-height: 220px; border-radius: 8px; margin-top: .5rem; display: none; }
-    .pubkey { font-family: ui-monospace, monospace; font-size: .8rem; word-break: break-all; }
-  </style>
+  <title>Nostr post — Originless</title>
+  <meta name="theme-color" content="#e11d2e" />
+  <link rel="icon" type="image/svg+xml" href="/logo.svg" />
+  <link rel="stylesheet" href="/css/app.css" />
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
 </head>
 <body>
-  <h1>Post to Nostr with ipfs://</h1>
-  <p class="lead">Uses your Nostr browser extension (NIP-07: Alby, nos2x, nos2x-fox, …). Unlock the extension first, then connect. Prefer <code>http://localhost:3232/examples/post.html</code> if the permission popup never appears.</p>
+<div class="shell">
+  <div data-ol-nav></div>
+  <main class="wrap">
+    <div class="hero mb">
+      <p class="kicker">NIP-07 · kind 1 + 1063</p>
+      <h1>Post with ipfs://</h1>
+      <p>Uses your Nostr browser extension (Alby, nos2x, nos2x-fox, …). Unlock it first, then connect. Prefer <span class="mono">http://localhost:3232/examples/post.html</span> if the permission popup never appears.</p>
+    </div>
 
-  <label>Originless URL</label>
-  <input id="origin" type="url" />
+    <section class="card card-pad narrow">
+      <label class="kicker" for="origin">Originless URL</label>
+      <input id="origin" class="field" type="url" />
 
-  <label>Relays (one per line)</label>
-  <textarea id="relays">wss://relay.damus.io
+      <label class="kicker" for="relays" style="display:block;margin-top:1rem">Relays (one per line)</label>
+      <textarea id="relays" class="field mono">wss://relay.damus.io
 wss://nos.lol
 wss://relay.nostr.band
 wss://relay.primal.net</textarea>
 
-  <label>Image</label>
-  <input id="file" type="file" accept="image/*" />
-  <img id="preview" class="preview" alt="preview" />
+      <label class="kicker" for="file" style="display:block;margin-top:1rem">Image</label>
+      <input id="file" type="file" accept="image/*" />
+      <img id="preview" class="preview-img" alt="preview" />
 
-  <label>Caption</label>
-  <textarea id="caption" placeholder="What's happening?"></textarea>
+      <label class="kicker" for="caption" style="display:block;margin-top:1rem">Caption</label>
+      <textarea id="caption" class="field" placeholder="What's happening?"></textarea>
 
-  <div class="row">
-    <button type="button" class="secondary" id="connect">Connect extension</button>
-    <button type="button" id="post" disabled>Upload &amp; post</button>
-  </div>
-  <p class="pubkey" id="pubkey"></p>
-  <p class="status" id="status"></p>
+      <div class="row" style="margin-top:1.1rem">
+        <button type="button" class="btn btn-ink" id="connect">Connect extension</button>
+        <button type="button" class="btn btn-brand" id="post" disabled>Upload &amp; post</button>
+      </div>
+      <p class="pubkey" id="pubkey"></p>
+      <p class="status" id="status"></p>
+    </section>
+  </main>
+  <div data-ol-foot></div>
+</div>
 
-  <script>
-    const $ = (id) => document.getElementById(id);
-    const statusEl = $("status");
-    let pubkey = "";
+<script src="/js/app.js"></script>
+<script>
+  OL.injectChrome("docs", { vue: false });
+  OL.hydrateChrome();
 
-    $("origin").value = window.location.origin;
+  const $ = (id) => document.getElementById(id);
+  const statusEl = $("status");
+  let pubkey = "";
 
-    function setStatus(msg, kind) {
-      statusEl.textContent = msg;
-      statusEl.className = "status" + (kind ? " " + kind : "");
-    }
+  $("origin").value = window.location.origin;
 
-    function errText(err) {
-      if (!err) return "unknown error";
-      if (typeof err === "string") return err;
-      return err.message || err.msg || JSON.stringify(err);
-    }
+  function setStatus(msg, kind) {
+    statusEl.textContent = msg;
+    statusEl.className = "status" + (kind ? " " + kind : "");
+  }
 
-    function waitForNostr(ms) {
-      const deadline = Date.now() + ms;
-      return new Promise((resolve) => {
-        const tick = () => {
-          if (window.nostr) return resolve(window.nostr);
-          if (Date.now() >= deadline) return resolve(null);
-          setTimeout(tick, 100);
-        };
-        tick();
-      });
-    }
+  function errText(err) {
+    if (!err) return "unknown error";
+    if (typeof err === "string") return err;
+    return err.message || err.msg || JSON.stringify(err);
+  }
 
-    function withTimeout(promise, ms, label) {
-      return Promise.race([
-        promise,
-        new Promise((_, reject) =>
-          setTimeout(() => reject(new Error(label + " timed out after " + ms / 1000 + "s — check the extension popup")), ms)
-        ),
-      ]);
-    }
-
-    async function getNostr() {
-      const nostr = window.nostr || await waitForNostr(2500);
-      if (!nostr) return null;
-      if (typeof nostr.enable === "function") {
-        await withTimeout(Promise.resolve(nostr.enable()), 20000, "extension.enable()");
-      }
-      return nostr;
-    }
-
-    $("file").addEventListener("change", () => {
-      const file = $("file").files[0];
-      const img = $("preview");
-      if (!file) { img.style.display = "none"; return; }
-      img.src = URL.createObjectURL(file);
-      img.style.display = "block";
+  function waitForNostr(ms) {
+    const deadline = Date.now() + ms;
+    return new Promise((resolve) => {
+      const tick = () => {
+        if (window.nostr) return resolve(window.nostr);
+        if (Date.now() >= deadline) return resolve(null);
+        setTimeout(tick, 100);
+      };
+      tick();
     });
+  }
 
-    $("connect").addEventListener("click", async () => {
-      $("connect").disabled = true;
-      try {
-        setStatus("Looking for a Nostr extension… approve the popup if one appears.");
-        const nostr = await getNostr();
-        if (!nostr) {
-          setStatus(
-            "No window.nostr found.\n• Install Alby or nos2x and unlock it\n• Reload this tab\n• Use http://localhost:3232 (not 127.0.0.1) and allow this site in the extension",
-            "err"
-          );
-          return;
-        }
-        setStatus("Waiting for extension approval…");
-        pubkey = await withTimeout(Promise.resolve(nostr.getPublicKey()), 30000, "getPublicKey()");
-        if (!pubkey) throw new Error("extension returned an empty pubkey");
-        $("pubkey").textContent = "Connected: " + pubkey;
-        $("post").disabled = false;
-        setStatus("Extension connected. Pick an image and post.", "ok");
-      } catch (err) {
-        setStatus("Connect failed: " + errText(err) + "\nUnlock the extension and click Connect again.", "err");
-      } finally {
-        $("connect").disabled = false;
-      }
-    });
+  function withTimeout(promise, ms, label) {
+    return Promise.race([
+      promise,
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error(label + " timed out after " + ms / 1000 + "s — check the extension popup")), ms)
+      ),
+    ]);
+  }
 
-    $("post").addEventListener("click", async () => {
-      const file = $("file").files[0];
-      const caption = $("caption").value.trim();
-      const origin = $("origin").value.replace(/\/$/, "");
-      const relays = $("relays").value.split(/\s+/).map((s) => s.trim()).filter(Boolean);
-      if (!pubkey) { setStatus("Connect the extension first.", "err"); return; }
-      if (!file) { setStatus("Choose an image.", "err"); return; }
-      if (!relays.length) { setStatus("Add at least one relay.", "err"); return; }
+  async function getNostr() {
+    const nostr = window.nostr || await waitForNostr(2500);
+    if (!nostr) return null;
+    if (typeof nostr.enable === "function") {
+      await withTimeout(Promise.resolve(nostr.enable()), 20000, "extension.enable()");
+    }
+    return nostr;
+  }
 
-      $("post").disabled = true;
-      try {
-        setStatus("Hashing image…");
-        const sha = await sha256Hex(file);
+  $("file").addEventListener("change", () => {
+    const file = $("file").files[0];
+    const img = $("preview");
+    if (!file) { img.style.display = "none"; return; }
+    img.src = URL.createObjectURL(file);
+    img.style.display = "block";
+  });
 
-        setStatus("Uploading to Originless…");
-        const form = new FormData();
-        form.append("file", file, file.name);
-        const res = await fetch(origin + "/upload", { method: "POST", body: form });
-        const body = await res.json();
-        if (!res.ok || !body.cid) {
-          throw new Error(body.details || body.error || body.message || ("upload HTTP " + res.status));
-        }
-        const cid = body.cid;
-        const ipfsUrl = "ipfs://" + cid;
-        const mime = body.type || file.type || "application/octet-stream";
-        const size = String(body.size || file.size);
-
-        setStatus("Uploaded " + ipfsUrl + "\nSigning with extension…");
-        const nostr = await getNostr();
-        if (!nostr) throw new Error("extension disappeared; reconnect");
-        const now = Math.floor(Date.now() / 1000);
-        const noteContent = caption ? caption + "\n\n" + ipfsUrl : ipfsUrl;
-        const imeta = ["imeta", "url " + ipfsUrl, "m " + mime, "x " + sha, "size " + size];
-
-        const kind1 = await nostr.signEvent({
-          kind: 1,
-          created_at: now,
-          tags: [imeta],
-          content: noteContent,
-        });
-        const kind1063 = await nostr.signEvent({
-          kind: 1063,
-          created_at: now,
-          tags: [
-            ["url", ipfsUrl],
-            ["m", mime],
-            ["x", sha],
-            ["size", size],
-            ["filename", file.name],
-          ],
-          content: caption || file.name,
-        });
-
-        setStatus("Publishing to " + relays.length + " relay(s)…");
-        const results = await publish(relays, [kind1, kind1063]);
+  $("connect").addEventListener("click", async () => {
+    $("connect").disabled = true;
+    try {
+      setStatus("Looking for a Nostr extension… approve the popup if one appears.");
+      const nostr = await getNostr();
+      if (!nostr) {
         setStatus(
-          "Posted.\n" + ipfsUrl + "\nkind 1: " + kind1.id + "\nkind 1063: " + kind1063.id + "\n\n" + results.join("\n"),
-          "ok"
+          "No window.nostr found.\n• Install Alby or nos2x and unlock it\n• Reload this tab\n• Use http://localhost:3232 (not 127.0.0.1) and allow this site in the extension",
+          "err"
         );
-      } catch (err) {
-        setStatus("Failed: " + (err.message || err), "err");
-      } finally {
-        $("post").disabled = false;
+        return;
       }
-    });
-
-    async function sha256Hex(blob) {
-      const buf = await blob.arrayBuffer();
-      const hash = await crypto.subtle.digest("SHA-256", buf);
-      return [...new Uint8Array(hash)].map((b) => b.toString(16).padStart(2, "0")).join("");
+      setStatus("Waiting for extension approval…");
+      pubkey = await withTimeout(Promise.resolve(nostr.getPublicKey()), 30000, "getPublicKey()");
+      if (!pubkey) throw new Error("extension returned an empty pubkey");
+      $("pubkey").textContent = "Connected: " + pubkey;
+      $("post").disabled = false;
+      setStatus("Extension connected. Pick an image and post.", "ok");
+    } catch (err) {
+      setStatus("Connect failed: " + errText(err) + "\nUnlock the extension and click Connect again.", "err");
+    } finally {
+      $("connect").disabled = false;
     }
+  });
 
-    function publish(relays, events) {
-      return Promise.all(relays.map((url) => publishToRelay(url, events)));
-    }
+  $("post").addEventListener("click", async () => {
+    const file = $("file").files[0];
+    const caption = $("caption").value.trim();
+    const origin = $("origin").value.replace(/\/$/, "");
+    const relays = $("relays").value.split(/\s+/).map((s) => s.trim()).filter(Boolean);
+    if (!pubkey) { setStatus("Connect the extension first.", "err"); return; }
+    if (!file) { setStatus("Choose an image.", "err"); return; }
+    if (!relays.length) { setStatus("Add at least one relay.", "err"); return; }
 
-    function publishToRelay(url, events) {
-      return new Promise((resolve) => {
-        let ws;
-        const timer = setTimeout(() => {
-          try { ws.close(); } catch (_) {}
-          resolve(url + ": timeout");
-        }, 8000);
-        try {
-          ws = new WebSocket(url);
-        } catch (err) {
-          clearTimeout(timer);
-          resolve(url + ": " + err.message);
-          return;
-        }
-        const oks = [];
-        ws.onopen = () => {
-          for (const evt of events) ws.send(JSON.stringify(["EVENT", evt]));
-        };
-        ws.onmessage = (ev) => {
-          try {
-            const msg = JSON.parse(ev.data);
-            if (msg[0] === "OK") oks.push(msg[1].slice(0, 8) + (msg[2] ? " ok" : " rejected"));
-            if (oks.length >= events.length) {
-              clearTimeout(timer);
-              ws.close();
-              resolve(url + ": " + oks.join(", "));
-            }
-          } catch (_) {}
-        };
-        ws.onerror = () => {
-          clearTimeout(timer);
-          resolve(url + ": error");
-        };
+    $("post").disabled = true;
+    try {
+      setStatus("Hashing image…");
+      const sha = await sha256Hex(file);
+
+      setStatus("Uploading to Originless…");
+      const form = new FormData();
+      form.append("file", file, file.name);
+      const res = await fetch(origin + "/upload", { method: "POST", body: form });
+      const body = await res.json();
+      if (!res.ok || !body.cid) {
+        throw new Error(body.details || body.error || body.message || ("upload HTTP " + res.status));
+      }
+      const cid = body.cid;
+      const ipfsUrl = "ipfs://" + cid;
+      const mime = body.type || file.type || "application/octet-stream";
+      const size = String(body.size || file.size);
+
+      setStatus("Uploaded " + ipfsUrl + "\nSigning with extension…");
+      const nostr = await getNostr();
+      if (!nostr) throw new Error("extension disappeared; reconnect");
+      const now = Math.floor(Date.now() / 1000);
+      const noteContent = caption ? caption + "\n\n" + ipfsUrl : ipfsUrl;
+      const imeta = ["imeta", "url " + ipfsUrl, "m " + mime, "x " + sha, "size " + size];
+
+      const kind1 = await nostr.signEvent({
+        kind: 1,
+        created_at: now,
+        tags: [imeta],
+        content: noteContent,
       });
+      const kind1063 = await nostr.signEvent({
+        kind: 1063,
+        created_at: now,
+        tags: [
+          ["url", ipfsUrl],
+          ["m", mime],
+          ["x", sha],
+          ["size", size],
+          ["filename", file.name],
+        ],
+        content: caption || file.name,
+      });
+
+      setStatus("Publishing to " + relays.length + " relay(s)…");
+      const results = await publish(relays, [kind1, kind1063]);
+      setStatus(
+        "Posted.\n" + ipfsUrl + "\nkind 1: " + kind1.id + "\nkind 1063: " + kind1063.id + "\n\n" + results.join("\n"),
+        "ok"
+      );
+    } catch (err) {
+      setStatus("Failed: " + (err.message || err), "err");
+    } finally {
+      $("post").disabled = false;
     }
-  </script>
+  });
+
+  async function sha256Hex(blob) {
+    const buf = await blob.arrayBuffer();
+    const hash = await crypto.subtle.digest("SHA-256", buf);
+    return [...new Uint8Array(hash)].map((b) => b.toString(16).padStart(2, "0")).join("");
+  }
+
+  function publish(relays, events) {
+    return Promise.all(relays.map((url) => publishToRelay(url, events)));
+  }
+
+  function publishToRelay(url, events) {
+    return new Promise((resolve) => {
+      let ws;
+      const timer = setTimeout(() => {
+        try { ws.close(); } catch (_) {}
+        resolve(url + ": timeout");
+      }, 8000);
+      try {
+        ws = new WebSocket(url);
+      } catch (err) {
+        clearTimeout(timer);
+        resolve(url + ": " + err.message);
+        return;
+      }
+      const oks = [];
+      ws.onopen = () => {
+        for (const evt of events) ws.send(JSON.stringify(["EVENT", evt]));
+      };
+      ws.onmessage = (ev) => {
+        try {
+          const msg = JSON.parse(ev.data);
+          if (msg[0] === "OK") oks.push(msg[1].slice(0, 8) + (msg[2] ? " ok" : " rejected"));
+          if (oks.length >= events.length) {
+            clearTimeout(timer);
+            ws.close();
+            resolve(url + ": " + oks.join(", "));
+          }
+        } catch (_) {}
+      };
+      ws.onerror = () => {
+        clearTimeout(timer);
+        resolve(url + ": error");
+      };
+    });
+  }
+</script>
 </body>
 </html>
