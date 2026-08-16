@@ -45,6 +45,15 @@ func main() {
 	janitorCtx, janitorCancel := context.WithCancel(context.Background())
 	go janitorMgr.Run(janitorCtx, time.Duration(JanitorInterval)*time.Minute)
 
+	if len(NostrNpubs) > 0 {
+		log.Printf("[STARTUP] NOSTR_NPUBS configured count=%d keys=%v", len(NostrNpubs), NostrNpubs)
+		for _, npub := range NostrNpubs {
+			if !IsValidNpub(npub) {
+				log.Printf("[STARTUP] WARNING: invalid Nostr npub key format: %q", npub)
+			}
+		}
+	}
+
 	router := NewRouter(ipfsClient, janitorMgr)
 
 	server := &http.Server{

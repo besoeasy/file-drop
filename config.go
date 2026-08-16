@@ -1,11 +1,13 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"math"
 	"os"
 	"regexp"
 	"strconv"
+	"strings"
 )
 
 const (
@@ -25,13 +27,28 @@ var (
 	StorageMaxBytes int64
 	FileLimit       int64
 	PinExpiryDays   = 30
+	NostrNpubs      []string
 )
 
 var sizePattern = regexp.MustCompile(`(?i)^(\d+(?:\.\d+)?)\s*(B|KB|MB|GB|TB)$`)
 
+const bech32Charset = "qpzry9x8gf2tvdw0s3jn54khce6mua7l"
+
+var bech32CharValues = func() [256]int8 {
+	var tab [256]int8
+	for i := range tab {
+		tab[i] = -1
+	}
+	for i, c := range bech32Charset {
+		tab[c] = int8(i)
+	}
+	return tab
+}()
+
 func init() {
 	StorageMax = envOrDefault("STORAGE_MAX", "100GB")
 	PinExpiryDays = envOrDefaultInt("PIN_EXPIRY_DAYS", 30)
+	NostrNpubs = envOrDefaultSlice([]string{"NOSTR_NPUBS", "NPUBS", "NPUB", "NOSTR_ALLOWED_NPUBS"}, []string{})
 
 	storageMaxBytes, err := ParseSize(StorageMax)
 	if err != nil {
@@ -56,6 +73,118 @@ func envOrDefaultInt(key string, fallback int) int {
 		}
 	}
 	return fallback
+}
+
+func envOrDefaultSlice(keys []string, fallback []string) []string {
+	for _, key := range keys {
+		if value := os.Getenv(key); strings.TrimSpace(value) != "" {
+			return ParseNpubs(value)
+		}
+	}
+	if fallback == nil {
+		return []string{}
+	}
+	return fallback
+}
+
+// ParseNpubs parses an array of Nostr npub keys from a string that can be:
+// - A JSON array: e.g. ["npub1...", "npub1..."]
+// - A comma-separated string: e.g. "npub1..., npub1..."
+// - A semicolon, space, or newline-separated string
+// Returns a slice of trimmed, non-empty, deduplicated npub strings.
+func ParseNpubs(raw string) []string {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return []string{}
+	}
+
+	var items []string
+	if strings.HasPrefix(raw, "[") && strings.HasSuffix(raw, "]") {
+		var jsonList []string
+		if err := json.Unmarshal([]byte(raw), &jsonList); err == nil {
+			items = jsonList
+		}
+	}
+
+	if items == nil {
+		tokens := strings.FieldsFunc(raw, func(r rune) bool {
+			return r == ',' || r == ';' || r == '\n' || r == '\r' || r == '\t' || r == ' '
+		})
+		items = tokens
+	}
+
+	var result []string
+	seen := make(map[string]bool)
+	for _, item := range items {
+		item = strings.TrimSpace(item)
+		item = strings.Trim(item, `"'[]`)
+		if item != "" && !seen[item] {
+			seen[item] = true
+			result = append(result, item)
+		}
+	}
+
+	if result == nil {
+		return []string{}
+	}
+	return result
+}
+
+func bech32Polymod(values []byte) uint32 {
+	chk := uint32(1)
+	gen := [5]uint32{0x3b6a57b2, 0x26508e6d, 0x1ea119fa, 0x3d4233dd, 0x2a1462b3}
+	for _, v := range values {
+		b := chk >> 25
+		chk = ((chk & 0x1ffffff) << 5) ^ uint32(v)
+		for i := 0; i < 5; i++ {
+			if (b>>i)&1 == 1 {
+				chk ^= gen[i]
+			}
+		}
+	}
+	return chk
+}
+
+func bech32HRPExpand(hrp string) []byte {
+	ret := make([]byte, 0, len(hrp)*2+1)
+	for i := 0; i < len(hrp); i++ {
+		ret = append(ret, byte(hrp[i]>>5))
+	}
+	ret = append(ret, 0)
+	for i := 0; i < len(hrp); i++ {
+		ret = append(ret, byte(hrp[i]&31))
+	}
+	return ret
+}
+
+func bech32VerifyChecksum(hrp string, data []byte) bool {
+	expanded := bech32HRPExpand(hrp)
+	values := append(expanded, data...)
+	return bech32Polymod(values) == 1
+}
+
+// IsValidNpub reports whether s is a valid bech32-encoded Nostr npub key.
+func IsValidNpub(s string) bool {
+	s = strings.TrimSpace(s)
+	if len(s) != 63 {
+		return false
+	}
+	lower := strings.ToLower(s)
+	if !strings.HasPrefix(lower, "npub1") {
+		return false
+	}
+	hrp := "npub"
+	dataPart := lower[5:]
+	data := make([]byte, len(dataPart))
+	for i := 0; i < len(dataPart); i++ {
+		c := dataPart[i]
+		val := bech32CharValues[c]
+		if val < 0 {
+			return false
+		}
+		data[i] = byte(val)
+	}
+	return bech32VerifyChecksum(hrp, data)
 }
 
 func ParseSize(sizeStr string) (int64, error) {

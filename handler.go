@@ -78,6 +78,7 @@ func (h *Handler) Status(w http.ResponseWriter, r *http.Request) {
 			"configured": FormatBytes(FileLimit),
 			"bytes":      FileLimit,
 		},
+		"nostrNpubs": NostrNpubs,
 		"appVersion": AppVersion,
 	})
 }
