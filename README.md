@@ -58,7 +58,7 @@ docker run -d \
 - **📁 Full Folder & DApp Uploads**: Upload complete static websites, React/Vite build directories (`dist/`), or asset folders with intact relative paths (unlike single-file media servers).
 - **🛡️ Tamper-Proof Cryptographic Verification**: Content-addressed by unique IPFS CIDs (`ipfs://QmX...`). Downloads can be cryptographically verified against the hash.
 - **🧹 Automated Smart Janitor**: Intelligent disk space management. Keeps uploads pinned for 30 days by default and automatically evicts oldest files at 75% capacity to prevent disk overflow.
-- **📡 Nostr IPFS Archive**: Walks configured `npub`s, finds `ipfs://` links, gateway URLs, NIP-92 `imeta` tags, and NIP-94 (kind 1063) file events, and copies verified media onto a separate Docker volume that the janitor never GCs.
+- **📡 Nostr IPFS Archive**: Walks configured `npub`s, finds `ipfs://` links, gateway URLs, NIP-92 `imeta` tags, and NIP-94 (kind 1063) file events, and copies verified media onto a separate Docker volume. The janitor never unpins those CIDs. Every 6 hours Originless re-pins them from `/archive` so they stay on the IPFS swarm.
 - **🤖 Built for Autonomous AI Agents**: Native endpoint design allows LLMs (Claude, Copilot, Cursor, Custom Agents) to host generated media, code snippets, or sites instantly.
 
 ---
@@ -119,7 +119,7 @@ docker run -d \
 1. **Upload**: Send single files or directory trees via the Web UI or simple HTTP POST endpoint.
 2. **Pin & Distribute**: Originless pins the content locally on IPFS and broadcasts it to global P2P peers.
 3. **Automated Lifecycle**: Uploads stay pinned for `PIN_EXPIRY_DAYS` (default 30). An automated janitor reconciles storage and evicts oldest pins at 75% of `STORAGE_MAX`.
-4. **Nostr Archive** (optional): When `NOSTR_NPUBS` is set, Originless scans those accounts, downloads discovered IPFS objects through Kubo (gateway fallback + `x` sha256 when needed), and writes them to `/archive`. That volume is never janitor-evicted.
+4. **Nostr Archive** (optional): When `NOSTR_NPUBS` is set, Originless scans those accounts, downloads discovered IPFS objects through Kubo (gateway fallback + `x` sha256 when needed), and writes them to `/archive`. It pins each CID immediately and re-pins the whole archive every `ARCHIVE_REPIN_HOURS` (default 6). The janitor skips archive CIDs (SQLite skip list — no Kubo config changes).
 
 ---
 
@@ -213,7 +213,9 @@ When `NOSTR_NPUBS` is set, Originless walks those accounts every `ARCHIVE_INTERV
 
 **Kinds:** `1` notes, `6` reposts, `20` pictures, `1063` files, `30023`/`30024` long-form, `9802` highlights.
 
-Kubo `cat`/`get` is preferred (CID-verified). If the swarm miss, HTTP gateways are tried and hashed against the NIP-94 `x` tag when present. Failed CIDs are retried up to 5 times; the janitor never deletes `/archive`.
+Kubo `cat`/`get` is preferred (CID-verified). If the swarm miss, HTTP gateways are tried and hashed against the NIP-94 `x` tag when present. Failed CIDs are retried up to 5 times.
+
+After each save, Originless pins the CID via the Kubo HTTP API (and re-adds from `/archive` if GC already dropped the blocks). Every `ARCHIVE_REPIN_HOURS` it walks the archive table and pins again so DHT provider records stay fresh. The janitor never unpins these CIDs: they are excluded in SQLite (`cid NOT IN archive`), not by changing Kubo config.
 
 ```bash
 # List archived objects
@@ -265,6 +267,7 @@ originless_archive_bytes 2097152
 | `NOSTR_RELAYS` | famous relays | WebSocket relay URLs (comma-separated or JSON). Defaults: `wss://relay.damus.io`, `wss://nos.lol`, `wss://relay.nostr.band`, `wss://relay.primal.net`, `wss://nostr.mom`, `wss://purplerelay.com`, `wss://offchain.pub`, `wss://eden.nostr.land`. |
 | `ARCHIVE_DIR` | `/archive` | Directory (Docker volume) for permanent Nostr IPFS media. Never garbage-collected. |
 | `ARCHIVE_INTERVAL` | `15` | Minutes between Nostr archive scans. First scan runs at startup. |
+| `ARCHIVE_REPIN_HOURS` | `6` | Hours between re-pinning every archived CID into Kubo (DHT provide + restore blocks from `/archive` if needed). |
 
 **Volumes**
 

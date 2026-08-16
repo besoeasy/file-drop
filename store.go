@@ -123,6 +123,7 @@ func (s *Store) GetExpiredUnpins(expiry time.Duration) ([]Upload, error) {
 		`SELECT id, cid, filename, size, created_at, unpinned, unpinned_at
 		 FROM uploads
 		 WHERE unpinned = 0 AND created_at < ?
+		 AND cid NOT IN (SELECT cid FROM archive)
 		 ORDER BY created_at ASC`,
 		cutoff,
 	)
@@ -138,6 +139,7 @@ func (s *Store) GetOldestPinnedFiles(limit int) ([]Upload, error) {
 		`SELECT id, cid, filename, size, created_at, unpinned, unpinned_at
 		 FROM uploads
 		 WHERE unpinned = 0
+		 AND cid NOT IN (SELECT cid FROM archive)
 		 ORDER BY created_at ASC
 		 LIMIT ?`,
 		limit,
@@ -151,7 +153,7 @@ func (s *Store) GetOldestPinnedFiles(limit int) ([]Upload, error) {
 
 func (s *Store) GetPinnedSize() (int64, error) {
 	var total sql.NullInt64
-	err := s.db.QueryRow(`SELECT SUM(size) FROM uploads WHERE unpinned = 0`).Scan(&total)
+	err := s.db.QueryRow(`SELECT SUM(size) FROM uploads WHERE unpinned = 0 AND cid NOT IN (SELECT cid FROM archive)`).Scan(&total)
 	if err != nil {
 		return 0, err
 	}
@@ -163,7 +165,7 @@ func (s *Store) GetPinnedSize() (int64, error) {
 
 func (s *Store) GetPinnedCount() (int64, error) {
 	var count sql.NullInt64
-	err := s.db.QueryRow(`SELECT COUNT(*) FROM uploads WHERE unpinned = 0`).Scan(&count)
+	err := s.db.QueryRow(`SELECT COUNT(*) FROM uploads WHERE unpinned = 0 AND cid NOT IN (SELECT cid FROM archive)`).Scan(&count)
 	if err != nil {
 		return 0, err
 	}
@@ -424,4 +426,23 @@ func (s *Store) ListArchiveCIDs() (map[string]bool, error) {
 		result[cid] = true
 	}
 	return result, rows.Err()
+}
+
+func (s *Store) ListArchivePins() ([]ArchiveItem, error) {
+	rows, err := s.db.Query(`SELECT cid, is_dir FROM archive ORDER BY created_at ASC`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ArchiveItem
+	for rows.Next() {
+		var item ArchiveItem
+		var isDir int
+		if err := rows.Scan(&item.CID, &isDir); err != nil {
+			return nil, err
+		}
+		item.IsDir = isDir != 0
+		items = append(items, item)
+	}
+	return items, rows.Err()
 }

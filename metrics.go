@@ -32,6 +32,8 @@ type Metrics struct {
 	archiveErrors    atomic.Int64
 	archiveCount     atomic.Int64
 	archiveSize      atomic.Int64
+	archiveRepinned  atomic.Int64
+	archiveRepinErrs atomic.Int64
 }
 
 func NewMetrics() *Metrics {
@@ -121,6 +123,8 @@ func (m *Metrics) Handler(janitor *Manager, ipfs *Client, archiver *Archiver) ht
 			m.archiveSaved.Store(archiver.saved.Load())
 			m.archiveSavedSize.Store(archiver.savedSize.Load())
 			m.archiveErrors.Store(archiver.errors.Load())
+			m.archiveRepinned.Store(archiver.repinned.Load())
+			m.archiveRepinErrs.Store(archiver.repinErrs.Load())
 		}
 
 		w.Header().Set("Content-Type", "text/plain; version=0.0.4; charset=utf-8")
@@ -202,6 +206,14 @@ func (m *Metrics) Handler(janitor *Manager, ipfs *Client, archiver *Archiver) ht
 		sb.WriteString("# HELP originless_archive_errors_total Archive download errors this process.\n")
 		sb.WriteString("# TYPE originless_archive_errors_total counter\n")
 		fmt.Fprintf(&sb, "originless_archive_errors_total %d\n", m.archiveErrors.Load())
+
+		sb.WriteString("# HELP originless_archive_repin_total Archive objects successfully re-pinned this process.\n")
+		sb.WriteString("# TYPE originless_archive_repin_total counter\n")
+		fmt.Fprintf(&sb, "originless_archive_repin_total %d\n", m.archiveRepinned.Load())
+
+		sb.WriteString("# HELP originless_archive_repin_errors_total Archive re-pin failures this process.\n")
+		sb.WriteString("# TYPE originless_archive_repin_errors_total counter\n")
+		fmt.Fprintf(&sb, "originless_archive_repin_errors_total %d\n", m.archiveRepinErrs.Load())
 
 		w.Write([]byte(sb.String()))
 	}

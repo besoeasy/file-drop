@@ -27,6 +27,9 @@ type Archiver struct {
 	saved     atomic.Int64
 	savedSize atomic.Int64
 	errors    atomic.Int64
+	repinned  atomic.Int64
+	repinErrs atomic.Int64
+	repinning atomic.Bool
 }
 
 func NewArchiver(store *Store, ipfsClient *Client, dir string) *Archiver {
@@ -38,23 +41,36 @@ func NewArchiver(store *Store, ipfsClient *Client, dir string) *Archiver {
 	}
 }
 
-func (a *Archiver) Run(ctx context.Context, interval time.Duration) {
-	if len(NostrNpubs) == 0 {
-		log.Printf("[archive] no NOSTR_NPUBS configured, archiver idle")
-		return
+func (a *Archiver) Run(ctx context.Context, scanEvery, repinEvery time.Duration) {
+	if len(NostrNpubs) > 0 {
+		log.Printf("[archive] started dir=%s scan=%s repin=%s npubs=%d", a.dir, scanEvery, repinEvery, len(NostrNpubs))
+		a.Cycle(ctx)
+	} else {
+		log.Printf("[archive] no NOSTR_NPUBS configured, scan idle; repin=%s", repinEvery)
 	}
-	log.Printf("[archive] started dir=%s interval=%s npubs=%d", a.dir, interval, len(NostrNpubs))
-	a.Cycle(ctx)
+	a.Repin(ctx)
 
-	ticker := time.NewTicker(interval)
-	defer ticker.Stop()
+	if scanEvery <= 0 {
+		scanEvery = 15 * time.Minute
+	}
+	if repinEvery <= 0 {
+		repinEvery = 6 * time.Hour
+	}
+
+	scanTick := time.NewTicker(scanEvery)
+	repinTick := time.NewTicker(repinEvery)
+	defer scanTick.Stop()
+	defer repinTick.Stop()
+
 	for {
 		select {
 		case <-ctx.Done():
 			log.Printf("[archive] stopped")
 			return
-		case <-ticker.C:
+		case <-scanTick.C:
 			a.Cycle(ctx)
+		case <-repinTick.C:
+			a.Repin(ctx)
 		}
 	}
 }
@@ -255,6 +271,11 @@ func (a *Archiver) archiveRef(ctx context.Context, npub string, evt NostrEvent, 
 	a.savedSize.Add(size)
 	log.Printf("[archive] saved cid=%s size=%s verified=%v dir=%v npub=%s event=%s",
 		ref.CID, FormatBytes(size), verified, isDir, npub, evt.ID)
+
+	if err := a.pinFromDisk(ctx, ref.CID, dest, isDir); err != nil {
+		log.Printf("[archive] pin after save failed cid=%s: %v (will retry on re-pin)", ref.CID, err)
+		a.errors.Add(1)
+	}
 	return nil
 }
 
@@ -355,6 +376,59 @@ func (a *Archiver) downloadHTTP(ctx context.Context, rawURL, dest string, maxByt
 
 func (a *Archiver) GetStats() (count, size int64, err error) {
 	return a.store.GetArchiveStats()
+}
+
+func (a *Archiver) pinFromDisk(ctx context.Context, cid, diskPath string, isDir bool) error {
+	if err := a.ipfs.PinAddWait(ctx, cid, 2*time.Minute); err == nil {
+		return nil
+	} else if _, statErr := os.Stat(diskPath); statErr != nil {
+		return err
+	}
+
+	hash, addErr := a.ipfs.AddFromDisk(ctx, diskPath, cid, isDir)
+	if addErr != nil {
+		return fmt.Errorf("pin missing and add failed: %w", addErr)
+	}
+	if hash != "" && hash != cid {
+		log.Printf("[archive] re-add cid=%s produced %s; pinning original", cid, hash)
+	}
+	return a.ipfs.PinAddWait(ctx, cid, 2*time.Minute)
+}
+
+func (a *Archiver) Repin(ctx context.Context) {
+	if !a.repinning.CompareAndSwap(false, true) {
+		log.Printf("[archive] re-pin already running, skip")
+		return
+	}
+	defer a.repinning.Store(false)
+
+	items, err := a.store.ListArchivePins()
+	if err != nil {
+		log.Printf("[archive] re-pin list failed: %v", err)
+		a.repinErrs.Add(1)
+		return
+	}
+	if len(items) == 0 {
+		return
+	}
+
+	log.Printf("[archive] re-pinning %d objects", len(items))
+	var ok, fail int
+	for _, item := range items {
+		if ctx.Err() != nil {
+			return
+		}
+		path := a.Path(item.CID)
+		if err := a.pinFromDisk(ctx, item.CID, path, item.IsDir); err != nil {
+			log.Printf("[archive] re-pin failed cid=%s: %v", item.CID, err)
+			a.repinErrs.Add(1)
+			fail++
+			continue
+		}
+		a.repinned.Add(1)
+		ok++
+	}
+	log.Printf("[archive] re-pin done ok=%d failed=%d", ok, fail)
 }
 
 func (a *Archiver) List(limit, offset int) ([]ArchiveItem, error) {

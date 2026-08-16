@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -72,6 +73,63 @@ func TestStoreArchive(t *testing.T) {
 	count, size, err := store.GetArchiveStats()
 	if err != nil || count != 1 || size != 42 {
 		t.Fatalf("stats count=%d size=%d err=%v", count, size, err)
+	}
+}
+
+func TestJanitorSkipsArchiveCIDs(t *testing.T) {
+	dir := t.TempDir()
+	store, err := NewStore(filepath.Join(dir, "test.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer store.Close()
+
+	archiveCID := "bafybeicg2oxl5gah64cvk44phwsr33m42x3fvwg6b2kdt6v2iylndr2mqu"
+	uploadCID := "QmZtmD2qtMeK4B6usxBaTm2WpuFiHg8wf5YDrQj83b27Bm"
+	if err := store.InsertUpload(archiveCID, "kept.png", 10); err != nil {
+		t.Fatal(err)
+	}
+	if err := store.InsertUpload(uploadCID, "evictable.png", 20); err != nil {
+		t.Fatal(err)
+	}
+	if err := store.InsertArchive(ArchiveItem{CID: archiveCID, Filename: "kept.png", Size: 10}); err != nil {
+		t.Fatal(err)
+	}
+
+	oldest, err := store.GetOldestPinnedFiles(10)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(oldest) != 1 || oldest[0].CID != uploadCID {
+		t.Fatalf("oldest should skip archive cid, got %+v", oldest)
+	}
+
+	count, err := store.GetPinnedCount()
+	if err != nil {
+		t.Fatal(err)
+	}
+	sz, err := store.GetPinnedSize()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if count != 1 || sz != 20 {
+		t.Fatalf("pinned quota should exclude archive overlap count=%d size=%d", count, sz)
+	}
+
+	pins, err := store.ListArchivePins()
+	if err != nil || len(pins) != 1 || pins[0].CID != archiveCID {
+		t.Fatalf("pins=%v err=%v", pins, err)
+	}
+}
+
+func TestCidAddQuery(t *testing.T) {
+	q0 := cidAddQuery("QmZtmD2qtMeK4B6usxBaTm2WpuFiHg8wf5YDrQj83b27Bm", false)
+	if !strings.Contains(q0, "cid-version=0") {
+		t.Fatalf("v0 query: %s", q0)
+	}
+	q1 := cidAddQuery("bafybeicg2oxl5gah64cvk44phwsr33m42x3fvwg6b2kdt6v2iylndr2mqu", true)
+	if !strings.Contains(q1, "cid-version=1") || !strings.Contains(q1, "wrap-with-directory=true") {
+		t.Fatalf("v1 dir query: %s", q1)
 	}
 }
 

@@ -272,6 +272,106 @@ func (c *Client) AddDirectory(ctx context.Context, files map[string]string) (str
 	return root.Hash, nil
 }
 
+// AddFromDisk adds a file or directory from disk so missing blocks can be restored
+// before pinning an archive CID. Per-request add flags only — no Kubo config changes.
+func (c *Client) AddFromDisk(ctx context.Context, diskPath, cidHint string, isDir bool) (string, error) {
+	if isDir {
+		files := make(map[string]string)
+		err := filepath.Walk(diskPath, func(path string, info os.FileInfo, err error) error {
+			if err != nil {
+				return err
+			}
+			if info.IsDir() {
+				return nil
+			}
+			rel, err := filepath.Rel(diskPath, path)
+			if err != nil {
+				return err
+			}
+			files[filepath.ToSlash(rel)] = path
+			return nil
+		})
+		if err != nil {
+			return "", err
+		}
+		if len(files) == 0 {
+			return "", fmt.Errorf("empty directory %s", diskPath)
+		}
+		return c.addMultipart(ctx, files, cidAddQuery(cidHint, true))
+	}
+	return c.addMultipart(ctx, map[string]string{filepath.Base(diskPath): diskPath}, cidAddQuery(cidHint, false))
+}
+
+func cidAddQuery(cidHint string, wrapDir bool) string {
+	q := "/api/v0/add?pin=false"
+	if wrapDir {
+		q += "&wrap-with-directory=true&recursive=true"
+	}
+	if strings.HasPrefix(cidHint, "Qm") && len(cidHint) == 46 {
+		q += "&cid-version=0"
+	} else if cidHint != "" {
+		q += "&cid-version=1&raw-leaves=true"
+	}
+	return q
+}
+
+func (c *Client) addMultipart(ctx context.Context, files map[string]string, apiPath string) (string, error) {
+	pr, pw := io.Pipe()
+	defer pr.CloseWithError(fmt.Errorf("pipe closed"))
+	mw := multipart.NewWriter(pw)
+	contentType := mw.FormDataContentType()
+
+	paths := make([]string, 0, len(files))
+	for p := range files {
+		paths = append(paths, p)
+	}
+	sort.Strings(paths)
+
+	go func() {
+		for _, relativePath := range paths {
+			part, err := mw.CreateFormFile("file", relativePath)
+			if err != nil {
+				pw.CloseWithError(fmt.Errorf("creating multipart part for %s: %w", relativePath, err))
+				return
+			}
+			f, err := os.Open(files[relativePath])
+			if err != nil {
+				pw.CloseWithError(fmt.Errorf("opening %s: %w", relativePath, err))
+				return
+			}
+			if _, err := io.Copy(part, f); err != nil {
+				f.Close()
+				pw.CloseWithError(fmt.Errorf("reading %s: %w", relativePath, err))
+				return
+			}
+			f.Close()
+		}
+		pw.CloseWithError(mw.Close())
+	}()
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+apiPath, pr)
+	if err != nil {
+		pr.CloseWithError(err)
+		return "", err
+	}
+	req.Header.Set("Content-Type", contentType)
+
+	resp, err := c.do(req)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Close()
+
+	entries, err := parseAddResponses(resp)
+	if err != nil {
+		return "", err
+	}
+	if len(entries) == 0 || entries[len(entries)-1].Hash == "" {
+		return "", fmt.Errorf("invalid IPFS response for add")
+	}
+	return entries[len(entries)-1].Hash, nil
+}
+
 // postJSON applies a per-call timeout via context rather than allocating a new http.Client.
 func (c *Client) postJSON(ctx context.Context, path string, timeout time.Duration, body io.Reader) (map[string]any, error) {
 	if timeout > 0 {
@@ -411,7 +511,11 @@ func mimeTypeByExtension(ext string) string {
 }
 
 func (c *Client) PinAdd(ctx context.Context, cid string) error {
-	_, err := c.postJSON(ctx, "/api/v0/pin/add?arg="+url.QueryEscape(cid), 30*time.Second, nil)
+	return c.PinAddWait(ctx, cid, 30*time.Second)
+}
+
+func (c *Client) PinAddWait(ctx context.Context, cid string, timeout time.Duration) error {
+	_, err := c.postJSON(ctx, "/api/v0/pin/add?arg="+url.QueryEscape(cid), timeout, nil)
 	return err
 }
 

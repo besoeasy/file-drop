@@ -50,7 +50,7 @@ func main() {
 
 	workerCtx, workerCancel := context.WithCancel(context.Background())
 	go janitorMgr.Run(workerCtx, time.Duration(JanitorInterval)*time.Minute)
-	go archiver.Run(workerCtx, time.Duration(ArchiveInterval)*time.Minute)
+	go archiver.Run(workerCtx, time.Duration(ArchiveInterval)*time.Minute, time.Duration(ArchiveRepinHours)*time.Hour)
 
 	if len(NostrNpubs) > 0 {
 		log.Printf("[STARTUP] NOSTR_NPUBS configured count=%d keys=%v", len(NostrNpubs), NostrNpubs)

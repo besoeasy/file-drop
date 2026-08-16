@@ -16,6 +16,7 @@ ENV NOSTR_NPUBS=""
 ENV NOSTR_RELAYS=""
 ENV ARCHIVE_DIR=/archive
 ENV ARCHIVE_INTERVAL=15
+ENV ARCHIVE_REPIN_HOURS=6
 
 RUN apk add --no-cache ca-certificates gcompat kubo && \
   adduser -D -h /app originless
