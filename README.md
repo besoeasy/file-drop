@@ -53,7 +53,7 @@ Client examples and decoupled tools are located in the [`examples/`](examples/) 
 
 - **[Single File Uploader](examples/upload-file.html)**: Drag & drop images, video, audio, or binaries to upload and pin on IPFS with instant public gateway links, embed HTML codes, and SHA-256 verification.
 - **[Folder & DApp Uploader](examples/upload-folder.html)**: Upload full static websites and React/Vite `dist/` directories to IPFS with intact relative paths under a single root CID.
-- **[Share Snippets & Pastebin Generator](examples/snippet.html)**: Pin code snippets, logs, and text pastes to IPFS with SHA-256 multihashes. Generates NIP-C0 Kind 1337 and Kind 1 Nostr events with syntax highlighting, and publishes directly to relays or via [NoStrudel Publisher](https://nostrudel.ninja/tools/publisher).
+- **[Share Snippets & Pastebin](examples/snippet.html)**: Pin code snippets, configs, and text pastes to IPFS with SHA-256 multihashes, live Prism syntax highlighting, line numbers gutter, and instant shareable gateway links.
 - **[Kind 20 Picture Post Generator](examples/picture.html)** (Instagram-style photo dump): Batch upload photos to IPFS, preview an interactive carousel feed, generate NIP-68 Kind 20 JSON with NIP-92 `imeta` tags (URL, MIME, SHA-256, dimensions, blurhash, alt), and publish directly or via NoStrudel.
 - **[Kind 1 Short Note & Image Post Generator](examples/post.html)**: Compose Nostr text notes with IPFS image attachments and NIP-92 `imeta` tags, preview live note rendering, and publish directly or via NoStrudel.
 

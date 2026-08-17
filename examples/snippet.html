@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Share Snippets & Pastebin — Originless</title>
-  <meta name="description" content="Pin code snippets and text pastes to IPFS. Generate Nostr NIP-C0 Kind 1337 and Kind 1 events with syntax highlighting, SHA-256 multihashes, and publish directly." />
+  <meta name="description" content="Upload and pin code snippets, configuration files, and text pastes to IPFS with syntax highlighting, SHA-256 multihashes, and instant shareable gateway links." />
   <meta name="theme-color" content="#211e1e" />
   <link rel="icon" type="image/svg+xml" href="/logo.svg" />
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
@@ -198,39 +198,36 @@
       background: #ffffff;
       border: 1px solid var(--line);
       border-radius: var(--radius);
-      overflow: hidden;
       display: flex;
+      min-height: 280px;
+      font-family: var(--mono);
+      font-size: .84rem;
+      line-height: 1.5;
     }
     .editor-gutter {
-      width: 44px;
-      min-width: 44px;
+      padding: .85rem .5rem;
       background: var(--bg-2);
       border-right: 1px solid var(--line);
-      padding: .85rem 0;
-      font-family: var(--mono);
-      font-size: .78rem;
-      line-height: 1.5;
-      text-align: right;
-      padding-right: .6rem;
-      color: var(--faint);
       user-select: none;
-      overflow: hidden;
+      text-align: right;
+      color: var(--faint);
+      font-size: .75rem;
+      min-width: 2.8rem;
     }
     .editor-textarea {
       flex: 1;
       border: 0;
       background: transparent;
-      padding: .85rem .95rem;
+      padding: .85rem;
+      resize: vertical;
       font-family: var(--mono);
-      font-size: .8rem;
+      font-size: .84rem;
       line-height: 1.5;
       color: var(--ink);
-      resize: vertical;
-      min-height: 280px;
+      outline: none;
       white-space: pre;
-      overflow-wrap: normal;
       overflow-x: auto;
-      tab-size: 2;
+      min-height: 280px;
     }
 
     /* Buttons & Badges */
@@ -254,94 +251,82 @@
     .btn-ghost:hover:not(:disabled) { color: var(--ink); background: var(--bg-2); }
     .btn-sm { padding: .4rem .75rem; font-size: .75rem; }
     .btn-soft { background: var(--bg); color: var(--ink); border: 1px solid var(--line); }
-    .btn-soft:hover:not(:disabled) { border-color: var(--ink); background: #fff; }
+    .btn-soft:hover:not(:disabled) { background: var(--bg-hover); }
 
     .pill {
       display: inline-flex;
       align-items: center;
-      gap: .3rem;
       font-family: var(--mono);
       padding: .15rem .5rem;
       font-size: .72rem;
       border-radius: 4px;
       font-weight: 500;
     }
-    .pill-get { background: var(--bg-2); color: var(--muted); border: 1px solid var(--line); }
+    .pill-get { background: var(--bg); color: var(--muted); border: 1px solid var(--line); }
     .pill-post { background: var(--ink); color: #fff; }
     .pill-ok { background: rgba(3, 176, 0, 0.12); color: var(--ok); }
 
-    .link-more {
-      font-family: var(--mono);
-      font-size: .78rem;
-      color: var(--faint);
-      border: 0;
-      background: transparent;
-      padding: .2rem .4rem;
-      border-radius: 4px;
-      transition: color .2s, background .2s;
-    }
-    .link-more:hover { color: var(--ink); }
-    .link-more.is-copied { background: var(--accent); color: var(--ink); }
-
-    /* Addon input bar */
-    .addon { display: flex; align-items: stretch; }
-    .addon .field { border-top-right-radius: 0; border-bottom-right-radius: 0; }
-    .addon-btn {
-      display: flex; align-items: center; justify-content: center;
-      background: var(--bg-2); border: 1px solid var(--line); border-left: 0;
-      border-top-right-radius: var(--radius); border-bottom-right-radius: var(--radius);
-      padding: 0 .9rem; color: var(--muted); font-size: .82rem; transition: background .2s, color .2s;
-    }
-    .addon-btn:hover { color: var(--ink); background: var(--bg-hover); }
-
     .code {
-      display: block; background: #1e1e1e; color: #d4d4d4;
-      border-radius: .4rem; padding: .85rem 1rem; font-family: var(--mono);
-      font-size: .76rem; line-height: 1.55; word-break: break-all;
-    }
-
-    /* Form Mode Tabs */
-    .tab-bar {
-      display: flex;
-      gap: .35rem;
-      margin-bottom: 1.25rem;
-      border-bottom: 1px solid var(--line);
-      padding-bottom: .25rem;
-    }
-    .tab-btn {
-      border: 0;
-      background: transparent;
+      display: block;
+      background: #1e1e1e;
+      color: #d4d4d4;
+      border-radius: .4rem;
+      padding: .85rem 1rem;
       font-family: var(--mono);
-      font-size: .82rem;
-      padding: .45rem .75rem;
-      color: var(--muted);
-      border-radius: var(--radius);
-      transition: all .15s;
+      font-size: .76rem;
+      line-height: 1.55;
+      word-break: break-all;
     }
-    .tab-btn:hover { color: var(--ink); }
-    .tab-btn.is-active { background: var(--ink); color: #fff; font-weight: 500; }
 
-    /* Code Preview Box with Syntax Highlighting */
+    .addon {
+      display: flex;
+      align-items: stretch;
+    }
+    .addon .field {
+      border-top-right-radius: 0;
+      border-bottom-right-radius: 0;
+    }
+    .addon-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--bg-2);
+      border: 1px solid var(--line);
+      border-left: 0;
+      border-top-right-radius: var(--radius);
+      border-bottom-right-radius: var(--radius);
+      padding: 0 .9rem;
+      color: var(--muted);
+      font-size: .82rem;
+      transition: background .2s, color .2s;
+    }
+    .addon-btn:hover {
+      color: var(--ink);
+      background: var(--bg-hover);
+    }
+
+    /* Live Code Preview Window */
     .code-preview-window {
-      background: #1d1f21;
-      border-radius: 8px;
+      background: #1e1e1e;
+      border-radius: .5rem;
       overflow: hidden;
-      box-shadow: 0 4px 18px rgba(0,0,0,0.06);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.08);
     }
     .code-window-header {
-      background: #161819;
-      padding: .65rem .95rem;
+      background: #252526;
+      padding: .65rem 1rem;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      border-bottom: 1px solid rgba(255,255,255,0.08);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
     }
     .window-dots {
       display: flex;
-      gap: 6px;
+      gap: .4rem;
     }
     .window-dot {
-      width: 10px; height: 10px; border-radius: 50%;
+      width: .65rem; height: .65rem; border-radius: 50%;
     }
     .dot-red { background: #ff5f56; }
     .dot-yellow { background: #ffbd2e; }
@@ -349,79 +334,20 @@
     .window-title {
       font-family: var(--mono);
       font-size: .75rem;
-      color: #9da5b4;
+      color: #9cdcfe;
+      font-weight: 500;
     }
     .code-preview-body {
-      padding: 1rem;
       margin: 0;
-      overflow-x: auto;
-      max-height: 480px;
+      padding: 1.25rem 1rem;
+      max-height: 420px;
+      overflow-y: auto;
+      font-family: var(--mono);
+      font-size: .82rem;
+      line-height: 1.55;
     }
     .code-preview-body code {
       font-family: var(--mono) !important;
-      font-size: .82rem !important;
-      line-height: 1.55 !important;
-    }
-
-    /* Nostr Preview Card */
-    .nostr-card-preview {
-      background: #ffffff;
-      border: 1px solid var(--line);
-      border-radius: 10px;
-      padding: 1.25rem;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.03);
-    }
-    .nostr-user-line {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: .85rem;
-    }
-    .nostr-user {
-      display: flex;
-      align-items: center;
-      gap: .65rem;
-    }
-    .nostr-avatar {
-      width: 36px; height: 36px; border-radius: 50%;
-      background: #5b42f3; color: #fff;
-      display: grid; place-items: center; font-size: .9rem;
-    }
-
-    .tags-cloud {
-      display: flex;
-      flex-wrap: wrap;
-      gap: .35rem;
-      margin-top: .6rem;
-    }
-    .tag-chip {
-      font-family: var(--mono);
-      font-size: .7rem;
-      background: var(--bg);
-      border: 1px solid var(--line);
-      padding: .15rem .45rem;
-      border-radius: 3px;
-      color: var(--muted);
-    }
-
-    .relay-status-list {
-      display: flex;
-      flex-direction: column;
-      gap: .4rem;
-      margin-top: .75rem;
-      max-height: 180px;
-      overflow-y: auto;
-    }
-    .relay-status-item {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      font-family: var(--mono);
-      font-size: .72rem;
-      background: #fff;
-      padding: .35rem .65rem;
-      border-radius: 4px;
-      border: 1px solid var(--line);
     }
 
     .foot-clean {
@@ -437,19 +363,22 @@
       flex-wrap: wrap;
       gap: 1rem;
     }
+    .foot-clean a:hover { color: var(--ink); }
   </style>
 </head>
 <body>
 <div id="app" class="shell">
   <main class="wrap">
-    <!-- Standalone Header -->
+    <!-- Standalone Header with Persistent Node Status -->
     <header class="page-header-clean">
       <div class="page-brand">
-        <a href="index.html" class="page-back-link"><i class="fas fa-arrow-left"></i> Examples</a>
+        <a href="index.html" class="page-back-link">
+          <i class="fas fa-arrow-left"></i> Examples
+        </a>
         <span>/</span>
         <span style="display:flex;align-items:center;gap:.5rem">
-          <span class="brand-mark"></span>
-          <span>Share Snippets</span>
+          <span class="brand-mark" aria-hidden="true"></span>
+          <span>Snippet &amp; Pastebin</span>
         </span>
       </div>
       <div class="node-status-bar">
@@ -460,43 +389,27 @@
       </div>
     </header>
 
+    <!-- Hero -->
     <div class="hero">
-      <p class="kicker">[*] NIP-C0 · Kind 1337 · IPFS Pastebin</p>
-      <h1>Code Snippet &amp; Pastebin Generator</h1>
-      <p>Pin code snippets, logs, and text pastes to IPFS. Generate Nostr NIP-C0 Kind 1337 or Kind 1 events with syntax highlighting, SHA-256 multihashes, and publish directly or via NoStrudel.</p>
+      <p class="kicker">[*] Code Snippet &amp; Pastebin · IPFS Content-Addressed Storage</p>
+      <h1>Share Code Snippets &amp; Pastes</h1>
+      <p>Pin code snippets, logs, configs, and text pastes to IPFS with automatic syntax highlighting, cryptographic SHA-256 multihashes, and instant public gateway links.</p>
     </div>
 
-    <!-- Main 2-Column Layout -->
+    <!-- Main Layout -->
     <div class="snippet-layout">
-      <!-- Left Column: Composer & Editor -->
+      <!-- Left Column: Editor & Options -->
       <div>
         <section class="card">
-          <div class="tab-bar">
-            <button class="tab-btn" :class="{ 'is-active': activeMode === 'compose' }" @click="activeMode = 'compose'">
-              <i class="fas fa-pen-nib"></i> Compose Snippet
-            </button>
-            <button class="tab-btn" :class="{ 'is-active': activeMode === 'fetch' }" @click="activeMode = 'fetch'">
-              <i class="fas fa-cloud-arrow-down"></i> Fetch by CID
-            </button>
+          <div class="card-head">
+            <h2>Snippet Details</h2>
+            <span class="pill pill-get">{{ currentLangObj.name }}</span>
           </div>
 
-          <!-- Fetch from CID mode -->
-          <div v-if="activeMode === 'fetch'" class="form-group">
-            <label class="kicker">Fetch Snippet from IPFS CID</label>
-            <div class="addon">
-              <input v-model="fetchCidInput" class="field mono" type="text" placeholder="QmX... or bafy..." @keyup.enter="fetchSnippetByCid" />
-              <button class="addon-btn" type="button" @click="fetchSnippetByCid" :disabled="fetchingCid || !fetchCidInput.trim()">
-                <i :class="fetchingCid ? 'fas fa-circle-notch fa-spin' : 'fas fa-download'"></i>
-              </button>
-            </div>
-            <p class="faint mono" style="font-size:.72rem;margin:.5rem 0 0">Fetches raw text via <span class="mono">{{ nodeUrl }}/paste/{cid}</span> or IPFS gateway.</p>
-          </div>
-
-          <!-- Compose mode -->
-          <div v-show="activeMode === 'compose'">
+          <div>
             <div class="grid-fields-2 form-group">
               <div>
-                <label class="kicker">Title / Filename</label>
+                <label class="kicker">Filename / Title</label>
                 <input v-model="snippetTitle" @input="onTitleChange" class="field" type="text" placeholder="e.g. main.go, app.ts, query.sql" />
               </div>
               <div>
@@ -505,11 +418,6 @@
                   <option v-for="lang in languageOptions" :key="lang.id" :value="lang.id">{{ lang.name }}</option>
                 </select>
               </div>
-            </div>
-
-            <div class="form-group">
-              <label class="kicker">Description / Note (Optional)</label>
-              <input v-model="snippetSummary" class="field" type="text" placeholder="Brief summary or context about this snippet…" />
             </div>
 
             <div class="form-group">
@@ -550,41 +458,66 @@
               </div>
             </div>
 
-            <!-- Nostr Format Selector -->
-            <div class="form-group" style="border-top:1px solid var(--line);padding-top:1rem">
-              <label class="kicker">Nostr Event Type</label>
-              <div style="display:flex;gap:.5rem;flex-wrap:wrap">
-                <button
-                  type="button"
-                  class="btn btn-sm"
-                  :class="nostrKind === 1337 ? 'btn-brand' : 'btn-soft'"
-                  @click="nostrKind = 1337"
-                >
-                  <i class="fas fa-code"></i> NIP-C0 (Kind 1337)
-                </button>
-                <button
-                  type="button"
-                  class="btn btn-sm"
-                  :class="nostrKind === 1 ? 'btn-brand' : 'btn-soft'"
-                  @click="nostrKind = 1"
-                >
-                  <i class="fas fa-message"></i> Kind 1 Note
-                </button>
-              </div>
-            </div>
-
-            <!-- Primary Pin Action -->
+            <!-- Primary Upload Action -->
             <div style="margin-top:1.25rem">
-              <button class="btn btn-brand" style="width:100%" @click="pinSnippet" :disabled="pinning || !snippetContent.trim()">
-                <i :class="pinning ? 'fas fa-circle-notch fa-spin' : 'fas fa-cloud-arrow-up'"></i>
-                {{ pinning ? 'Pinning to IPFS Swarm…' : 'Pin Snippet to IPFS' }}
+              <button class="btn btn-brand" style="width:100%" @click="uploadSnippet" :disabled="uploading || !snippetContent.trim()">
+                <i :class="uploading ? 'fas fa-circle-notch fa-spin' : 'fas fa-cloud-arrow-up'"></i>
+                {{ uploading ? 'Pinning Snippet to IPFS Swarm…' : 'Upload & Pin Snippet to IPFS' }}
               </button>
             </div>
           </div>
         </section>
 
+        <!-- Quick Reference cURL -->
+        <section class="card">
+          <div class="card-head">
+            <h2>cURL Upload Reference</h2>
+            <button class="btn btn-soft btn-sm" @click="copyText(curlSnippet, 'curl')">
+              <i :class="copiedKey === 'curl' ? 'fas fa-check' : 'fas fa-copy'"></i>
+              {{ copiedKey === 'curl' ? 'Copied' : 'Copy cURL' }}
+            </button>
+          </div>
+          <code class="code">{{ curlSnippet }}</code>
+        </section>
+
+        <!-- Fetch Existing Snippet -->
+        <section class="card">
+          <div class="card-head">
+            <h2>Fetch from IPFS</h2>
+          </div>
+          <p class="mono faint" style="font-size:.78rem;margin:0 0 .75rem">Load an existing snippet or paste directly from IPFS into the editor.</p>
+          <div class="addon">
+            <input v-model="fetchCid" class="field mono" type="text" placeholder="Enter CID (e.g. Qm... or bafy...)" />
+            <button class="btn btn-brand" style="border-radius:0 var(--radius) var(--radius) 0" @click="fetchSnippetFromIpfs" :disabled="fetching || !fetchCid.trim()">
+              <i :class="fetching ? 'fas fa-circle-notch fa-spin' : 'fas fa-download'"></i> Fetch
+            </button>
+          </div>
+        </section>
+      </div>
+
+      <!-- Right Column: Live Syntax Preview & IPFS Receipt -->
+      <div>
+        <!-- Syntax-Highlighted Code Window Preview -->
+        <section class="code-preview-window">
+          <div class="code-window-header">
+            <div class="window-dots">
+              <span class="window-dot dot-red"></span>
+              <span class="window-dot dot-yellow"></span>
+              <span class="window-dot dot-green"></span>
+            </div>
+            <div class="window-title">{{ displayTitle }}</div>
+            <div style="display:flex;gap:.5rem;align-items:center">
+              <span class="pill pill-get" style="font-size:.65rem;padding:.1rem .4rem">{{ currentLangObj.name }}</span>
+              <button class="btn btn-ghost btn-sm" style="color:#d4d4d4;padding:.1rem .4rem" @click="copyText(snippetContent, 'raw')" title="Copy raw code">
+                <i :class="copiedKey === 'raw' ? 'fas fa-check' : 'fas fa-copy'"></i> {{ copiedKey === 'raw' ? 'Copied' : 'Copy' }}
+              </button>
+            </div>
+          </div>
+          <pre class="code-preview-body"><code :class="'language-' + currentPrismLang" v-html="highlightedCode"></code></pre>
+        </section>
+
         <!-- Pinning Receipt Card -->
-        <section v-if="receipt" class="card">
+        <section v-if="receipt" class="card" style="margin-top:1.25rem">
           <div class="card-head">
             <h2>IPFS Pinning Receipt</h2>
             <span class="pill pill-ok"><i class="fas fa-check"></i> Pinned on Node</span>
@@ -601,7 +534,7 @@
           </div>
 
           <div class="form-group">
-            <label class="kicker">Public Gateway URL</label>
+            <label class="kicker">Primary Gateway URL (dweb.link)</label>
             <div class="addon">
               <input class="field mono grow" type="text" :value="receipt.gatewayUrl" readonly @click="$event.target.select()" />
               <a class="addon-btn" :href="receipt.gatewayUrl" target="_blank" rel="noopener"><i class="fas fa-external-link-alt"></i></a>
@@ -612,135 +545,50 @@
           </div>
 
           <div class="form-group">
-            <label class="kicker">Raw Node Endpoint</label>
+            <label class="kicker">Secondary Gateway URL (ipfs.io)</label>
             <div class="addon">
-              <input class="field mono grow" type="text" :value="receipt.nodeUrl" readonly @click="$event.target.select()" />
-              <a class="addon-btn" :href="receipt.nodeUrl" target="_blank" rel="noopener"><i class="fas fa-external-link-alt"></i></a>
+              <input class="field mono grow" type="text" :value="receipt.ipfsIoUrl" readonly @click="$event.target.select()" />
+              <a class="addon-btn" :href="receipt.ipfsIoUrl" target="_blank" rel="noopener"><i class="fas fa-external-link-alt"></i></a>
+              <button class="addon-btn" type="button" @click="copyText(receipt.ipfsIoUrl, 'gw2')">
+                <i :class="copiedKey === 'gw2' ? 'fas fa-check' : 'fas fa-copy'"></i>
+              </button>
             </div>
           </div>
 
           <div class="form-group">
-            <label class="kicker">SHA-256 Multihash (<span class="mono">x</span> tag)</label>
+            <label class="kicker">ipfs:// URI</label>
+            <div class="addon">
+              <input class="field mono grow" type="text" :value="'ipfs://' + receipt.cid" readonly @click="$event.target.select()" />
+              <button class="addon-btn" type="button" @click="copyText('ipfs://' + receipt.cid, 'uri')">
+                <i :class="copiedKey === 'uri' ? 'fas fa-check' : 'fas fa-copy'"></i>
+              </button>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="kicker">Raw Node Endpoint</label>
+            <div class="addon">
+              <input class="field mono grow" type="text" :value="receipt.rawNodeUrl" readonly @click="$event.target.select()" />
+              <a class="addon-btn" :href="receipt.rawNodeUrl" target="_blank" rel="noopener"><i class="fas fa-external-link-alt"></i></a>
+              <button class="addon-btn" type="button" @click="copyText(receipt.rawNodeUrl, 'rawNode')">
+                <i :class="copiedKey === 'rawNode' ? 'fas fa-check' : 'fas fa-copy'"></i>
+              </button>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="kicker">SHA-256 Multihash</label>
             <div class="code" style="font-size:.72rem">{{ receipt.sha256 }}</div>
           </div>
         </section>
-      </div>
 
-      <!-- Right Column: Live Previews, Nostr JSON & Relays -->
-      <div>
-        <!-- Syntax-Highlighted Code Window Preview -->
-        <section class="code-preview-window">
-          <div class="code-window-header">
-            <div class="window-dots">
-              <span class="window-dot dot-red"></span>
-              <span class="window-dot dot-yellow"></span>
-              <span class="window-dot dot-green"></span>
-            </div>
-            <div class="window-title">{{ displayTitle }}</div>
-            <div style="display:flex;gap:.5rem;align-items:center">
-              <span class="pill pill-get" style="font-size:.65rem;padding:.1rem .4rem">{{ currentLangObj.name }}</span>
-              <button class="link-more" style="color:#d4d4d4" @click="copyText(snippetContent, 'raw')" title="Copy raw code">
-                {{ copiedKey === 'raw' ? 'Copied' : 'Copy Raw' }}
-              </button>
-            </div>
-          </div>
-          <pre class="code-preview-body"><code :class="'language-' + currentPrismLang" v-html="highlightedCode"></code></pre>
-        </section>
-
-        <!-- Nostr Feed Preview Simulation -->
-        <section class="card" style="margin-top:1.25rem">
+        <section v-else class="card" style="margin-top:1.25rem">
           <div class="card-head">
-            <h2>Nostr Feed Preview</h2>
-            <span class="pill pill-get">{{ nostrKind === 1337 ? 'Kind 1337 · NIP-C0' : 'Kind 1 · Note' }}</span>
+            <h2>IPFS Routing Details</h2>
           </div>
-
-          <div class="nostr-card-preview">
-            <div class="nostr-user-line">
-              <div class="nostr-user">
-                <div class="nostr-avatar"><i class="fas fa-user-ninja"></i></div>
-                <div>
-                  <div style="font-weight:700;font-size:.88rem">{{ userPubkey ? formatPubkey(userPubkey) : 'npub1originless…' }}</div>
-                  <div class="mono faint" style="font-size:.72rem">Just now</div>
-                </div>
-              </div>
-              <span class="pill pill-get mono" style="font-size:.68rem">{{ displayTitle }}</span>
-            </div>
-
-            <div v-if="snippetSummary" style="font-size:.88rem;margin-bottom:.75rem;line-height:1.45">{{ snippetSummary }}</div>
-
-            <div style="background:#282c34;border-radius:6px;padding:.75rem;color:#abb2bf;font-family:var(--mono);font-size:.76rem;max-height:160px;overflow:hidden;position:relative">
-              <pre style="margin:0;white-space:pre-wrap;word-break:break-all">{{ snippetContent.slice(0, 300) }}{{ snippetContent.length > 300 ? '…' : '' }}</pre>
-              <div v-if="snippetContent.length > 300" style="position:absolute;bottom:0;left:0;right:0;height:40px;background:linear-gradient(transparent, #282c34);display:flex;align-items:flex-end;justify-content:center;padding-bottom:.2rem">
-                <span class="faint mono" style="font-size:.7rem">+ {{ stats.lines }} lines</span>
-              </div>
-            </div>
-
-            <div v-if="receipt" style="margin-top:.75rem;display:flex;align-items:center;gap:.5rem;font-size:.76rem" class="mono">
-              <i class="fas fa-link" style="color:var(--faint)"></i>
-              <a :href="receipt.gatewayUrl" target="_blank" rel="noopener" style="color:var(--ink);text-decoration:underline">{{ receipt.cid.slice(0, 16) }}…</a>
-            </div>
-
-            <div class="tags-cloud">
-              <span class="tag-chip">#{{ currentLangObj.tag }}</span>
-              <span class="tag-chip">#code</span>
-              <span class="tag-chip">#originless</span>
-              <span v-if="receipt" class="tag-chip">#ipfs</span>
-            </div>
-          </div>
-        </section>
-
-        <!-- Nostr Event JSON & Direct Publishing -->
-        <section class="card" style="margin-top:1.25rem">
-          <div class="card-head">
-            <h2>Nostr Event Payload</h2>
-            <div style="display:flex;gap:.4rem">
-              <button class="btn btn-soft btn-sm" @click="copyText(generatedJsonStr, 'json')">
-                <i :class="copiedKey === 'json' ? 'fas fa-check' : 'fas fa-copy'"></i>
-                {{ copiedKey === 'json' ? 'Copied' : 'Copy JSON' }}
-              </button>
-              <button class="btn btn-soft btn-sm" @click="openNoStrudel">
-                <i class="fas fa-arrow-up-right-from-square"></i> NoStrudel
-              </button>
-              <button class="btn btn-soft btn-sm" @click="downloadJson">
-                <i class="fas fa-download"></i>
-              </button>
-            </div>
-          </div>
-
-          <div class="code" style="max-height:220px;overflow-y:auto">{{ generatedJsonStr }}</div>
-
-          <!-- NIP-07 Direct Relay Publishing -->
-          <div style="margin-top:1.25rem;border-top:1px solid var(--line);padding-top:1rem">
-            <div class="card-head" style="margin-bottom:.5rem">
-              <label class="kicker" style="margin:0">Broadcast to Nostr Relays (NIP-07)</label>
-              <button v-if="!userPubkey" class="btn btn-soft btn-sm" @click="connectExtension" :disabled="connectingExt">
-                <i :class="connectingExt ? 'fas fa-circle-notch fa-spin' : 'fas fa-key'"></i>
-                Connect Alby/nos2x
-              </button>
-              <span v-else class="pill pill-ok mono" style="font-size:.72rem">
-                <i class="fas fa-check-circle"></i> {{ formatPubkey(userPubkey) }}
-              </span>
-            </div>
-
-            <div class="form-group">
-              <textarea v-model="relaysText" class="field mono field-sm" rows="3" placeholder="wss://relay.damus.io&#10;wss://nos.lol&#10;wss://relay.nostr.band"></textarea>
-            </div>
-
-            <button class="btn btn-brand" style="width:100%" @click="signAndPublishNostr" :disabled="publishingRelays || !snippetContent.trim()">
-              <i :class="publishingRelays ? 'fas fa-circle-notch fa-spin' : 'fas fa-paper-plane'"></i>
-              {{ publishingRelays ? 'Broadcasting to Relays…' : 'Sign & Broadcast Event' }}
-            </button>
-
-            <!-- Live Relay Broadcast Results -->
-            <div v-if="relayResults.length > 0" class="relay-status-list">
-              <div v-for="res in relayResults" :key="res.url" class="relay-status-item">
-                <span class="truncate" style="max-width:200px">{{ res.url }}</span>
-                <span :style="{ color: res.ok ? 'var(--ok)' : 'var(--err)' }">
-                  <i :class="res.ok ? 'fas fa-check-circle' : 'fas fa-circle-xmark'"></i> {{ res.msg }}
-                </span>
-              </div>
-            </div>
-          </div>
+          <p class="mono faint" style="font-size:.85rem;line-height:1.55;margin:0">
+            Write or load a snippet and click <strong>Upload &amp; Pin Snippet to IPFS</strong> to generate its content-addressed CID, public gateway links, SHA-256 multihash, and direct raw URLs.
+          </p>
         </section>
       </div>
     </div>
@@ -749,6 +597,8 @@
     <footer class="foot-clean">
       <div>
         <a href="index.html">← All Examples</a> ·
+        <a href="upload-file.html">File Uploader</a> ·
+        <a href="upload-folder.html">Folder Uploader</a> ·
         <a href="https://github.com/besoeasy/Originless" target="_blank" rel="noopener">GitHub</a>
       </div>
       <div>Originless Decoupled Client Example</div>
@@ -756,95 +606,80 @@
   </main>
 </div>
 
-<!-- Dependencies -->
 <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-go.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-typescript.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-rust.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-c.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-cpp.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-yaml.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-sql.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-markdown.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-css.min.js"></script>
 
 <script>
-  const { createApp } = Vue;
-
   const LANGUAGES = [
-    { id: "plaintext", name: "Plain Text", ext: "txt", mime: "text/plain", prism: "plaintext", tag: "text" },
-    { id: "go", name: "Go", ext: "go", mime: "text/x-golang", prism: "go", tag: "golang" },
-    { id: "javascript", name: "JavaScript", ext: "js", mime: "application/javascript", prism: "javascript", tag: "javascript" },
-    { id: "typescript", name: "TypeScript", ext: "ts", mime: "application/typescript", prism: "typescript", tag: "typescript" },
-    { id: "python", name: "Python", ext: "py", mime: "text/x-python", prism: "python", tag: "python" },
-    { id: "rust", name: "Rust", ext: "rs", mime: "text/x-rust", prism: "rust", tag: "rust" },
-    { id: "c", name: "C", ext: "c", mime: "text/x-c", prism: "c", tag: "c" },
-    { id: "cpp", name: "C++", ext: "cpp", mime: "text/x-c++", prism: "cpp", tag: "cpp" },
-    { id: "html", name: "HTML", ext: "html", mime: "text/html", prism: "markup", tag: "html" },
-    { id: "css", name: "CSS", ext: "css", mime: "text/css", prism: "css", tag: "css" },
-    { id: "json", name: "JSON", ext: "json", mime: "application/json", prism: "json", tag: "json" },
-    { id: "yaml", name: "YAML", ext: "yaml", mime: "text/yaml", prism: "yaml", tag: "yaml" },
-    { id: "sql", name: "SQL", ext: "sql", mime: "application/sql", prism: "sql", tag: "sql" },
-    { id: "bash", name: "Bash / Shell", ext: "sh", mime: "application/x-sh", prism: "bash", tag: "bash" },
-    { id: "markdown", name: "Markdown", ext: "md", mime: "text/markdown", prism: "markdown", tag: "markdown" },
+    { id: "go", name: "Go (.go)", ext: "go", mime: "text/x-golang", prism: "go" },
+    { id: "typescript", name: "TypeScript (.ts)", ext: "ts", mime: "text/typescript", prism: "typescript" },
+    { id: "javascript", name: "JavaScript (.js)", ext: "js", mime: "application/javascript", prism: "javascript" },
+    { id: "python", name: "Python (.py)", ext: "py", mime: "text/x-python", prism: "python" },
+    { id: "rust", name: "Rust (.rs)", ext: "rs", mime: "text/rust", prism: "rust" },
+    { id: "c", name: "C / C++ (.c, .cpp)", ext: "c", mime: "text/x-c", prism: "c" },
+    { id: "html", name: "HTML (.html)", ext: "html", mime: "text/html", prism: "html" },
+    { id: "css", name: "CSS (.css)", ext: "css", mime: "text/css", prism: "css" },
+    { id: "json", name: "JSON (.json)", ext: "json", mime: "application/json", prism: "json" },
+    { id: "yaml", name: "YAML (.yaml)", ext: "yaml", mime: "text/yaml", prism: "yaml" },
+    { id: "sql", name: "SQL (.sql)", ext: "sql", mime: "text/x-sql", prism: "sql" },
+    { id: "bash", name: "Bash / Shell (.sh)", ext: "sh", mime: "text/x-sh", prism: "bash" },
+    { id: "markdown", name: "Markdown (.md)", ext: "md", mime: "text/markdown", prism: "markdown" },
+    { id: "text", name: "Plain Text (.txt)", ext: "txt", mime: "text/plain", prism: "plaintext" },
   ];
 
-  const SAMPLE_SNIPPETS = {
+  const SAMPLES = {
     go: `package main
 
 import (
-\t"fmt"
-\t"net/http"
+	"crypto/sha256"
+	"encoding/hex"
+	"fmt"
 )
 
-func main() {
-\thttp.HandleFunc("/ping", func(w http.ResponseWriter, r *http.Request) {
-\t\tfmt.Fprintf(w, "pong")
-\t})
-\tfmt.Println("Node listening on :3232")
-\thttp.ListenAndServe(":3232", nil)
-}`,
-    typescript: `interface PinnedAsset {
-  cid: string;
-  size: number;
-  filename: string;
-  pinnedAt: number;
+// CalculateSHA256 returns the hexadecimal multihash of the input.
+func CalculateSHA256(data string) string {
+	hash := sha256.Sum256([]byte(data))
+	return hex.EncodeToString(hash[:])
 }
 
-export async function fetchAssetMetadata(cid: string): Promise<PinnedAsset> {
-  const res = await fetch(\`https://dweb.link/ipfs/\${cid}\`);
-  if (!res.ok) throw new Error(\`IPFS fetch error \${res.status}\`);
-  return res.json();
+func main() {
+	hash := CalculateSHA256("originless ipfs snippet")
+	fmt.Printf("Content SHA256: %s\\n", hash)
 }`,
+    typescript: `import { createHash } from "node:crypto";
+
+export interface SnippetReceipt {
+  cid: string;
+  gatewayUrl: string;
+  sha256: string;
+}
+
+export function computeSha256(text: string): string {
+  return createHash("sha256").update(text).digest("hex");
+}
+
+console.log("Originless IPFS Ready:", computeSha256("hello ipfs"));`,
     python: `import hashlib
 
-def calculate_sha256(content: str) -> str:
-    """Computes standard sha256 multihash for Nostr NIP-92/NIP-C0 tags."""
-    return hashlib.sha256(content.encode("utf-8")).hexdigest()
+def calculate_sha256(payload: str) -> str:
+    """Compute SHA-256 multihash for IPFS pinning."""
+    return hashlib.sha256(payload.encode('utf-8')).hexdigest()
 
-print("SHA256:", calculate_sha256("originless ipfs snippet"))`,
-    rust: `use std::error::Error;
-
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn Error>> {
-    let client = reqwest::Client::new();
-    let resp = client.get("http://localhost:3232/status").send().await?;
-    println!("Originless status: {}", resp.status());
-    Ok(())
-}`,
-    sql: `CREATE TABLE IF NOT EXISTS uploads (
-    cid TEXT PRIMARY KEY,
-    filename TEXT NOT NULL,
-    size_bytes INTEGER NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-CREATE INDEX IF NOT EXISTS idx_uploads_created ON uploads(created_at DESC);`,
+if __name__ == "__main__":
+    print("SHA256:", calculate_sha256("originless ipfs snippet"))`,
   };
+
+  const { createApp } = Vue;
 
   createApp({
     data() {
@@ -857,23 +692,15 @@ CREATE INDEX IF NOT EXISTS idx_uploads_created ON uploads(created_at DESC);`,
         nodeUrl: initialNode,
         nodeOnline: false,
         peerCount: 0,
-        activeMode: "compose",
-        snippetTitle: "main.go",
-        selectedLang: "go",
-        snippetSummary: "Originless IPFS snippet with NIP-C0 code metadata.",
-        snippetContent: SAMPLE_SNIPPETS.go,
-        nostrKind: 1337,
-        pinning: false,
-        receipt: null,
-        fetchCidInput: "",
-        fetchingCid: false,
         languageOptions: LANGUAGES,
+        selectedLang: "go",
+        snippetTitle: "main.go",
+        snippetContent: SAMPLES.go,
+        uploading: false,
+        receipt: null,
+        fetchCid: "",
+        fetching: false,
         copiedKey: "",
-        userPubkey: "",
-        connectingExt: false,
-        publishingRelays: false,
-        relaysText: "wss://relay.damus.io\nwss://nos.lol\nwss://relay.nostr.band\nwss://purplerelay.com",
-        relayResults: [],
       };
     },
     computed: {
@@ -884,7 +711,7 @@ CREATE INDEX IF NOT EXISTS idx_uploads_created ON uploads(created_at DESC);`,
         return this.currentLangObj.prism || "plaintext";
       },
       displayTitle() {
-        return this.snippetTitle.trim() || ("snippet." + this.currentLangObj.ext);
+        return this.snippetTitle.trim() || `snippet.${this.currentLangObj.ext}`;
       },
       editorLines() {
         const count = (this.snippetContent.match(/\n/g) || []).length + 1;
@@ -905,71 +732,9 @@ CREATE INDEX IF NOT EXISTS idx_uploads_created ON uploads(created_at DESC);`,
         const grammar = Prism.languages[this.currentPrismLang] || Prism.languages.plaintext;
         return Prism.highlight(this.snippetContent || " ", grammar, this.currentPrismLang);
       },
-      generatedNostrEvent() {
-        const now = Math.floor(Date.now() / 1000);
+      curlSnippet() {
         const title = this.displayTitle;
-        const lang = this.currentLangObj;
-
-        if (this.nostrKind === 1337) {
-          const tags = [
-            ["title", title],
-            ["alt", `Code snippet: ${title}`],
-            ["m", lang.mime],
-            ["extension", lang.ext],
-            ["t", lang.tag],
-            ["t", "code"],
-            ["t", "snippet"],
-            ["published_at", String(now)],
-          ];
-          if (this.snippetSummary) tags.push(["summary", this.snippetSummary]);
-          if (this.receipt) {
-            tags.push(["x", this.receipt.sha256]);
-            tags.push(["url", this.receipt.gatewayUrl]);
-            tags.push(["fallback", `https://ipfs.io/ipfs/${this.receipt.cid}`]);
-            tags.push(["fallback", `ipfs://${this.receipt.cid}`]);
-            tags.push(["i", `ipfs://${this.receipt.cid}`]);
-          }
-
-          return {
-            kind: 1337,
-            created_at: now,
-            content: this.snippetContent,
-            tags,
-          };
-        }
-
-        // Kind 1 Note Format
-        let content = "";
-        if (this.snippetSummary) content += this.snippetSummary + "\n\n";
-        content += "```" + lang.ext + "\n" + this.snippetContent + "\n```";
-        if (this.receipt) {
-          content += "\n\nIPFS: " + this.receipt.gatewayUrl;
-        }
-
-        const tags = [
-          ["t", lang.tag],
-          ["t", "code"],
-        ];
-        if (this.receipt) {
-          tags.push([
-            "imeta",
-            `url ${this.receipt.gatewayUrl}`,
-            `fallback https://ipfs.io/ipfs/${this.receipt.cid}`,
-            `fallback ipfs://${this.receipt.cid}`,
-            `m ${lang.mime}`,
-            `x ${this.receipt.sha256}`,
-          ]);
-        }
-
-        return {
-          kind: 1,
-          created_at: now,
-          content,
-          tags,
-        };
-      },
-      generatedJsonStr() {
-        return JSON.stringify(this.generatedNostrEvent, null, 2);
+        return `curl -X POST \\\n  -F "file=@${title}" \\\n  ${this.nodeUrl}/upload`;
       },
     },
     methods: {
@@ -978,62 +743,6 @@ CREATE INDEX IF NOT EXISTS idx_uploads_created ON uploads(created_at DESC);`,
         const sizes = ["B", "KB", "MB", "GB"];
         const i = Math.floor(Math.log(bytes) / Math.log(1024));
         return (bytes / Math.pow(1024, i)).toFixed(2) + " " + sizes[i];
-      },
-      formatPubkey(hex) {
-        if (!hex) return "";
-        return hex.slice(0, 8) + "…" + hex.slice(-8);
-      },
-      insertTab(e) {
-        const textarea = this.$refs.codeTextarea;
-        const start = textarea.selectionStart;
-        const end = textarea.selectionEnd;
-        this.snippetContent = this.snippetContent.substring(0, start) + "  " + this.snippetContent.substring(end);
-        this.$nextTick(() => {
-          textarea.selectionStart = textarea.selectionEnd = start + 2;
-        });
-      },
-      onTitleChange() {
-        const match = this.snippetTitle.match(/\.([a-zA-Z0-9_-]+)$/);
-        if (match) {
-          const ext = match[1].toLowerCase();
-          const found = LANGUAGES.find((l) => l.ext === ext);
-          if (found) this.selectedLang = found.id;
-        }
-      },
-      onLangChange() {
-        if (!this.snippetTitle || this.snippetTitle.startsWith("snippet.")) {
-          this.snippetTitle = "snippet." + this.currentLangObj.ext;
-        }
-      },
-      loadSample() {
-        const sample = SAMPLE_SNIPPETS[this.selectedLang] || SAMPLE_SNIPPETS.go;
-        this.snippetContent = sample;
-        this.snippetTitle = "sample." + this.currentLangObj.ext;
-      },
-      clearEditor() {
-        this.snippetContent = "";
-      },
-      loadFileIntoEditor(event) {
-        const file = event.target.files[0];
-        if (!file) return;
-        this.snippetTitle = file.name;
-        this.onTitleChange();
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          this.snippetContent = e.target.result;
-        };
-        reader.readAsText(file);
-      },
-      handleFileDrop(event) {
-        const file = event.dataTransfer.files[0];
-        if (!file) return;
-        this.snippetTitle = file.name;
-        this.onTitleChange();
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          this.snippetContent = e.target.result;
-        };
-        reader.readAsText(file);
       },
       copyText(text, key) {
         navigator.clipboard.writeText(text).then(() => {
@@ -1061,165 +770,126 @@ CREATE INDEX IF NOT EXISTS idx_uploads_created ON uploads(created_at DESC);`,
         } catch (_) {}
         this.nodeOnline = false;
       },
-      async calculateSha256(str) {
-        const buf = new TextEncoder().encode(str);
-        const hashBuf = await crypto.subtle.digest("SHA-256", buf);
+      insertTab(e) {
+        const textarea = this.$refs.codeTextarea;
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        this.snippetContent = this.snippetContent.substring(0, start) + "  " + this.snippetContent.substring(end);
+        this.$nextTick(() => {
+          textarea.selectionStart = textarea.selectionEnd = start + 2;
+        });
+      },
+      onTitleChange() {
+        const title = this.snippetTitle.trim().toLowerCase();
+        const dotIdx = title.lastIndexOf(".");
+        if (dotIdx !== -1) {
+          const ext = title.slice(dotIdx + 1);
+          const match = LANGUAGES.find((l) => l.ext === ext);
+          if (match) this.selectedLang = match.id;
+        }
+      },
+      onLangChange() {
+        const title = this.snippetTitle.trim();
+        const dotIdx = title.lastIndexOf(".");
+        const base = dotIdx !== -1 ? title.slice(0, dotIdx) : title || "snippet";
+        this.snippetTitle = base + "." + this.currentLangObj.ext;
+      },
+      loadSample() {
+        if (SAMPLES[this.selectedLang]) {
+          this.snippetContent = SAMPLES[this.selectedLang];
+        } else {
+          this.snippetContent = `// ${this.currentLangObj.name} code snippet\n\nfunction example() {\n  return "Hello IPFS!";\n}\n`;
+        }
+      },
+      clearEditor() {
+        this.snippetContent = "";
+        this.receipt = null;
+      },
+      loadFileIntoEditor(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        this.snippetTitle = file.name;
+        this.onTitleChange();
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          this.snippetContent = ev.target.result;
+        };
+        reader.readAsText(file);
+      },
+      handleFileDrop(e) {
+        const file = e.dataTransfer.files[0];
+        if (file) {
+          this.snippetTitle = file.name;
+          this.onTitleChange();
+          const reader = new FileReader();
+          reader.onload = (ev) => {
+            this.snippetContent = ev.target.result;
+          };
+          reader.readAsText(file);
+        }
+      },
+      async computeSha256(text) {
+        const encoder = new TextEncoder();
+        const data = encoder.encode(text);
+        const hashBuf = await crypto.subtle.digest("SHA-256", data);
         const hashArray = Array.from(new Uint8Array(hashBuf));
         return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
       },
-      async pinSnippet() {
+      async uploadSnippet() {
         if (!this.snippetContent.trim()) return;
-        this.pinning = true;
+        this.uploading = true;
         this.receipt = null;
 
         try {
-          const sha256 = await this.calculateSha256(this.snippetContent);
-          const title = this.displayTitle;
+          const sha256 = await this.computeSha256(this.snippetContent);
+          const filename = this.displayTitle;
+          const blob = new Blob([this.snippetContent], { type: this.currentLangObj.mime });
+          const file = new File([blob], filename, { type: this.currentLangObj.mime });
 
-          // Attempt POST /paste endpoint
-          const res = await fetch(this.nodeUrl + "/paste", {
+          const form = new FormData();
+          form.append("file", file, filename);
+
+          const res = await fetch(`${this.nodeUrl}/upload`, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              content: this.snippetContent,
-              title: title,
-              language: this.selectedLang,
-            }),
+            body: form,
           });
 
-          if (!res.ok) {
-            throw new Error(`Node returned HTTP ${res.status}`);
-          }
-
           const data = await res.json();
-          if (data.status !== "success" || !data.cid) {
-            throw new Error(data.message || data.error || "Upload failed");
+          if (!res.ok || data.status !== "success" || !data.cid) {
+            throw new Error(data.message || data.error || `HTTP ${res.status}`);
           }
 
+          const fnEncoded = encodeURIComponent(filename);
           this.receipt = {
             cid: data.cid,
-            title: title,
+            filename: filename,
+            gatewayUrl: `https://dweb.link/ipfs/${data.cid}?filename=${fnEncoded}`,
+            ipfsIoUrl: `https://ipfs.io/ipfs/${data.cid}?filename=${fnEncoded}`,
+            rawNodeUrl: `${this.nodeUrl}/paste/${data.cid}`,
             sha256: sha256,
-            gatewayUrl: `https://dweb.link/ipfs/${data.cid}?filename=${encodeURIComponent(title)}`,
-            nodeUrl: `${this.nodeUrl}/paste/${data.cid}`,
           };
           this.checkNodeStatus();
         } catch (err) {
-          alert("Pinning failed: " + (err.message || err));
+          alert("Snippet upload failed: " + (err.message || err));
         } finally {
-          this.pinning = false;
+          this.uploading = false;
         }
       },
-      async fetchSnippetByCid() {
-        const cid = this.fetchCidInput.trim().replace(/^ipfs:\/\//, "");
+      async fetchSnippetFromIpfs() {
+        const cid = this.fetchCid.trim();
         if (!cid) return;
-        this.fetchingCid = true;
+        this.fetching = true;
         try {
-          // Try local node /paste/{cid} first
-          let res = await fetch(`${this.nodeUrl}/paste/${cid}`);
-          if (!res.ok) {
-            // Fallback to public gateway
-            res = await fetch(`https://dweb.link/ipfs/${cid}`);
-          }
-          if (!res.ok) throw new Error(`Fetch failed (HTTP ${res.status})`);
+          const res = await fetch(`https://dweb.link/ipfs/${cid}`);
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
           const text = await res.text();
           this.snippetContent = text;
-          this.snippetTitle = `paste-${cid.slice(0, 8)}.txt`;
-          this.activeMode = "compose";
-          const sha256 = await this.calculateSha256(text);
-          this.receipt = {
-            cid,
-            title: this.snippetTitle,
-            sha256,
-            gatewayUrl: `https://dweb.link/ipfs/${cid}`,
-            nodeUrl: `${this.nodeUrl}/paste/${cid}`,
-          };
+          this.snippetTitle = `ipfs-${cid.slice(0, 8)}.txt`;
+          this.selectedLang = "text";
         } catch (err) {
-          alert("Failed to fetch snippet: " + (err.message || err));
+          alert("Failed to fetch snippet from IPFS: " + (err.message || err));
         } finally {
-          this.fetchingCid = false;
-        }
-      },
-      openNoStrudel() {
-        const encoded = encodeURIComponent(this.generatedJsonStr);
-        window.open(`https://nostrudel.ninja/tools/publisher?event=${encoded}`, "_blank");
-      },
-      downloadJson() {
-        const blob = new Blob([this.generatedJsonStr], { type: "application/json" });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `${this.displayTitle}-nostr-event.json`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-      },
-      async connectExtension() {
-        this.connectingExt = true;
-        try {
-          if (!window.nostr) throw new Error("No Nostr extension (Alby / nos2x) detected.");
-          if (typeof window.nostr.enable === "function") await window.nostr.enable();
-          this.userPubkey = await window.nostr.getPublicKey();
-        } catch (err) {
-          alert("Extension connect error: " + (err.message || err));
-        } finally {
-          this.connectingExt = false;
-        }
-      },
-      async signAndPublishNostr() {
-        if (!this.userPubkey || !window.nostr) {
-          await this.connectExtension();
-          if (!this.userPubkey) return;
-        }
-
-        this.publishingRelays = true;
-        this.relayResults = [];
-
-        try {
-          const evt = this.generatedNostrEvent;
-          const signed = await window.nostr.signEvent(evt);
-          const relays = this.relaysText.split(/\s+/).map((s) => s.trim()).filter(Boolean);
-
-          this.relayResults = await Promise.all(
-            relays.map((url) => {
-              return new Promise((resolve) => {
-                let ws;
-                const timer = setTimeout(() => {
-                  try { ws.close(); } catch (_) {}
-                  resolve({ url, ok: false, msg: "Timeout (8s)" });
-                }, 8000);
-                try {
-                  ws = new WebSocket(url);
-                } catch (e) {
-                  clearTimeout(timer);
-                  resolve({ url, ok: false, msg: e.message });
-                  return;
-                }
-                ws.onopen = () => {
-                  ws.send(JSON.stringify(["EVENT", signed]));
-                };
-                ws.onmessage = (ev) => {
-                  try {
-                    const msg = JSON.parse(ev.data);
-                    if (msg[0] === "OK") {
-                      clearTimeout(timer);
-                      ws.close();
-                      resolve({ url, ok: !!msg[2], msg: msg[2] ? "Accepted" : (msg[3] || "Rejected") });
-                    }
-                  } catch (_) {}
-                };
-                ws.onerror = () => {
-                  clearTimeout(timer);
-                  resolve({ url, ok: false, msg: "Connection error" });
-                };
-              });
-            })
-          );
-        } catch (err) {
-          alert("Publishing failed: " + (err.message || err));
-        } finally {
-          this.publishingRelays = false;
+          this.fetching = false;
         }
       },
     },
