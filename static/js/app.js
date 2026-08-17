@@ -1,33 +1,29 @@
 (() => {
-  const LEGACY = {
-    stats: "/",
-    files: "/",
-    archive: "/archive.html",
-  };
-
-  const path = location.pathname;
-  if (path === "/" || path.endsWith("/index.html")) {
-    const key = location.hash.replace(/^#\/?/, "");
-    if (LEGACY[key]) location.replace(LEGACY[key]);
-  }
-
-  const PAGES = [
-    { id: "overview", href: "/", label: "Overview", icon: "/icons/chart.svg", group: "Look" },
-    { id: "archive", href: "/archive.html", label: "Archive", icon: "/icons/archive.svg", group: "Keep" },
+  // Built-in public & local IPFS gateways
+  const GATEWAYS = [
+    { label: "dweb.link (Protocol Labs)", url: "https://dweb.link/ipfs/" },
+    { label: "ipfs.io (Official)", url: "https://ipfs.io/ipfs/" },
+    { label: "w3s.link (Web3.Storage)", url: "https://w3s.link/ipfs/" },
+    { label: "cloudflare-ipfs.com (Cloudflare)", url: "https://cloudflare-ipfs.com/ipfs/" },
+    { label: "localhost:8080 (Local Kubo)", url: "http://localhost:8080/ipfs/" },
   ];
 
   function formatBytes(bytes) {
-    const sizes = ["Bytes", "KB", "MB", "GB", "TB"];
-    if (!bytes) return "0 Bytes";
-    const i = Math.floor(Math.log(bytes) / Math.log(1024));
-    return (bytes / Math.pow(1024, i)).toFixed(2) + " " + sizes[i];
+    if (!bytes || bytes === 0) return "0 B";
+    const k = 1024;
+    const sizes = ["B", "KB", "MB", "GB", "TB", "PB"];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    if (i <= 0) return bytes + " B";
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
   }
 
   function formatDate(dateStr) {
     if (!dateStr) return "";
-    return new Date(dateStr).toLocaleString("en-US", {
+    const d = new Date(dateStr);
+    return d.toLocaleString("en-US", {
       month: "short",
       day: "numeric",
+      year: "numeric",
       hour: "2-digit",
       minute: "2-digit",
       hour12: false,
@@ -35,29 +31,68 @@
   }
 
   function formatUnix(value) {
-    if (!value) return "never";
+    if (!value) return "Never";
     if (typeof value === "number") {
       return formatDate(new Date(value * 1000).toISOString());
     }
     return formatDate(value);
   }
 
+  function formatRelative(dateStr) {
+    if (!dateStr) return "";
+    const now = new Date();
+    const date = new Date(dateStr);
+    const diffSec = Math.floor((now - date) / 1000);
+    if (diffSec < 45) return "just now";
+    const diffMin = Math.floor(diffSec / 60);
+    if (diffMin < 60) return `${diffMin}m ago`;
+    const diffHour = Math.floor(diffMin / 60);
+    if (diffHour < 24) return `${diffHour}h ago`;
+    const diffDay = Math.floor(diffHour / 24);
+    if (diffDay < 30) return `${diffDay}d ago`;
+    return formatDate(dateStr);
+  }
+
+  function getFileCategory(filename = "", mime = "") {
+    const fn = (filename || "").toLowerCase();
+    if (mime.startsWith("image/") || /\.(jpg|jpeg|png|gif|webp|svg|bmp|ico|avif)$/.test(fn)) {
+      return "image";
+    }
+    if (mime.startsWith("video/") || /\.(mp4|webm|mkv|mov|avi|m4v)$/.test(fn)) {
+      return "video";
+    }
+    if (mime.startsWith("audio/") || /\.(mp3|wav|ogg|flac|m4a|aac)$/.test(fn)) {
+      return "audio";
+    }
+    if (/\.(zip|tar|gz|7z|rar|bz2)$/.test(fn) || fn === "folder") {
+      return "archive";
+    }
+    if (/\.(html|htm|js|ts|jsx|tsx|css|json|go|py|rs|c|cpp|md|sh|yml|yaml|sql|wasm)$/.test(fn)) {
+      return "code";
+    }
+    return "file";
+  }
+
   function statusDefaults() {
     return {
-      nodeId: "…",
+      nodeId: "...",
+      fullNodeId: "",
       bandwidthIn: "0 B",
       bandwidthOut: "0 B",
       bandwidthRate: "0 B / 0 B",
-      repoSize: "…",
-      repoObjects: "…",
-      version: "…",
-      appver: "…",
-      timestamp: "…",
+      bandwidthRateIn: "0 B",
+      bandwidthRateOut: "0 B",
+      repoSize: "...",
+      repoObjects: "0",
+      version: "...",
+      appver: "...",
+      timestamp: "...",
       peerscount: 0,
       storageLimit: "Unknown",
       fileLimit: "Unknown",
       repoSizeBytes: 0,
       storageMaxBytes: 0,
+      isHealthy: true,
     };
   }
 
@@ -70,7 +105,7 @@
       enabled: false,
       count: 0,
       size: 0,
-      sizeStr: "0 Bytes",
+      sizeStr: "0 B",
       dir: "/archive",
       scanMinutes: 15,
       repinHours: 6,
@@ -82,143 +117,337 @@
     };
   }
 
-  function applyStatus(vm, data) {
-    vm.status = {
-      nodeId: data.node.id.slice(0, 8) + "…" + data.node.id.slice(-8),
-      bandwidthIn: formatBytes(data.bandwidth.totalIn),
-      bandwidthOut: formatBytes(data.bandwidth.totalOut),
-      bandwidthRate: `IN: ${formatBytes(data.bandwidth.rateIn)} / OUT: ${formatBytes(data.bandwidth.rateOut)}`,
-      repoSize: `${formatBytes(data.repository.size)} / ${formatBytes(data.repository.storageMax)}`,
-      repoObjects: `${data.repository.numObjects}`,
-      version: `${data.node.agentVersion}`,
-      appver: `${data.appVersion}`,
-      timestamp: new Date(data.timestamp).toLocaleTimeString("en-US", { hour12: false }),
-      peerscount: data.peers.count,
-      storageLimit: data.storageLimit?.configured || "Unknown",
-      fileLimit: data.fileLimit?.bytes ? formatBytes(data.fileLimit.bytes) : "Unknown",
-      repoSizeBytes: data.repository.size || 0,
-      storageMaxBytes: data.repository.storageMax || 0,
-    };
-    vm.archive = {
-      enabled: !!(data.archive && data.archive.enabled),
-      count: data.archive?.count || 0,
-      size: data.archive?.size || 0,
-      sizeStr: data.archive?.sizeStr || "0 Bytes",
-      dir: data.archive?.dir || "/archive",
-      scanMinutes: data.archive?.scanMinutes || 15,
-      repinHours: data.archive?.repinHours || 6,
-      scanning: !!(data.archive && data.archive.scanning),
-      repinning: !!(data.archive && data.archive.repinning),
-      lastScan: data.archive?.lastScan || "",
-      lastRepin: data.archive?.lastRepin || "",
-      accounts: data.archive?.accounts || (data.nostrNpubs || []).map((npub) => ({ npub })),
-    };
-    vm.nostrRelays = data.nostrRelays || [];
-  }
+  function createOriginlessApp(options = {}) {
+    const { createApp } = Vue;
 
-  function navHTML(active) {
-    const links = (page) =>
-      `<a href="${page.href}" class="nav-link${page.id === active ? " is-active" : ""}">${page.label}</a>`;
-
-    const desktop = PAGES.map(links).join("");
-    const mobile = PAGES.map(
-      (page) =>
-        `<a href="${page.href}" class="${page.id === active ? "is-active" : ""}"><img class="icon" src="${page.icon}" alt="" />${page.label}</a>`
-    ).join("");
-
-    return `
-      <header class="topbar">
-        <div class="topbar-inner">
-          <a class="brand" href="/">
-            <span class="brand-mark" aria-hidden="true"></span>
-            <span class="brand-name">originless</span>
-          </a>
-          <nav class="nav-groups"><div class="nav-seg">${desktop}</div></nav>
-        </div>
-        <nav class="mobile-nav">${mobile}</nav>
-      </header>`;
-  }
-
-  function footHTML() {
-    return `
-      <footer class="foot">
-        <div class="foot-inner">
-          <a href="https://github.com/besoeasy/Originless" target="_blank" rel="noopener">GitHub</a>
-          <a href="https://github.com/besoeasy/Originless#%EF%B8%8F-api-quick-reference" target="_blank" rel="noopener">API Docs</a>
-          <a href="https://github.com/besoeasy/Originless/tree/main/examples" target="_blank" rel="noopener">Examples</a>
-          <span data-ol-ver>v{{ status.appver }}</span>
-        </div>
-      </footer>`;
-  }
-
-  function injectChrome(active, opts = {}) {
-    const nav = document.querySelector("[data-ol-nav]");
-    const foot = document.querySelector("[data-ol-foot]");
-    const vue = opts.vue !== false;
-    if (nav) nav.outerHTML = navHTML(active);
-    if (foot) foot.outerHTML = vue ? footHTML() : footHTML().replace("v{{ status.appver }}", "v…");
-  }
-
-  function hydrateChrome() {
-    fetch("/status")
-      .then((r) => r.json())
-      .then((data) => {
-        if (data.status !== "success") return;
-        const ver = document.querySelector("[data-ol-ver]");
-        if (ver) ver.textContent = "v" + (data.appVersion || "");
-      })
-      .catch(() => {});
-  }
-
-  function pageMixin() {
-    return {
+    return createApp({
       data() {
+        const savedGateway = localStorage.getItem("ol_gateway_url") || GATEWAYS[0].url;
         return {
-          copied: "",
-          currentUrl: window.location.origin,
-          gatewayBase: "https://dweb.link/ipfs/",
+          activePage: options.page || "overview",
+          
+          gateways: GATEWAYS,
+          currentGateway: savedGateway,
+
+          status: statusDefaults(),
+          pinStats: pinDefaults(),
+          archive: archiveDefaults(),
+          nostrRelays: [],
+          
           history: [],
           archiveItems: [],
-          nostrRelays: [],
-          pinStats: pinDefaults(),
-          status: statusDefaults(),
-          archive: archiveDefaults(),
+          searchQuery: "",
+          statusFilter: "all", 
+          typeFilter: "all",
+          sortBy: "date-desc",
+          
+          activeTab: "upload", // upload, folder, paste, prompt, api
+          
+          // Single File Upload
+          dragOver: false,
+          isUploading: false,
+          uploadProgress: 0,
+          uploadSpeedStr: "",
+          currentUploadFile: null,
+          lastUploadResult: null,
+
+          // Folder Upload
+          folderFilesCount: 0,
+          folderTotalSize: 0,
+          isUploadingFolder: false,
+          lastFolderResult: null,
+
+          // Snippet Paste
+          pasteContent: "",
+          pasteTitle: "",
+          pasteLanguage: "markdown",
+          isPasting: false,
+          lastPasteResult: null,
+
+          // Agent Prompt Config
+          promptFormat: "plain", // plain, markdown, curl, python
+          
+          // Content Inspection Modal
+          inspectModalOpen: false,
+          inspectItem: null,
+          inspectQrUrl: "",
+
+          // Toast Alerts
+          toasts: [],
         };
       },
+
+      computed: {
+        currentOrigin() {
+          return window.location.origin;
+        },
+
+        storagePercentage() {
+          if (!this.status.storageMaxBytes || this.status.storageMaxBytes === 0) return 0;
+          const pct = (this.status.repoSizeBytes / this.status.storageMaxBytes) * 100;
+          return Math.min(100, Math.max(0, Math.round(pct * 10) / 10));
+        },
+
+        storageGaugeClass() {
+          if (this.storagePercentage >= 90) return "is-danger";
+          if (this.storagePercentage >= 75) return "is-warn";
+          return "";
+        },
+
+        filteredHistory() {
+          let list = [...(this.history || [])];
+          
+          // Search query filter
+          if (this.searchQuery.trim()) {
+            const q = this.searchQuery.toLowerCase().trim();
+            list = list.filter((item) => 
+              (item.filename || "").toLowerCase().includes(q) ||
+              (item.cid || "").toLowerCase().includes(q)
+            );
+          }
+
+          // Status filter
+          if (this.statusFilter === "pinned") {
+            list = list.filter(item => !item.unpinned);
+          } else if (this.statusFilter === "unpinned") {
+            list = list.filter(item => item.unpinned);
+          }
+
+          // Type filter
+          if (this.typeFilter !== "all") {
+            list = list.filter(item => {
+              const type = getFileCategory(item.filename, item.type);
+              return type === this.typeFilter;
+            });
+          }
+
+          // Sorting
+          if (this.sortBy === "date-desc") {
+            list.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+          } else if (this.sortBy === "date-asc") {
+            list.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+          } else if (this.sortBy === "size-desc") {
+            list.sort((a, b) => (b.size || 0) - (a.size || 0));
+          } else if (this.sortBy === "size-asc") {
+            list.sort((a, b) => (a.size || 0) - (b.size || 0));
+          }
+
+          return list;
+        },
+
+        filteredArchiveItems() {
+          let list = [...(this.archiveItems || [])];
+          if (this.searchQuery.trim()) {
+            const q = this.searchQuery.toLowerCase().trim();
+            list = list.filter((item) =>
+              (item.filename || "").toLowerCase().includes(q) ||
+              (item.cid || "").toLowerCase().includes(q)
+            );
+          }
+          return list;
+        },
+
+        generatedAgentPrompt() {
+          const origin = this.currentOrigin;
+          const gw = this.currentGateway;
+
+          if (this.promptFormat === "markdown") {
+            return `### 🌐 Originless Decentralized Node Integration
+- **Node Origin**: \`${origin}\`
+- **Public IPFS Gateway**: \`${gw}\`
+- **Auth**: None (Public P2P multi-hash swarm)
+
+#### API Endpoints
+- **Upload Single File**: \`POST ${origin}/upload\` (Multipart field: \`file\`)
+- **Upload Directory / DApp**: \`POST ${origin}/uploadfolder\` (Multipart field: \`file\`, relative paths)
+- **Pin Code / Text Paste**: \`POST ${origin}/paste\` (JSON body: \`{"content":"...", "title":"..."}\`)
+- **Node Health Probe**: \`GET ${origin}/health\`
+- **Node Telemetry**: \`GET ${origin}/status\`
+
+#### Resolved Public URLs
+- Standard File: \`${gw}{cid}\`
+- Static Website Root: \`${gw}{cid}/\`
+- Native Multi-Hash: \`ipfs://{cid}\``;
+          }
+
+          if (this.promptFormat === "curl") {
+            return `# 1. Upload a single binary or file
+curl -X POST -F "file=@document.pdf" ${origin}/upload
+
+# 2. Upload full Vite/React dist static build folder
+curl -X POST \\
+  -F "file=@dist/index.html;filename=index.html" \\
+  -F "file=@dist/assets/app.js;filename=assets/app.js" \\
+  ${origin}/uploadfolder
+
+# 3. Create a text paste / JSON snippet
+curl -X POST -H "Content-Type: application/json" \\
+  -d '{"content":"Hello Decentralized IPFS","title":"welcome.txt"}' \\
+  ${origin}/paste
+
+# 4. Check node telemetry & swarm status
+curl ${origin}/status`;
+          }
+
+          if (this.promptFormat === "python") {
+            return `import requests
+
+ORIGIN = "${origin}"
+GATEWAY = "${gw}"
+
+# 1. Upload a file
+with open("sample.png", "rb") as f:
+    r = requests.post(f"{ORIGIN}/upload", files={"file": f})
+    data = r.json()
+    cid = data["cid"]
+    print(f"Pinned: {GATEWAY}{cid}")
+
+# 2. Upload a text snippet
+payload = {"content": "Hello Autonomous Agents", "title": "note.txt"}
+r = requests.post(f"{ORIGIN}/paste", json=payload)
+print("Paste CID:", r.json()["cid"])`;
+          }
+
+          // Plain text default
+          return `Publish files with Originless. Pin them to IPFS on this node, then share the CID through a public gateway.
+
+This is not limited to websites. Use it for a music file, a generated index.html report, a photo, an image gallery, a video, a PDF, a folder of mixed assets, or a full dist/ site.
+
+Repo: https://github.com/besoeasy/Originless
+This Originless node: ${origin}
+IPFS gateway: ${gw}
+
+Use this node for all uploads. Do not invent another host or API key. There is no auth.
+
+Endpoints:
+- POST ${origin}/upload — one file. Multipart field "file".
+- POST ${origin}/uploadfolder — a folder (gallery, album, report, site). Multipart field name is "file" for each file; set filename to the relative path so links stay intact.
+- POST ${origin}/paste — text. JSON body {"content":"...","title":"optional"}.
+- GET ${origin}/health — liveness check.
+
+The JSON response includes "cid". That CID is the content address. This node's HTTP origin does not serve the bytes.
+
+After upload, return gateway URLs to the user:
+- ${gw}{cid}            (single file)
+- ${gw}{cid}/           (folder; index.html at the root is served automatically)
+- ipfs://{cid}
+
+Keep relative paths inside folders. Never wrap the CID in ${origin}/upload or a local file path.`;
+        },
+      },
+
       methods: {
         formatBytes,
         formatDate,
         formatUnix,
-        copyText(text, key) {
-          navigator.clipboard.writeText(text).then(() => {
-            this.copied = key;
-            setTimeout(() => {
-              this.copied = "";
-            }, 2000);
-          });
+        formatRelative,
+        getFileCategory,
+
+        showToast(message, type = "success") {
+          const id = Date.now() + Math.random();
+          this.toasts.push({ id, message, type });
+          setTimeout(() => {
+            this.toasts = this.toasts.filter(t => t.id !== id);
+          }, 3500);
         },
+
+        async copyText(text, label = "Copied to clipboard") {
+          if (!text) return;
+          try {
+            await navigator.clipboard.writeText(text);
+            this.showToast(label, "success");
+          } catch (e) {
+            this.showToast("Failed to copy", "error");
+          }
+        },
+
+        onGatewayChange() {
+          localStorage.setItem("ol_gateway_url", this.currentGateway);
+          const gwName = new URL(this.currentGateway).hostname;
+          this.showToast(`Active Gateway set to ${gwName}`, "success");
+        },
+
+        getGatewayUrl(cid, filename) {
+          if (!cid) return "";
+          if (!filename) return `${this.currentGateway}${cid}`;
+          return `${this.currentGateway}${cid}?filename=${encodeURIComponent(filename)}`;
+        },
+
+        getIpfsUrl(cid, filename) {
+          if (!cid) return "";
+          if (!filename) return `ipfs://${cid}`;
+          return `ipfs://${cid}?filename=${encodeURIComponent(filename)}`;
+        },
+
         async fetchStatus() {
           try {
-            const response = await fetch("/status");
-            const data = await response.json();
-            if (data.status === "success") applyStatus(this, data);
-          } catch (error) {
-            console.error(error);
+            const res = await fetch("/status");
+            const data = await res.json();
+            if (data.status === "success") {
+              const fullId = data.node?.id || "";
+              const shortId = fullId ? `${fullId.slice(0, 8)}...${fullId.slice(-8)}` : "...";
+              
+              this.status = {
+                nodeId: shortId,
+                fullNodeId: fullId,
+                bandwidthIn: formatBytes(data.bandwidth?.totalIn || 0),
+                bandwidthOut: formatBytes(data.bandwidth?.totalOut || 0),
+                bandwidthRateIn: formatBytes(data.bandwidth?.rateIn || 0) + "/s",
+                bandwidthRateOut: formatBytes(data.bandwidth?.rateOut || 0) + "/s",
+                bandwidthRate: `↓ ${formatBytes(data.bandwidth?.rateIn || 0)}/s  ↑ ${formatBytes(data.bandwidth?.rateOut || 0)}/s`,
+                repoSize: `${formatBytes(data.repository?.size || 0)} / ${formatBytes(data.repository?.storageMax || 0)}`,
+                repoObjects: `${data.repository?.numObjects || 0}`,
+                version: data.node?.agentVersion || "IPFS Kubo",
+                appver: data.appVersion || "1.0",
+                timestamp: new Date(data.timestamp).toLocaleTimeString("en-US", { hour12: false }),
+                peerscount: data.peers?.count || 0,
+                storageLimit: data.storageLimit?.configured || "Unknown",
+                fileLimit: data.fileLimit?.bytes ? formatBytes(data.fileLimit.bytes) : "Unknown",
+                repoSizeBytes: data.repository?.size || 0,
+                storageMaxBytes: data.repository?.storageMax || 0,
+                isHealthy: true,
+              };
+
+              if (data.archive) {
+                this.archive = {
+                  enabled: !!data.archive.enabled,
+                  count: data.archive.count || 0,
+                  size: data.archive.size || 0,
+                  sizeStr: data.archive.sizeStr || "0 B",
+                  dir: data.archive.dir || "/archive",
+                  scanMinutes: data.archive.scanMinutes || 15,
+                  repinHours: data.archive.repinHours || 6,
+                  scanning: !!data.archive.scanning,
+                  repinning: !!data.archive.repinning,
+                  lastScan: data.archive.lastScan || "",
+                  lastRepin: data.archive.lastRepin || "",
+                  accounts: data.archive.accounts || (data.nostrNpubs || []).map((npub) => ({ npub })),
+                };
+              }
+              this.nostrRelays = data.nostrRelays || [];
+            }
+          } catch (err) {
+            console.error("Fetch status error:", err);
+            this.status.isHealthy = false;
           }
         },
+
         async fetchHistory() {
           try {
-            const response = await fetch("/history?limit=100");
-            const data = await response.json();
-            if (data.status === "success" && data.uploads) this.history = data.uploads;
-          } catch (error) {
-            console.error(error);
+            const res = await fetch("/history?limit=100");
+            const data = await res.json();
+            if (data.status === "success" && data.uploads) {
+              this.history = data.uploads;
+            }
+          } catch (err) {
+            console.error("Fetch history error:", err);
           }
         },
+
         async fetchPinStats() {
           try {
-            const response = await fetch("/pins");
-            const data = await response.json();
+            const res = await fetch("/pins");
+            const data = await res.json();
             if (data.status === "success") {
               this.pinStats = {
                 count: data.pinnedCount,
@@ -227,105 +456,221 @@
                 threshold: data.threshold,
               };
             }
-          } catch (error) {
-            console.error(error);
+          } catch (err) {
+            console.error("Fetch pin stats error:", err);
           }
         },
+
         async fetchArchive() {
           try {
-            const response = await fetch("/archive?limit=20");
-            const data = await response.json();
-            if (data.status === "success" && data.items) this.archiveItems = data.items;
-          } catch (error) {
-            console.error(error);
+            const res = await fetch("/archive?limit=100");
+            const data = await res.json();
+            if (data.status === "success" && data.items) {
+              this.archiveItems = data.items;
+            }
+          } catch (err) {
+            console.error("Fetch archive error:", err);
           }
         },
-        getGatewayUrlForCid(cid, filename) {
-          return this.getIpfsUrlWithFilename(cid, filename, this.gatewayBase);
+
+        // Single File Upload
+        triggerFileInput() {
+          this.$refs.fileInput.click();
         },
-        getIpfsUrlWithFilename(cid, filename, gateway = "") {
-          if (!filename) return gateway ? `${gateway}${cid}` : `ipfs://${cid}`;
-          const encodedFilename = encodeURIComponent(filename);
-          if (gateway) return `${gateway}${cid}?filename=${encodedFilename}`;
-          return `ipfs://${cid}?filename=${encodedFilename}`;
+
+        handleFileSelect(event) {
+          const files = event.target.files;
+          if (files && files.length > 0) {
+            this.uploadSingleFile(files[0]);
+          }
+        },
+
+        handleDrop(event) {
+          this.dragOver = false;
+          const files = event.dataTransfer.files;
+          if (files && files.length > 0) {
+            this.uploadSingleFile(files[0]);
+          }
+        },
+
+        async uploadSingleFile(file) {
+          this.currentUploadFile = file;
+          this.isUploading = true;
+          this.uploadProgress = 15;
+          this.lastUploadResult = null;
+
+          const formData = new FormData();
+          formData.append("file", file, file.name);
+
+          try {
+            this.uploadProgress = 50;
+            const res = await fetch("/upload", {
+              method: "POST",
+              body: formData,
+            });
+
+            this.uploadProgress = 90;
+            const data = await res.json();
+
+            if (res.ok && data.status === "success") {
+              this.uploadProgress = 100;
+              this.lastUploadResult = data;
+              this.showToast(`Pinned "${data.filename}" to Swarm!`, "success");
+              this.fetchHistory();
+              this.fetchPinStats();
+              this.fetchStatus();
+            } else {
+              throw new Error(data.message || data.error || "Upload failed");
+            }
+          } catch (err) {
+            console.error("Upload error:", err);
+            this.showToast(err.message, "error");
+          } finally {
+            this.isUploading = false;
+            if (this.$refs.fileInput) {
+              this.$refs.fileInput.value = "";
+            }
+          }
+        },
+
+        // Folder Upload
+        triggerFolderInput() {
+          this.$refs.folderInput.click();
+        },
+
+        handleFolderSelect(event) {
+          const files = event.target.files;
+          if (files && files.length > 0) {
+            this.uploadFolder(files);
+          }
+        },
+
+        async uploadFolder(files) {
+          this.isUploadingFolder = true;
+          this.folderFilesCount = files.length;
+          let totalBytes = 0;
+          const formData = new FormData();
+
+          for (let i = 0; i < files.length; i++) {
+            const f = files[i];
+            totalBytes += f.size;
+            const relativePath = f.webkitRelativePath || f.name;
+            formData.append("file", f, relativePath);
+          }
+          this.folderTotalSize = totalBytes;
+          this.lastFolderResult = null;
+
+          try {
+            const res = await fetch("/uploadfolder", {
+              method: "POST",
+              body: formData,
+            });
+            const data = await res.json();
+
+            if (res.ok && data.status === "success") {
+              this.lastFolderResult = data;
+              this.showToast(`Folder pinned (${data.files} files)!`, "success");
+              this.fetchHistory();
+              this.fetchPinStats();
+              this.fetchStatus();
+            } else {
+              throw new Error(data.message || data.error || "Folder upload failed");
+            }
+          } catch (err) {
+            console.error("Folder upload error:", err);
+            this.showToast(err.message, "error");
+          } finally {
+            this.isUploadingFolder = false;
+            if (this.$refs.folderInput) {
+              this.$refs.folderInput.value = "";
+            }
+          }
+        },
+
+        // Paste Snippet
+        async submitPaste() {
+          if (!this.pasteContent.trim()) {
+            this.showToast("Paste content cannot be empty", "error");
+            return;
+          }
+
+          this.isPasting = true;
+          this.lastPasteResult = null;
+
+          try {
+            const res = await fetch("/paste", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                content: this.pasteContent,
+                title: this.pasteTitle.trim() || undefined,
+                language: this.pasteLanguage,
+              }),
+            });
+
+            const data = await res.json();
+            if (res.ok && data.status === "success") {
+              this.lastPasteResult = data;
+              this.showToast(`Pinned snippet "${data.title}"!`, "success");
+              this.pasteContent = "";
+              this.pasteTitle = "";
+              this.fetchHistory();
+              this.fetchPinStats();
+              this.fetchStatus();
+            } else {
+              throw new Error(data.message || data.error || "Paste failed");
+            }
+          } catch (err) {
+            console.error("Paste error:", err);
+            this.showToast(err.message, "error");
+          } finally {
+            this.isPasting = false;
+          }
+        },
+
+        // Inspection & QR Modal
+        openInspect(item) {
+          this.inspectItem = item;
+          const url = this.getGatewayUrl(item.cid, item.filename);
+          // Standard high-res QR code link for instant mobile sharing
+          this.inspectQrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(url)}`;
+          this.inspectModalOpen = true;
+        },
+
+        closeInspect() {
+          this.inspectModalOpen = false;
+          this.inspectItem = null;
         },
       },
+
       mounted() {
         this.fetchStatus();
-        this._olStatusTimer = setInterval(() => this.fetchStatus(), 10000);
-        this._olPinsTimer = setInterval(() => this.fetchPinStats(), 30000);
+        this.fetchPinStats();
+        if (this.activePage === "overview") {
+          this.fetchHistory();
+        } else if (this.activePage === "archive") {
+          this.fetchArchive();
+        }
+
+        // Live polling
+        this._statusTimer = setInterval(() => this.fetchStatus(), 8000);
+        this._pinsTimer = setInterval(() => this.fetchPinStats(), 25000);
       },
+
       beforeUnmount() {
-        clearInterval(this._olStatusTimer);
-        clearInterval(this._olPinsTimer);
+        clearInterval(this._statusTimer);
+        clearInterval(this._pinsTimer);
       },
-    };
+    });
   }
 
-  const API_ENDPOINTS = [
-    {
-      method: "POST",
-      path: "/upload",
-      description: "Upload a single file. Streams directly to the node and pins it to IPFS.",
-      curl: 'curl -X POST -F "file=@photo.png" http://localhost:3232/upload',
-    },
-    {
-      method: "POST",
-      path: "/uploadfolder",
-      description: "Upload a folder / DApp build directory. Preserves relative paths on IPFS.",
-      curl: 'curl -X POST -F "file=@dist/index.html;filename=index.html" -F "file=@dist/style.css;filename=style.css" http://localhost:3232/uploadfolder',
-    },
-    {
-      method: "POST",
-      path: "/paste",
-      description: "Pin a text snippet. Accepts JSON with content and an optional title.",
-      curl: `curl -X POST -H "Content-Type: application/json" -d '{"content":"Hello IPFS","title":"greeting"}' http://localhost:3232/paste`,
-    },
-    {
-      method: "GET",
-      path: "/paste/{cid}",
-      description: "Fetch a pinned paste's raw text by CID.",
-      curl: "curl http://localhost:3232/paste/QmX...",
-    },
-    {
-      method: "GET",
-      path: "/status",
-      description: "Node telemetry: peers, bandwidth, repository usage, client version.",
-      curl: "curl http://localhost:3232/status",
-    },
-    {
-      method: "GET",
-      path: "/pins",
-      description: "Pin statistics: pinned count, total size, storage limit and eviction threshold.",
-      curl: "curl http://localhost:3232/pins",
-    },
-    {
-      method: "GET",
-      path: "/history",
-      description: "Upload history with CID, filename, size and pin status.",
-      curl: "curl 'http://localhost:3232/history?limit=100'",
-    },
-    {
-      method: "GET",
-      path: "/archive",
-      description: "List IPFS objects permanently archived from configured Nostr npubs.",
-      curl: "curl http://localhost:3232/archive",
-    },
-    {
-      method: "GET",
-      path: "/health",
-      description: "Liveness probe for orchestration and monitoring.",
-      curl: "curl http://localhost:3232/health",
-    },
-  ];
-
-  window.OL = {
+  window.Originless = {
+    GATEWAYS,
     formatBytes,
     formatDate,
     formatUnix,
-    injectChrome,
-    hydrateChrome,
-    pageMixin,
-    API_ENDPOINTS,
+    formatRelative,
+    getFileCategory,
+    createOriginlessApp,
   };
 })();

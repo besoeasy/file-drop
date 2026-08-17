@@ -3,16 +3,20 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Originless</title>
-  <meta name="description" content="Originless — pin files to IPFS without a server. Upload, pin, and share content directly from your browser." />
-  <meta name="theme-color" content="#000000" />
+  <title>Originless — Decentralized Storage Node</title>
+  <meta name="description" content="Originless — Private, decentralized, origin-independent file & app hosting powered by IPFS." />
+  <meta name="theme-color" content="#06080d" />
   <link rel="icon" type="image/svg+xml" href="/logo.svg" />
   <link rel="apple-touch-icon" href="/logo.svg" />
+  
   <meta property="og:type" content="website" />
-  <meta property="og:title" content="Originless" />
-  <meta property="og:description" content="Pin files to IPFS without a server. Upload, pin, and share content directly from your browser." />
+  <meta property="og:title" content="Originless — IPFS Storage Node" />
+  <meta property="og:description" content="Frictionless decentralized file & app hosting on IPFS." />
   <meta property="og:image" content="/logo.svg" />
+
   <link rel="stylesheet" href="/css/app.css" />
+  
+  <!-- Legacy hash route backward compatibility -->
   <script>
     (function () {
       var map = { stats: "/", files: "/", archive: "/archive.html" };
@@ -22,177 +26,754 @@
   </script>
 </head>
 <body>
-<div id="app" class="shell">
-  <div data-ol-nav></div>
+<div id="app" class="app-shell">
 
-  <main class="wrap">
-    <div class="dash stagger">
-      <article class="tile dash-peers dash-span-2" aria-live="polite">
-        <div class="dash-peers-bg" aria-hidden="true"></div>
-        <div class="dash-peers-wash" :class="peerFlash" :key="peerFlashKey" aria-hidden="true"></div>
-        <div class="kicker">Online</div>
-        <div class="dash-peers-main">
-          <span class="pulse-rings" aria-hidden="true"><span class="dot"></span></span>
-          <div class="stat-value">{{ status.peerscount }}</div>
+  <!-- Main Navigation Header -->
+  <header class="topbar">
+    <div class="container-wide topbar-inner">
+      <div class="brand-wrapper">
+        <a class="brand" href="/">
+          <div class="brand-logo-wrap">
+            <img class="brand-logo-img" src="/logo.svg" alt="Originless" />
+          </div>
+          <span>Originless</span>
+          <span class="brand-badge">Node</span>
+        </a>
+
+        <!-- Navigation Segmented Tabs -->
+        <nav class="nav-segment">
+          <a href="/" class="nav-item is-active">
+            <svg class="nav-item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="7" height="7"></rect>
+              <rect x="14" y="3" width="7" height="7"></rect>
+              <rect x="14" y="14" width="7" height="7"></rect>
+              <rect x="3" y="14" width="7" height="7"></rect>
+            </svg>
+            Overview
+          </a>
+          <a href="/archive.html" class="nav-item">
+            <svg class="nav-item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="21 8 21 21 3 21 3 8"></polyline>
+              <rect x="1" y="3" width="22" height="5"></rect>
+              <line x1="10" y1="12" x2="14" y2="12"></line>
+            </svg>
+            Nostr Archive
+          </a>
+          <a href="https://dweb.link/ipns/originless.besoeasy.com" target="_blank" rel="noopener" class="nav-item">
+            <svg class="nav-item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+              <polyline points="15 3 21 3 21 9"></polyline>
+              <line x1="10" y1="14" x2="21" y2="3"></line>
+            </svg>
+            Client Tools
+          </a>
+        </nav>
+      </div>
+
+      <!-- Actions, Gateway Switcher & Swarm Health -->
+      <div class="topbar-actions">
+        <!-- Gateway Switcher -->
+        <div class="gateway-chip" title="Active Gateway for resolving links and live previews">
+          <label>Gateway</label>
+          <select v-model="currentGateway" @change="onGatewayChange" class="gateway-select">
+            <option v-for="gw in gateways" :key="gw.url" :value="gw.url">
+              {{ gw.label }}
+            </option>
+          </select>
         </div>
-        <div class="fig">peers on the swarm</div>
-      </article>
 
-      <article class="tile tile-storage">
-        <div class="kicker">Storage</div>
-        <div class="stat-value" style="font-size:1.35rem">{{ storagePercent }}%</div>
-        <div class="meter" style="margin-top:1rem"><span :style="{ width: storagePercent + '%' }"></span></div>
-        <div class="stat-sub">{{ status.repoSize }}</div>
-        <div class="stat-sub">{{ pinStats.count }} pinned · {{ pinStats.sizeStr }}</div>
-        <div class="stat-sub">evict at {{ pinStats.threshold }}%</div>
-      </article>
+        <!-- DHT Swarm Indicator -->
+        <div class="status-indicator-pill" :title="status.peerscount + ' DHT peers connected'">
+          <span class="pulse-dot"></span>
+          <span>{{ status.peerscount }} Swarm Peers</span>
+        </div>
 
-      <article class="tile tile-bw">
-        <div class="kicker">Bandwidth</div>
-        <div class="stat-value" style="font-size:1.25rem">{{ status.bandwidthIn }}</div>
-        <div class="stat-sub">in · {{ status.bandwidthOut }} out</div>
-        <div class="stat-sub">{{ status.bandwidthRate }}</div>
-      </article>
-
-      <article class="tile tile-client">
-        <div class="kicker">Client</div>
-        <div class="stat-value" style="font-size:1.05rem">{{ status.version }}</div>
-        <div class="stat-sub mono truncate" :title="status.nodeId">{{ status.nodeId }}</div>
-        <div class="stat-sub">sync {{ status.timestamp }}</div>
-      </article>
-
-      <article class="tile tile-objects">
-        <div class="kicker">Objects</div>
-        <div class="stat-value">{{ status.repoObjects }}</div>
-        <div class="fig">in repository</div>
-      </article>
-
-      <a class="tile tile-examples dash-span-3" href="https://dweb.link/ipns/originless.besoeasy.com" target="_blank" rel="noopener">
-        <div class="kicker">Clients</div>
-        <div class="stat-value" style="font-size:1.45rem">Examples</div>
-        <div class="fig">File, folder, snippet, and Nostr tools →</div>
-      </a>
+        <!-- GitHub Repository Button -->
+        <a class="btn-square" href="https://github.com/besoeasy/Originless" target="_blank" rel="noopener" title="GitHub Repository">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+            <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"></path>
+          </svg>
+        </a>
+      </div>
     </div>
+  </header>
 
-    <section class="panel mb">
-      <div class="card-head">
-        <h2>Agent prompt</h2>
-        <button class="link-more" type="button" @click="copyText(agentPrompt, 'prompt')" :class="{ 'is-copied': copied === 'prompt' }">
-          {{ copied === "prompt" ? "Copied" : "Copy" }}
-        </button>
+  <!-- Main Content Space -->
+  <main class="main-content">
+    <div class="container-wide">
+
+      <!-- Spacious Command Deck Layout: Left Action Hub & Right Telemetry -->
+      <div class="dashboard-grid-layout">
+        
+        <!-- Left: Master Action Hub (Uploader, Folders, Paste, Agent Prompt) -->
+        <section class="hub-card">
+          <div class="hub-card-header">
+            <div class="hub-tabs-list">
+              <button class="hub-tab-btn" :class="{ 'is-active': activeTab === 'upload' }" @click="activeTab = 'upload'">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                  <polyline points="17 8 12 3 7 8"></polyline>
+                  <line x1="12" y1="3" x2="12" y2="15"></line>
+                </svg>
+                Upload File
+              </button>
+
+              <button class="hub-tab-btn" :class="{ 'is-active': activeTab === 'folder' }" @click="activeTab = 'folder'">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+                </svg>
+                Folder / DApp
+              </button>
+
+              <button class="hub-tab-btn" :class="{ 'is-active': activeTab === 'paste' }" @click="activeTab = 'paste'">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                  <polyline points="14 2 14 8 20 8"></polyline>
+                  <line x1="16" y1="13" x2="8" y2="13"></line>
+                  <line x1="16" y1="17" x2="8" y2="17"></line>
+                  <polyline points="10 9 9 9 8 9"></polyline>
+                </svg>
+                Paste Snippet
+              </button>
+
+              <button class="hub-tab-btn" :class="{ 'is-active': activeTab === 'prompt' }" @click="activeTab = 'prompt'">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"></path>
+                </svg>
+                AI Agent Prompt
+              </button>
+            </div>
+
+            <div style="font-size: 0.78rem; color: var(--text-muted); font-weight: 500;">
+              Zero Auth · Decentralized Pinning
+            </div>
+          </div>
+
+          <div class="hub-card-body">
+            
+            <!-- 1. Single File Uploader -->
+            <div v-if="activeTab === 'upload'">
+              <input type="file" ref="fileInput" @change="handleFileSelect" style="display: none;" />
+              
+              <div 
+                class="master-dropzone" 
+                :class="{ 'is-dragover': dragOver }"
+                @dragover.prevent="dragOver = true"
+                @dragleave.prevent="dragOver = false"
+                @drop.prevent="handleDrop"
+                @click="triggerFileInput"
+              >
+                <div class="dropzone-circle-icon">
+                  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="17 8 12 3 7 8"></polyline>
+                    <line x1="12" y1="3" x2="12" y2="15"></line>
+                  </svg>
+                </div>
+                <div class="dropzone-title">Drag & drop your file here or click to browse</div>
+                <div class="dropzone-subtitle">
+                  Upload images, videos, audio, documents, archives, or binaries up to <span>{{ status.fileLimit }}</span>
+                </div>
+              </div>
+
+              <!-- Upload in Progress Feedback -->
+              <div v-if="isUploading" class="upload-active-box">
+                <div class="upload-active-head">
+                  <div class="upload-file-title">
+                    <svg class="pulse-dot" style="width: 7px; height: 7px;"></svg>
+                    <span>{{ currentUploadFile?.name }}</span>
+                  </div>
+                  <span class="mono" style="font-size: 0.82rem; color: var(--text-muted);">{{ formatBytes(currentUploadFile?.size) }}</span>
+                </div>
+                <div class="meter-container">
+                  <div class="meter-fill" :style="{ width: uploadProgress + '%' }"></div>
+                </div>
+              </div>
+
+              <!-- Pin Success Card -->
+              <div v-if="lastUploadResult" class="result-card-box">
+                <div class="result-card-header">
+                  <div class="result-card-title">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                      <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                    </svg>
+                    <span>File Cryptographically Pinned to Swarm!</span>
+                  </div>
+                  <button class="btn btn-secondary btn-sm" @click="openInspect(lastUploadResult)">
+                    Inspect & QR ↗
+                  </button>
+                </div>
+
+                <div class="result-meta-grid">
+                  <div class="result-meta-row">
+                    <span class="result-meta-label">CID</span>
+                    <span class="result-meta-val">{{ lastUploadResult.cid }}</span>
+                    <div class="result-actions-cluster">
+                      <button class="btn btn-secondary btn-sm" @click="copyText(lastUploadResult.cid, 'CID copied!')">
+                        Copy CID
+                      </button>
+                    </div>
+                  </div>
+
+                  <div class="result-meta-row">
+                    <span class="result-meta-label">Gateway URL</span>
+                    <span class="result-meta-val">
+                      <a :href="getGatewayUrl(lastUploadResult.cid, lastUploadResult.filename)" target="_blank" class="cid-link-tag">
+                        {{ getGatewayUrl(lastUploadResult.cid, lastUploadResult.filename) }}
+                      </a>
+                    </span>
+                    <div class="result-actions-cluster">
+                      <button class="btn btn-secondary btn-sm" @click="copyText(getGatewayUrl(lastUploadResult.cid, lastUploadResult.filename), 'Gateway URL copied!')">
+                        Copy Link
+                      </button>
+                      <a class="btn btn-primary btn-sm" :href="getGatewayUrl(lastUploadResult.cid, lastUploadResult.filename)" target="_blank" rel="noopener">
+                        Open ↗
+                      </a>
+                    </div>
+                  </div>
+
+                  <div class="result-meta-row">
+                    <span class="result-meta-label">IPFS URI</span>
+                    <span class="result-meta-val">{{ getIpfsUrl(lastUploadResult.cid, lastUploadResult.filename) }}</span>
+                    <div class="result-actions-cluster">
+                      <button class="btn btn-secondary btn-sm" @click="copyText(getIpfsUrl(lastUploadResult.cid, lastUploadResult.filename), 'ipfs:// link copied!')">
+                        Copy URI
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 2. Folder / DApp Uploader -->
+            <div v-if="activeTab === 'folder'">
+              <input type="file" ref="folderInput" webkitdirectory directory multiple @change="handleFolderSelect" style="display: none;" />
+              
+              <div class="master-dropzone" @click="triggerFolderInput">
+                <div class="dropzone-circle-icon">
+                  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+                  </svg>
+                </div>
+                <div class="dropzone-title">Click to select a Folder or DApp build directory</div>
+                <div class="dropzone-subtitle">
+                  Upload an entire <span>dist/</span> folder or static site under a single root CID with intact relative links.
+                </div>
+              </div>
+
+              <!-- Folder Uploading -->
+              <div v-if="isUploadingFolder" class="upload-active-box">
+                <div class="upload-active-head">
+                  <div class="upload-file-title">
+                    <svg class="pulse-dot" style="width: 7px; height: 7px;"></svg>
+                    <span>Bundling {{ folderFilesCount }} files...</span>
+                  </div>
+                  <span class="mono" style="font-size: 0.82rem; color: var(--text-muted);">{{ formatBytes(folderTotalSize) }}</span>
+                </div>
+                <div class="meter-container">
+                  <div class="meter-fill" style="width: 65%;"></div>
+                </div>
+              </div>
+
+              <!-- Folder Success -->
+              <div v-if="lastFolderResult" class="result-card-box">
+                <div class="result-card-header">
+                  <div class="result-card-title">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                      <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                    </svg>
+                    <span>Directory Pinned ({{ lastFolderResult.files }} files)!</span>
+                  </div>
+                </div>
+
+                <div class="result-meta-grid">
+                  <div class="result-meta-row">
+                    <span class="result-meta-label">Root CID</span>
+                    <span class="result-meta-val">{{ lastFolderResult.cid }}</span>
+                    <div class="result-actions-cluster">
+                      <button class="btn btn-secondary btn-sm" @click="copyText(lastFolderResult.cid, 'Root CID copied!')">
+                        Copy Root CID
+                      </button>
+                    </div>
+                  </div>
+
+                  <div class="result-meta-row">
+                    <span class="result-meta-label">Live App URL</span>
+                    <span class="result-meta-val">
+                      <a :href="currentGateway + lastFolderResult.cid + '/'" target="_blank" class="cid-link-tag">
+                        {{ currentGateway }}{{ lastFolderResult.cid }}/
+                      </a>
+                    </span>
+                    <div class="result-actions-cluster">
+                      <a class="btn btn-primary btn-sm" :href="currentGateway + lastFolderResult.cid + '/'" target="_blank" rel="noopener">
+                        Launch DApp Site ↗
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 3. Pastebin / Code Snippet -->
+            <div v-if="activeTab === 'paste'">
+              <div style="display: grid; grid-template-columns: 1fr 160px; gap: 0.85rem; margin-bottom: 0.85rem;">
+                <input v-model="pasteTitle" class="input-control" type="text" placeholder="Title (e.g. config.json, note.md)" />
+                <select v-model="pasteLanguage" class="input-control">
+                  <option value="markdown">Markdown</option>
+                  <option value="javascript">JavaScript</option>
+                  <option value="typescript">TypeScript</option>
+                  <option value="json">JSON</option>
+                  <option value="html">HTML</option>
+                  <option value="css">CSS</option>
+                  <option value="python">Python</option>
+                  <option value="go">Go</option>
+                  <option value="text">Plain Text</option>
+                </select>
+              </div>
+
+              <textarea v-model="pasteContent" class="textarea-control" placeholder="Write or paste your code snippet / text content here..."></textarea>
+
+              <div style="display: flex; justify-content: flex-end; margin-top: 0.85rem;">
+                <button class="btn btn-primary" :disabled="isPasting || !pasteContent.trim()" @click="submitPaste">
+                  {{ isPasting ? 'Pinning Snippet...' : 'Pin Snippet to IPFS' }}
+                </button>
+              </div>
+
+              <!-- Paste Result -->
+              <div v-if="lastPasteResult" class="result-card-box">
+                <div class="result-card-header">
+                  <div class="result-card-title">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                      <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                    </svg>
+                    <span>Snippet Pinned! Title: {{ lastPasteResult.title }}</span>
+                  </div>
+                </div>
+
+                <div class="result-meta-grid">
+                  <div class="result-meta-row">
+                    <span class="result-meta-label">CID</span>
+                    <span class="result-meta-val">{{ lastPasteResult.cid }}</span>
+                    <div class="result-actions-cluster">
+                      <button class="btn btn-secondary btn-sm" @click="copyText(lastPasteResult.cid, 'CID copied!')">
+                        Copy CID
+                      </button>
+                      <a class="btn btn-primary btn-sm" :href="'/paste/' + lastPasteResult.cid" target="_blank">
+                        Raw View
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 4. AI Agent Prompt Generator -->
+            <div v-if="activeTab === 'prompt'">
+              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.85rem; flex-wrap: wrap; gap: 0.6rem;">
+                <div style="display: flex; gap: 0.4rem;">
+                  <button class="btn btn-sm" :class="promptFormat === 'plain' ? 'btn-primary' : 'btn-secondary'" @click="promptFormat = 'plain'">
+                    Standard Prompt
+                  </button>
+                  <button class="btn btn-sm" :class="promptFormat === 'markdown' ? 'btn-primary' : 'btn-secondary'" @click="promptFormat = 'markdown'">
+                    Markdown Spec
+                  </button>
+                  <button class="btn btn-sm" :class="promptFormat === 'curl' ? 'btn-primary' : 'btn-secondary'" @click="promptFormat = 'curl'">
+                    cURL Examples
+                  </button>
+                  <button class="btn btn-sm" :class="promptFormat === 'python' ? 'btn-primary' : 'btn-secondary'" @click="promptFormat = 'python'">
+                    Python SDK
+                  </button>
+                </div>
+
+                <button class="btn btn-primary btn-sm" @click="copyText(generatedAgentPrompt, 'Agent prompt instructions copied!')">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                  </svg>
+                  Copy Prompt Instructions
+                </button>
+              </div>
+
+              <div class="prompt-panel-box">
+                <pre class="prompt-pre-code">{{ generatedAgentPrompt }}</pre>
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+        <!-- Right: Telemetry & Swarm Command Center -->
+        <aside class="telemetry-deck">
+          
+          <!-- IPFS Swarm Card -->
+          <div class="telemetry-tile">
+            <div class="telemetry-tile-head">
+              <span class="telemetry-tile-label">Swarm DHT</span>
+              <span class="status-indicator-pill" style="padding: 0.2rem 0.55rem; font-size: 0.72rem;">
+                <span class="pulse-dot"></span>
+                Connected
+              </span>
+            </div>
+            <div>
+              <div class="telemetry-tile-val">{{ status.peerscount }}</div>
+              <div class="telemetry-tile-sub">Global Connected Peers</div>
+            </div>
+            <div class="telemetry-tile-foot">
+              <span>Bandwidth Rates</span>
+              <span class="mono">{{ status.bandwidthRateIn }} in · {{ status.bandwidthRateOut }} out</span>
+            </div>
+          </div>
+
+          <!-- Storage Capacity & Janitor Gauge -->
+          <div class="telemetry-tile">
+            <div class="telemetry-tile-head">
+              <span class="telemetry-tile-label">Storage Capacity</span>
+              <span class="badge-count">{{ storagePercentage }}%</span>
+            </div>
+            <div>
+              <div class="telemetry-tile-val">{{ storagePercentage }}%</div>
+              <div class="meter-container" :title="'Eviction starts at ' + pinStats.threshold + '%'">
+                <div class="meter-fill" :class="storageGaugeClass" :style="{ width: storagePercentage + '%' }"></div>
+              </div>
+            </div>
+            <div class="telemetry-tile-foot">
+              <span>{{ status.repoSize }}</span>
+              <span>Evict at {{ pinStats.threshold }}%</span>
+            </div>
+          </div>
+
+          <!-- Pinned Datastore Content -->
+          <div class="telemetry-tile">
+            <div class="telemetry-tile-head">
+              <span class="telemetry-tile-label">Pinned Content</span>
+              <span class="badge-count">{{ pinStats.count }} pins</span>
+            </div>
+            <div>
+              <div class="telemetry-tile-val">{{ pinStats.sizeStr }}</div>
+              <div class="telemetry-tile-sub">{{ status.repoObjects }} objects in datastore</div>
+            </div>
+            <div class="telemetry-tile-foot">
+              <span>File Limit</span>
+              <span class="mono">{{ status.fileLimit }}</span>
+            </div>
+          </div>
+
+          <!-- Node Identity & Software Daemon -->
+          <div class="telemetry-tile">
+            <div class="telemetry-tile-head">
+              <span class="telemetry-tile-label">Node Telemetry</span>
+              <span class="badge-count">v{{ status.appver }}</span>
+            </div>
+            <div>
+              <div class="telemetry-tile-val mono" style="font-size: 1.25rem;" :title="status.fullNodeId">
+                {{ status.nodeId }}
+              </div>
+              <div class="telemetry-tile-sub">{{ status.version }}</div>
+            </div>
+            <div class="telemetry-tile-foot">
+              <span>Last Heartbeat</span>
+              <span>{{ status.timestamp }}</span>
+            </div>
+          </div>
+
+        </aside>
+
       </div>
-      <p class="empty">Paste this into Cursor, Claude, or any agent that should publish files through this node.</p>
-      <pre class="code prompt">{{ agentPrompt }}</pre>
-    </section>
 
-    <section class="panel">
-      <div class="card-head">
-        <h2>Upload history</h2>
-        <div class="search">
-          <img class="icon" src="/icons/search.svg" alt="" />
-          <input v-model="searchQuery" class="field" type="text" placeholder="Search filename or CID" />
+      <!-- Upload History & Swarm Explorer Panel -->
+      <section class="data-panel">
+        <div class="data-panel-head">
+          <div class="data-panel-title-area">
+            <h2 class="data-panel-title">Upload History & Swarm Explorer</h2>
+            <span class="badge-count">{{ filteredHistory.length }} uploads</span>
+          </div>
+
+          <div class="data-panel-controls">
+            <!-- Search Input -->
+            <div class="filter-search-box">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--text-muted);">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+              </svg>
+              <input v-model="searchQuery" class="filter-search-input" type="text" placeholder="Filter by filename or CID..." />
+            </div>
+
+            <!-- Type Filter -->
+            <select v-model="typeFilter" class="input-control" style="width: auto; padding: 0.4rem 0.75rem; font-size: 0.8rem;">
+              <option value="all">All File Types</option>
+              <option value="image">Images</option>
+              <option value="video">Videos</option>
+              <option value="audio">Audio</option>
+              <option value="archive">Archives / Folders</option>
+              <option value="code">Code / DApps</option>
+            </select>
+
+            <!-- Status Filter -->
+            <select v-model="statusFilter" class="input-control" style="width: auto; padding: 0.4rem 0.75rem; font-size: 0.8rem;">
+              <option value="all">All Statuses</option>
+              <option value="pinned">Pinned Only</option>
+              <option value="unpinned">Unpinned</option>
+            </select>
+
+            <!-- Sort By -->
+            <select v-model="sortBy" class="input-control" style="width: auto; padding: 0.4rem 0.75rem; font-size: 0.8rem;">
+              <option value="date-desc">Newest First</option>
+              <option value="date-asc">Oldest First</option>
+              <option value="size-desc">Largest Size</option>
+              <option value="size-asc">Smallest Size</option>
+            </select>
+          </div>
         </div>
-      </div>
-      <div v-if="filteredHistory.length === 0" class="empty">
-        <template v-if="history.length === 0">[*] No uploads yet. Upload files via the HTTP API or client examples.</template>
-        <template v-else>[*] No matches for “{{ searchQuery }}”.</template>
-      </div>
-      <div v-else class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>File</th>
-              <th>CID</th>
-              <th style="text-align:right">Size</th>
-              <th style="text-align:right">Status</th>
-              <th style="text-align:right">Date</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="item in filteredHistory" :key="item.cid">
-              <td><div class="truncate" style="max-width:14rem">{{ item.filename }}</div></td>
-              <td>
-                <a class="mono break" :href="getGatewayUrlForCid(item.cid, item.filename)" target="_blank" rel="noopener">{{ item.cid }}</a>
-              </td>
-              <td style="text-align:right" class="muted">{{ formatBytes(item.size) }}</td>
-              <td style="text-align:right">
-                <span v-if="item.unpinned" class="pill pill-mute">unpinned</span>
-                <span v-else class="pill pill-ok">pinned</span>
-              </td>
-              <td style="text-align:right" class="faint">{{ formatDate(item.created_at) }}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </section>
+
+        <!-- Empty State -->
+        <div v-if="filteredHistory.length === 0" style="padding: 4rem 2rem; text-align: center; color: var(--text-muted);">
+          <svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin-inline: auto; margin-bottom: 1rem; color: var(--text-dim);">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="17 8 12 3 7 8"></polyline>
+            <line x1="12" y1="3" x2="12" y2="15"></line>
+          </svg>
+          <div style="font-size: 1.1rem; font-weight: 700; color: var(--text-secondary); margin-bottom: 0.35rem;">
+            {{ searchQuery ? 'No uploads match the filter' : 'No files uploaded to this node yet' }}
+          </div>
+          <p style="font-size: 0.85rem; max-width: 440px; margin-inline: auto;">
+            {{ searchQuery ? 'Try adjusting your search query or filters' : 'Use the drag & drop zone above to pin your first file to the global IPFS swarm.' }}
+          </p>
+        </div>
+
+        <!-- Modern Data Table -->
+        <div v-else class="data-table-wrapper">
+          <table class="modern-table">
+            <thead>
+              <tr>
+                <th>Content Item</th>
+                <th>Content Address (CID)</th>
+                <th style="text-align: right;">Size</th>
+                <th style="text-align: center;">Swarm Status</th>
+                <th style="text-align: right;">Pinned Date</th>
+                <th style="text-align: right;">Quick Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="item in filteredHistory" :key="item.cid">
+                <!-- Content Icon + Name -->
+                <td>
+                  <div class="file-identity-cell">
+                    <div class="file-type-avatar">
+                      <!-- Image Icon -->
+                      <svg v-if="getFileCategory(item.filename, item.type) === 'image'" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                        <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                        <polyline points="21 15 16 10 5 21"></polyline>
+                      </svg>
+                      <!-- Video Icon -->
+                      <svg v-else-if="getFileCategory(item.filename, item.type) === 'video'" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polygon points="23 7 16 12 23 17 23 7"></polygon>
+                        <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
+                      </svg>
+                      <!-- Audio Icon -->
+                      <svg v-else-if="getFileCategory(item.filename, item.type) === 'audio'" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M9 18V5l12-2v13"></path>
+                        <circle cx="6" cy="18" r="3"></circle>
+                        <circle cx="18" cy="16" r="3"></circle>
+                      </svg>
+                      <!-- Archive Icon -->
+                      <svg v-else-if="getFileCategory(item.filename, item.type) === 'archive'" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="21 8 21 21 3 21 3 8"></polyline>
+                        <rect x="1" y="3" width="22" height="5"></rect>
+                        <line x1="10" y1="12" x2="14" y2="12"></line>
+                      </svg>
+                      <!-- Code Icon -->
+                      <svg v-else-if="getFileCategory(item.filename, item.type) === 'code'" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="16 18 22 12 16 6"></polyline>
+                        <polyline points="8 6 2 12 8 18"></polyline>
+                      </svg>
+                      <!-- Generic File -->
+                      <svg v-else width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                        <polyline points="14 2 14 8 20 8"></polyline>
+                      </svg>
+                    </div>
+
+                    <div>
+                      <div class="file-name-heading" :title="item.filename">
+                        {{ item.filename || 'Unnamed content' }}
+                      </div>
+                      <div class="file-mime-sub">{{ item.type || 'application/octet-stream' }}</div>
+                    </div>
+                  </div>
+                </td>
+
+                <!-- CID -->
+                <td>
+                  <a class="cid-link-tag" :href="getGatewayUrl(item.cid, item.filename)" target="_blank" rel="noopener" :title="item.cid">
+                    {{ item.cid.slice(0, 10) }}...{{ item.cid.slice(-10) }}
+                  </a>
+                </td>
+
+                <!-- Size -->
+                <td style="text-align: right;" class="mono">
+                  {{ formatBytes(item.size) }}
+                </td>
+
+                <!-- Swarm Status -->
+                <td style="text-align: center;">
+                  <span v-if="!item.unpinned" class="badge-status-pinned">
+                    <span class="pulse-dot" style="width: 6px; height: 6px;"></span>
+                    Pinned
+                  </span>
+                  <span v-else class="badge-status-unpinned">Unpinned</span>
+                </td>
+
+                <!-- Date -->
+                <td style="text-align: right;" :title="formatDate(item.created_at)">
+                  {{ formatRelative(item.created_at) }}
+                </td>
+
+                <!-- Quick Actions -->
+                <td style="text-align: right;">
+                  <div style="display: inline-flex; align-items: center; gap: 0.35rem;">
+                    <button class="btn-icon-only" @click="copyText(item.cid, 'CID copied to clipboard!')" title="Copy CID">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                      </svg>
+                    </button>
+                    <a class="btn-icon-only" :href="getGatewayUrl(item.cid, item.filename)" target="_blank" rel="noopener" title="Open via Gateway">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                        <polyline points="15 3 21 3 21 9"></polyline>
+                        <line x1="10" y1="14" x2="21" y2="3"></line>
+                      </svg>
+                    </a>
+                    <button class="btn-icon-only" @click="openInspect(item)" title="Inspect Metadata & QR Code">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="1"></circle>
+                        <circle cx="19" cy="12" r="1"></circle>
+                        <circle cx="5" cy="12" r="1"></circle>
+                      </svg>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+    </div>
   </main>
 
-  <div data-ol-foot></div>
+  <!-- Content Inspection & QR Code Modal -->
+  <div v-if="inspectModalOpen" class="modal-backdrop" @click.self="closeInspect">
+    <div class="modal-dialog">
+      <div class="modal-dialog-head">
+        <div style="font-weight: 800; font-size: 1.15rem;">Content Inspection & Share</div>
+        <button class="btn-icon-only" @click="closeInspect">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+
+      <div class="modal-dialog-body" v-if="inspectItem">
+        <div style="display: flex; gap: 1.5rem; flex-wrap: wrap; margin-bottom: 1.5rem;">
+          
+          <!-- QR Code Preview for mobile sharing -->
+          <div class="qr-preview-box" :title="'Scan to open on mobile via ' + currentGateway">
+            <img :src="inspectQrUrl" alt="QR Code" style="width: 140px; height: 140px; display: block;" />
+          </div>
+
+          <div style="flex: 1; min-width: 260px; display: flex; flex-direction: column; justify-content: center; gap: 0.5rem;">
+            <div style="font-size: 1.1rem; font-weight: 800; color: var(--text-primary);">{{ inspectItem.filename || 'Unnamed content' }}</div>
+            <div style="font-size: 0.82rem; color: var(--text-secondary);">
+              Size: <span class="mono" style="color: var(--text-primary); font-weight: 600;">{{ formatBytes(inspectItem.size) }}</span> · 
+              Status: <span :style="{ color: inspectItem.unpinned ? 'var(--accent-rose)' : 'var(--accent-emerald)', fontWeight: '700' }">{{ inspectItem.unpinned ? 'Unpinned' : 'Pinned' }}</span>
+            </div>
+            <div style="font-size: 0.78rem; color: var(--text-muted);">
+              Pinned on {{ formatDate(inspectItem.created_at) }}
+            </div>
+          </div>
+        </div>
+
+        <div class="result-meta-grid">
+          <div class="result-meta-row">
+            <span class="result-meta-label">CID</span>
+            <span class="result-meta-val">{{ inspectItem.cid }}</span>
+            <button class="btn btn-secondary btn-sm" @click="copyText(inspectItem.cid, 'CID copied!')">
+              Copy
+            </button>
+          </div>
+
+          <div class="result-meta-row">
+            <span class="result-meta-label">Gateway URL</span>
+            <span class="result-meta-val">{{ getGatewayUrl(inspectItem.cid, inspectItem.filename) }}</span>
+            <button class="btn btn-secondary btn-sm" @click="copyText(getGatewayUrl(inspectItem.cid, inspectItem.filename), 'Gateway URL copied!')">
+              Copy Link
+            </button>
+          </div>
+
+          <div class="result-meta-row">
+            <span class="result-meta-label">IPFS URI</span>
+            <span class="result-meta-val">{{ getIpfsUrl(inspectItem.cid, inspectItem.filename) }}</span>
+            <button class="btn btn-secondary btn-sm" @click="copyText(getIpfsUrl(inspectItem.cid, inspectItem.filename), 'ipfs:// URI copied!')">
+              Copy URI
+            </button>
+          </div>
+        </div>
+
+        <div style="margin-top: 1.5rem; display: flex; justify-content: flex-end; gap: 0.75rem;">
+          <a class="btn btn-primary" :href="getGatewayUrl(inspectItem.cid, inspectItem.filename)" target="_blank" rel="noopener">
+            Open in Public Gateway ↗
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Stack -->
+  <div class="toast-stack">
+    <div v-for="toast in toasts" :key="toast.id" class="toast-item" :class="toast.type === 'error' ? 'is-error' : 'is-success'">
+      <svg v-if="toast.type === 'error'" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--accent-rose);">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="12" y1="8" x2="12" y2="12"></line>
+        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+      </svg>
+      <svg v-else width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="color: var(--accent-emerald);">
+        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+        <polyline points="22 4 12 14.01 9 11.01"></polyline>
+      </svg>
+      <span>{{ toast.message }}</span>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="footer-bar">
+    <div class="container-wide footer-inner-wrap">
+      <div style="display: flex; align-items: center; gap: 0.85rem;">
+        <span style="font-weight: 800; color: var(--text-primary);">Originless</span>
+        <span>— Decentralized IPFS Storage Node</span>
+      </div>
+
+      <div class="footer-links-list">
+        <a class="footer-link-item" href="https://github.com/besoeasy/Originless" target="_blank" rel="noopener">GitHub</a>
+        <a class="footer-link-item" href="https://github.com/besoeasy/Originless#%EF%B8%8F-api-quick-reference" target="_blank" rel="noopener">API Reference</a>
+        <a class="footer-link-item" href="https://github.com/besoeasy/Originless/tree/main/examples" target="_blank" rel="noopener">Decoupled Examples</a>
+        <span class="mono" style="font-size: 0.78rem;">v{{ status.appver }}</span>
+      </div>
+    </div>
+  </footer>
+
 </div>
 
+<!-- Vue 3 Production Core & App Logic -->
 <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
 <script src="/js/app.js"></script>
 <script>
-  OL.injectChrome("overview");
-  const { createApp } = Vue;
-  createApp({
-    mixins: [OL.pageMixin()],
-    data() { return { searchQuery: "", peerFlash: "", peerFlashKey: 0 }; },
-    computed: {
-      filteredHistory() {
-        if (!this.searchQuery) return this.history;
-        const q = this.searchQuery.toLowerCase();
-        return this.history.filter((h) =>
-          (h.filename || "").toLowerCase().includes(q) ||
-          (h.cid || "").toLowerCase().includes(q)
-        );
-      },
-      storagePercent() {
-        if (!this.status.storageMaxBytes) return 0;
-        const pct = (this.status.repoSizeBytes / this.status.storageMaxBytes) * 100;
-        return Math.min(100, Math.max(0, Math.round(pct)));
-      },
-      agentPrompt() {
-        const origin = this.currentUrl;
-        const gateway = this.gatewayBase;
-        return `Publish files with Originless. Pin them to IPFS on this node, then share the CID through a public gateway.
-
-This is not limited to websites. Use it for a music file, a generated index.html report, a photo, an image gallery, a video, a PDF, a folder of mixed assets, or a full dist/ site.
-
-Repo: https://github.com/besoeasy/Originless
-This Originless node: ${origin}
-IPFS gateway: ${gateway}
-
-Use this node for all uploads. Do not invent another host or API key. There is no auth.
-
-Endpoints:
-- POST ${origin}/upload — one file. Multipart field "file".
-- POST ${origin}/uploadfolder — a folder (gallery, album, report, site). Multipart field name is "file" for each file; set filename to the relative path so links stay intact.
-- POST ${origin}/paste — text. JSON body {"content":"...","title":"optional"}.
-- GET ${origin}/health — liveness check.
-
-The JSON response includes "cid". That CID is the content address. This node's HTTP origin does not serve the bytes.
-
-After upload, return gateway URLs to the user:
-- ${gateway}{cid}            (single file)
-- ${gateway}{cid}/           (folder; index.html at the root is served automatically)
-- ipfs://{cid}
-
-Keep relative paths inside folders. Never wrap the CID in ${origin}/upload or a local file path.`;
-      },
-    },
-    watch: {
-      "status.peerscount"(next, prev) {
-        if (next === prev) return;
-        this.peerFlash = next > (prev ?? 0) ? "is-up" : "is-down";
-        this.peerFlashKey += 1;
-      },
-    },
-    mounted() {
-      this.fetchHistory();
-      this.fetchPinStats();
-    },
-  }).mount("#app");
+  Originless.createOriginlessApp({ page: "overview" }).mount("#app");
 </script>
 </body>
 </html>

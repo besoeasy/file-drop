@@ -3,154 +3,438 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Archive — Originless</title>
-  <meta name="theme-color" content="#000000" />
+  <title>Nostr IPFS Archive & Mirror — Originless</title>
+  <meta name="description" content="Local Nostr IPFS media backup & permanent pin mirror on Originless." />
+  <meta name="theme-color" content="#06080d" />
   <link rel="icon" type="image/svg+xml" href="/logo.svg" />
+  <link rel="apple-touch-icon" href="/logo.svg" />
+  
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="Nostr IPFS Archive — Originless" />
+  <meta property="og:description" content="Decentralized Nostr media backup & mirror daemon." />
+  <meta property="og:image" content="/logo.svg" />
+
   <link rel="stylesheet" href="/css/app.css" />
 </head>
 <body>
-<div id="app" class="shell">
-  <div data-ol-nav></div>
+<div id="app" class="app-shell">
 
-  <main class="wrap">
-    <div class="hero hero-row">
-      <div>
-        <p class="kicker">[*] Local Nostr IPFS backup</p>
-        <h1>Archive</h1>
-        <p>These npubs are scanned on this node. Discovered IPFS media is copied to <span class="mono">{{ archive.dir }}</span> and never garbage-collected.</p>
+  <!-- Main Navigation Header -->
+  <header class="topbar">
+    <div class="container-wide topbar-inner">
+      <div class="brand-wrapper">
+        <a class="brand" href="/">
+          <div class="brand-logo-wrap">
+            <img class="brand-logo-img" src="/logo.svg" alt="Originless" />
+          </div>
+          <span>Originless</span>
+          <span class="brand-badge">Archive</span>
+        </a>
+
+        <!-- Navigation Segmented Tabs -->
+        <nav class="nav-segment">
+          <a href="/" class="nav-item">
+            <svg class="nav-item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="7" height="7"></rect>
+              <rect x="14" y="3" width="7" height="7"></rect>
+              <rect x="14" y="14" width="7" height="7"></rect>
+              <rect x="3" y="14" width="7" height="7"></rect>
+            </svg>
+            Overview
+          </a>
+          <a href="/archive.html" class="nav-item is-active">
+            <svg class="nav-item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="21 8 21 21 3 21 3 8"></polyline>
+              <rect x="1" y="3" width="22" height="5"></rect>
+              <line x1="10" y1="12" x2="14" y2="12"></line>
+            </svg>
+            Nostr Archive
+          </a>
+          <a href="https://dweb.link/ipns/originless.besoeasy.com" target="_blank" rel="noopener" class="nav-item">
+            <svg class="nav-item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+              <polyline points="15 3 21 3 21 9"></polyline>
+              <line x1="10" y1="14" x2="21" y2="3"></line>
+            </svg>
+            Client Tools
+          </a>
+        </nav>
       </div>
-      <div class="hero-stats">
-        <div class="tile hero-stat">
-          <div class="kicker">Objects</div>
-          <div class="stat-value">{{ archive.count }}</div>
+
+      <!-- Actions, Gateway Switcher & Swarm Health -->
+      <div class="topbar-actions">
+        <!-- Gateway Switcher -->
+        <div class="gateway-chip" title="Active Gateway for resolving links and live previews">
+          <label>Gateway</label>
+          <select v-model="currentGateway" @change="onGatewayChange" class="gateway-select">
+            <option v-for="gw in gateways" :key="gw.url" :value="gw.url">
+              {{ gw.label }}
+            </option>
+          </select>
         </div>
-        <div class="tile hero-stat">
-          <div class="kicker">Size</div>
-          <div class="stat-value">{{ archive.sizeStr }}</div>
+
+        <!-- DHT Swarm Indicator -->
+        <div class="status-indicator-pill" :title="status.peerscount + ' DHT peers connected'">
+          <span class="pulse-dot"></span>
+          <span>{{ status.peerscount }} Swarm Peers</span>
         </div>
+
+        <!-- GitHub Repository Button -->
+        <a class="btn-square" href="https://github.com/besoeasy/Originless" target="_blank" rel="noopener" title="GitHub Repository">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+            <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"></path>
+          </svg>
+        </a>
       </div>
     </div>
+  </header>
 
-    <div class="grid grid-4 stagger mb">
-      <article class="tile">
-        <div class="kicker">Status</div>
-        <div style="font-weight:600">{{ archive.enabled ? (archive.scanning ? 'Scanning…' : 'Watching') : 'Idle' }}</div>
-        <div class="stat-sub">{{ archive.enabled ? (archive.accounts.length + ' npub' + (archive.accounts.length === 1 ? '' : 's')) : 'NOSTR_NPUBS unset' }}</div>
-      </article>
-      <article class="tile">
-        <div class="kicker">Scan interval</div>
-        <div class="stat-value" style="font-size:1.35rem">{{ archive.scanMinutes }}m</div>
-        <div class="stat-sub">last {{ formatUnix(archive.lastScan) }}</div>
-      </article>
-      <article class="tile">
-        <div class="kicker">Re-pin</div>
-        <div class="stat-value" style="font-size:1.35rem">{{ archive.repinHours }}h</div>
-        <div class="stat-sub">last {{ formatUnix(archive.lastRepin) }}</div>
-      </article>
-      <article class="tile">
-        <div class="kicker">Volume</div>
-        <div class="mono" style="font-size:.8rem;word-break:break-all">{{ archive.dir }}</div>
-        <div class="stat-sub">janitor skip list</div>
-      </article>
-    </div>
+  <!-- Main Content Space -->
+  <main class="main-content">
+    <div class="container-wide">
 
-    <section class="mb">
-      <div class="card-head"><h2>Accounts this node backs up</h2></div>
-      <div v-if="!archive.enabled" class="empty">
-        [*] Set <span class="mono">NOSTR_NPUBS</span> on the container to start backing up Nostr IPFS media locally.
+      <!-- Nostr Hero Command Banner -->
+      <section class="nostr-hero-banner">
+        <div>
+          <h1 class="nostr-hero-title">Nostr IPFS Media Mirror & Permanent Archive</h1>
+          <p class="nostr-hero-desc">
+            Originless continuously queries connected Nostr relays for monitored <span class="mono">npub</span> accounts. Discovered <span class="mono">ipfs://</span> links, NIP-92 <span class="mono">imeta</span> tags, and NIP-94 files are mirrored to <span class="mono">{{ archive.dir }}</span> and permanently pinned to ensure content permanence across the global swarm.
+          </p>
+        </div>
+
+        <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+          <div class="telemetry-tile" style="min-width: 160px; padding: 1.25rem;">
+            <div class="telemetry-tile-label">Archived Objects</div>
+            <div class="telemetry-tile-val" style="font-size: 1.75rem;">{{ archive.count }}</div>
+          </div>
+          <div class="telemetry-tile" style="min-width: 160px; padding: 1.25rem;">
+            <div class="telemetry-tile-label">Archive Volume Size</div>
+            <div class="telemetry-tile-val" style="font-size: 1.75rem;">{{ archive.sizeStr }}</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Archiver Telemetry Row -->
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
+        
+        <article class="telemetry-tile">
+          <div class="telemetry-tile-head">
+            <span class="telemetry-tile-label">Worker Status</span>
+            <span class="badge-status-pinned">
+              <span class="pulse-dot" style="width: 5px; height: 5px;"></span>
+              {{ archive.enabled ? 'Active' : 'Disabled' }}
+            </span>
+          </div>
+          <div>
+            <div class="telemetry-tile-val" style="font-size: 1.45rem;">
+              {{ archive.enabled ? (archive.scanning ? 'Scanning Relays...' : 'Watching Stream') : 'Idle' }}
+            </div>
+            <div class="telemetry-tile-sub">
+              {{ archive.enabled ? (archive.accounts.length + ' accounts monitored') : 'NOSTR_NPUBS unset' }}
+            </div>
+          </div>
+          <div class="telemetry-tile-foot">
+            <span>Protection</span>
+            <span class="mono">Excluded from LRU Janitor</span>
+          </div>
+        </article>
+
+        <article class="telemetry-tile">
+          <div class="telemetry-tile-head">
+            <span class="telemetry-tile-label">Scan Interval</span>
+            <span class="badge-count">{{ archive.scanMinutes }}m</span>
+          </div>
+          <div>
+            <div class="telemetry-tile-val" style="font-size: 1.45rem;">Every {{ archive.scanMinutes }} min</div>
+            <div class="telemetry-tile-sub">Last scan: {{ formatUnix(archive.lastScan) }}</div>
+          </div>
+          <div class="telemetry-tile-foot">
+            <span>Relays</span>
+            <span class="mono">{{ nostrRelays.length }} active</span>
+          </div>
+        </article>
+
+        <article class="telemetry-tile">
+          <div class="telemetry-tile-head">
+            <span class="telemetry-tile-label">Swarm Re-Pin Cycle</span>
+            <span class="badge-count">{{ archive.repinHours }}h</span>
+          </div>
+          <div>
+            <div class="telemetry-tile-val" style="font-size: 1.45rem;">Every {{ archive.repinHours }} hours</div>
+            <div class="telemetry-tile-sub">Last re-pin: {{ formatUnix(archive.lastRepin) }}</div>
+          </div>
+          <div class="telemetry-tile-foot">
+            <span>Permanence</span>
+            <span class="mono">Global DHT Swarm</span>
+          </div>
+        </article>
+
+        <article class="telemetry-tile">
+          <div class="telemetry-tile-head">
+            <span class="telemetry-tile-label">Archive Volume</span>
+            <span class="badge-count">Volume</span>
+          </div>
+          <div>
+            <div class="telemetry-tile-val mono" style="font-size: 1.2rem; word-break: break-all;">
+              {{ archive.dir }}
+            </div>
+            <div class="telemetry-tile-sub">Docker persistent mount</div>
+          </div>
+          <div class="telemetry-tile-foot">
+            <span>Format</span>
+            <span class="mono">Raw Blocks + Metadata</span>
+          </div>
+        </article>
+
       </div>
-      <div v-else class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>npub</th>
-              <th style="text-align:right">Objects</th>
-              <th style="text-align:right">Size</th>
-              <th style="text-align:right">Events seen</th>
-              <th style="text-align:right">Caught up to</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="acc in archive.accounts" :key="acc.npub">
-              <td>
-                <div class="row" style="align-items:flex-start;flex-wrap:nowrap">
-                  <div class="grow">
-                    <div class="mono" style="font-size:.75rem;word-break:break-all">{{ acc.npub }}</div>
-                    <div v-if="acc.pubkey" class="mono faint" style="font-size:.62rem;margin-top:.3rem;word-break:break-all">{{ acc.pubkey }}</div>
+
+      <!-- Monitored Accounts Matrix -->
+      <section class="data-panel">
+        <div class="data-panel-head">
+          <div class="data-panel-title-area">
+            <h2 class="data-panel-title">Monitored Nostr Accounts</h2>
+            <span class="badge-count">{{ archive.accounts.length }} accounts</span>
+          </div>
+        </div>
+
+        <div v-if="!archive.enabled" style="padding: 4rem 2rem; text-align: center; color: var(--text-muted);">
+          <svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin-inline: auto; margin-bottom: 1rem; color: var(--text-dim);">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="8" x2="12" y2="12"></line>
+            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+          </svg>
+          <div style="font-size: 1.1rem; font-weight: 700; color: var(--text-secondary); margin-bottom: 0.35rem;">
+            Nostr Media Mirroring Is Inactive
+          </div>
+          <p style="font-size: 0.85rem; max-width: 520px; margin-inline: auto; line-height: 1.6;">
+            Provide <code class="mono" style="background: var(--bg-input); padding: 0.2rem 0.5rem; border-radius: 4px; border: 1px solid var(--border-default);">-e NOSTR_NPUBS=npub1...,npub1...</code> when running the container to continuously archive and mirror media from chosen Nostr accounts.
+          </p>
+        </div>
+
+        <div v-else class="data-table-wrapper">
+          <table class="modern-table">
+            <thead>
+              <tr>
+                <th>Nostr Public Key (npub)</th>
+                <th style="text-align: right;">Media Objects</th>
+                <th style="text-align: right;">Total Size</th>
+                <th style="text-align: right;">Events Scanned</th>
+                <th style="text-align: right;">Last Synced Cursor</th>
+                <th style="text-align: right;">Quick Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="acc in archive.accounts" :key="acc.npub">
+                <td>
+                  <div style="display: flex; flex-direction: column; gap: 0.25rem;">
+                    <span class="mono" style="font-size: 0.84rem; font-weight: 700; color: var(--text-primary);">{{ acc.npub }}</span>
+                    <span v-if="acc.pubkey" class="mono" style="font-size: 0.72rem; color: var(--text-muted);">{{ acc.pubkey }}</span>
                   </div>
-                  <button class="icon-btn" type="button" @click="copyText(acc.npub, acc.npub)" :class="{ 'is-copied': copied === acc.npub }" :title="copied === acc.npub ? 'Copied' : 'Copy npub'">
-                    <img class="icon" src="/icons/copy.svg" alt="" />
-                  </button>
-                  <a class="icon-btn" :href="'https://njump.me/' + acc.npub" target="_blank" rel="noopener" title="Open profile">
-                    <img class="icon" src="/icons/external-link.svg" alt="" />
+                </td>
+
+                <td style="text-align: right;" class="mono">
+                  {{ acc.objects || 0 }}
+                </td>
+
+                <td style="text-align: right;" class="mono">
+                  {{ acc.sizeStr || '0 B' }}
+                </td>
+
+                <td style="text-align: right;" class="mono">
+                  {{ acc.events || 0 }}
+                </td>
+
+                <td style="text-align: right;">
+                  {{ acc.cursorAt ? formatUnix(acc.cursorAt) : 'Pending first scan' }}
+                </td>
+
+                <td style="text-align: right;">
+                  <div style="display: inline-flex; gap: 0.35rem;">
+                    <button class="btn btn-secondary btn-sm" @click="copyText(acc.npub, 'npub copied to clipboard!')">
+                      Copy npub
+                    </button>
+                    <a class="btn btn-secondary btn-sm" :href="'https://njump.me/' + acc.npub" target="_blank" rel="noopener">
+                      njump ↗
+                    </a>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Connected Nostr Relays -->
+      <section v-if="nostrRelays && nostrRelays.length > 0" class="data-panel">
+        <div class="data-panel-head">
+          <div class="data-panel-title-area">
+            <h2 class="data-panel-title">Connected Nostr Relays</h2>
+            <span class="badge-count">{{ nostrRelays.length }} relays</span>
+          </div>
+        </div>
+        <div class="relays-container">
+          <div v-for="relay in nostrRelays" :key="relay" class="relay-badge-item">
+            <span class="pulse-dot" style="width: 6px; height: 6px;"></span>
+            <span>{{ relay }}</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Archived Media Repository -->
+      <section class="data-panel">
+        <div class="data-panel-head">
+          <div class="data-panel-title-area">
+            <h2 class="data-panel-title">Archived Nostr Media Repository</h2>
+            <span class="badge-count">{{ filteredArchiveItems.length }} objects</span>
+          </div>
+
+          <div class="data-panel-controls">
+            <div class="filter-search-box">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--text-muted);">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+              </svg>
+              <input v-model="searchQuery" class="filter-search-input" type="text" placeholder="Search archived media..." />
+            </div>
+
+            <a class="btn btn-secondary btn-sm" href="/archive" target="_blank">
+              Raw JSON API →
+            </a>
+          </div>
+        </div>
+
+        <div v-if="filteredArchiveItems.length === 0" style="padding: 4rem 2rem; text-align: center; color: var(--text-muted);">
+          <svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin-inline: auto; margin-bottom: 1rem; color: var(--text-dim);">
+            <polyline points="21 8 21 21 3 21 3 8"></polyline>
+            <rect x="1" y="3" width="22" height="5"></rect>
+            <line x1="10" y1="12" x2="14" y2="12"></line>
+          </svg>
+          <div style="font-size: 1.1rem; font-weight: 700; color: var(--text-secondary); margin-bottom: 0.35rem;">
+            {{ searchQuery ? 'No archived media matches your search' : 'No media objects archived yet' }}
+          </div>
+          <p style="font-size: 0.85rem;">
+            {{ searchQuery ? 'Try adjusting your search query' : 'When configured accounts publish IPFS links or NIP-92 imeta tags, they will automatically appear here.' }}
+          </p>
+        </div>
+
+        <div v-else class="data-table-wrapper">
+          <table class="modern-table">
+            <thead>
+              <tr>
+                <th>Object / Filename</th>
+                <th>Content CID</th>
+                <th style="text-align: right;">Size</th>
+                <th style="text-align: center;">Verification</th>
+                <th style="text-align: right;">Archived Timestamp</th>
+                <th style="text-align: right;">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="item in filteredArchiveItems" :key="item.cid">
+                <td>
+                  <div class="file-identity-cell">
+                    <div class="file-type-avatar">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                        <polyline points="14 2 14 8 20 8"></polyline>
+                      </svg>
+                    </div>
+                    <div class="file-name-heading">
+                      <a :href="'/archive/' + item.cid" target="_blank" style="color: var(--text-primary);">
+                        {{ item.filename || item.cid }}
+                      </a>
+                    </div>
+                  </div>
+                </td>
+
+                <td>
+                  <a class="cid-link-tag" :href="getGatewayUrl(item.cid, item.filename)" target="_blank" rel="noopener">
+                    {{ item.cid.slice(0, 10) }}...{{ item.cid.slice(-10) }}
                   </a>
-                </div>
-              </td>
-              <td style="text-align:right" class="mono">{{ acc.objects || 0 }}</td>
-              <td style="text-align:right" class="muted">{{ acc.sizeStr || '0 Bytes' }}</td>
-              <td style="text-align:right" class="mono">{{ acc.events || 0 }}</td>
-              <td style="text-align:right" class="faint">{{ acc.cursorAt ? formatUnix(acc.cursorAt) : 'not scanned yet' }}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </section>
+                </td>
 
-    <section v-if="nostrRelays.length" class="mb">
-      <div class="card-head"><h2>Relays</h2></div>
-      <div class="card-pad row">
-        <span v-for="relay in nostrRelays" :key="relay" class="chip">{{ relay }}</span>
-      </div>
-    </section>
+                <td style="text-align: right;" class="mono">
+                  {{ formatBytes(item.size) }}
+                </td>
 
-    <section>
-      <div class="card-head">
-        <h2>Recent archived objects</h2>
-        <a class="link-more" href="/archive">JSON →</a>
-      </div>
-      <div v-if="archiveItems.length === 0" class="empty">[*] No archived objects yet. Scan runs automatically when npubs are configured.</div>
-      <div v-else class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>File</th>
-              <th>CID</th>
-              <th style="text-align:right">Size</th>
-              <th style="text-align:right">Verified</th>
-              <th style="text-align:right">Date</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="item in archiveItems" :key="item.cid">
-              <td>
-                <a class="truncate" style="display:block;max-width:14rem" :href="'/archive/' + item.cid" target="_blank">{{ item.filename || item.cid }}</a>
-              </td>
-              <td><div class="mono faint truncate" style="max-width:12rem" :title="item.cid">{{ item.cid }}</div></td>
-              <td style="text-align:right" class="muted">{{ formatBytes(item.size) }}</td>
-              <td style="text-align:right">
-                <span v-if="item.verified" class="pill pill-ok">yes</span>
-                <span v-else class="pill pill-mute">no</span>
-              </td>
-              <td style="text-align:right" class="faint">{{ formatDate(item.created_at) }}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </section>
+                <td style="text-align: center;">
+                  <span v-if="item.verified" class="badge-status-pinned">
+                    <span class="pulse-dot" style="width: 5px; height: 5px;"></span>
+                    Verified
+                  </span>
+                  <span v-else class="badge-status-unpinned">Unverified</span>
+                </td>
+
+                <td style="text-align: right;">
+                  {{ formatDate(item.created_at) }}
+                </td>
+
+                <td style="text-align: right;">
+                  <div style="display: inline-flex; gap: 0.35rem;">
+                    <button class="btn-icon-only" @click="copyText(item.cid, 'CID copied to clipboard!')" title="Copy CID">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                      </svg>
+                    </button>
+                    <a class="btn-icon-only" :href="getGatewayUrl(item.cid, item.filename)" target="_blank" rel="noopener" title="Open via Gateway">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                        <polyline points="15 3 21 3 21 9"></polyline>
+                        <line x1="10" y1="14" x2="21" y2="3"></line>
+                      </svg>
+                    </a>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+    </div>
   </main>
 
-  <div data-ol-foot></div>
+  <!-- Toast Notification Stack -->
+  <div class="toast-stack">
+    <div v-for="toast in toasts" :key="toast.id" class="toast-item" :class="toast.type === 'error' ? 'is-error' : 'is-success'">
+      <svg v-if="toast.type === 'error'" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--accent-rose);">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="12" y1="8" x2="12" y2="12"></line>
+        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+      </svg>
+      <svg v-else width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="color: var(--accent-emerald);">
+        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+        <polyline points="22 4 12 14.01 9 11.01"></polyline>
+      </svg>
+      <span>{{ toast.message }}</span>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="footer-bar">
+    <div class="container-wide footer-inner-wrap">
+      <div style="display: flex; align-items: center; gap: 0.85rem;">
+        <span style="font-weight: 800; color: var(--text-primary);">Originless</span>
+        <span>— Decentralized IPFS Storage Node</span>
+      </div>
+
+      <div class="footer-links-list">
+        <a class="footer-link-item" href="https://github.com/besoeasy/Originless" target="_blank" rel="noopener">GitHub</a>
+        <a class="footer-link-item" href="https://github.com/besoeasy/Originless#%EF%B8%8F-api-quick-reference" target="_blank" rel="noopener">API Reference</a>
+        <a class="footer-link-item" href="https://github.com/besoeasy/Originless/tree/main/examples" target="_blank" rel="noopener">Decoupled Examples</a>
+        <span class="mono" style="font-size: 0.78rem;">v{{ status.appver }}</span>
+      </div>
+    </div>
+  </footer>
+
 </div>
 
+<!-- Vue 3 Production Core & App Logic -->
 <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
 <script src="/js/app.js"></script>
 <script>
-  OL.injectChrome("archive");
-  const { createApp } = Vue;
-  createApp({
-    mixins: [OL.pageMixin()],
-    mounted() { this.fetchArchive(); },
-  }).mount("#app");
+  Originless.createOriginlessApp({ page: "archive" }).mount("#app");
 </script>
 </body>
 </html>
