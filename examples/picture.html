@@ -1142,7 +1142,8 @@
 
         // imeta tags for each image
         for (const img of this.images) {
-          const cid = img.cid || "QmPlaceholderCID";
+          if (!img.cid) continue;
+          const cid = img.cid;
           let primaryUrl = "";
           const fallbacks = [];
 

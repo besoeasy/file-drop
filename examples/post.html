@@ -931,17 +931,19 @@
         return this.images.some((img) => !img.cid && !img.uploading);
       },
       imageUrls() {
-        return this.images.map((img) => {
-          const cid = img.cid || "QmPlaceholderCID";
-          if (this.gatewayFormat === "dweb") return "https://dweb.link/ipfs/" + cid;
-          if (this.gatewayFormat === "ipfs") return "ipfs://" + cid;
-          if (this.gatewayFormat === "local") return (this.nodeUrl || "http://localhost:3232") + "/ipfs/" + cid;
-          if (this.gatewayFormat === "custom") {
-            const prefix = (this.customGatewayPrefix || "https://ipfs.io/ipfs/").replace(/\/$/, "") + "/";
-            return prefix + cid;
-          }
-          return "https://dweb.link/ipfs/" + cid;
-        });
+        return this.images
+          .filter((img) => img.cid)
+          .map((img) => {
+            const cid = img.cid;
+            if (this.gatewayFormat === "dweb") return "https://dweb.link/ipfs/" + cid;
+            if (this.gatewayFormat === "ipfs") return "ipfs://" + cid;
+            if (this.gatewayFormat === "local") return (this.nodeUrl || "http://localhost:3232") + "/ipfs/" + cid;
+            if (this.gatewayFormat === "custom") {
+              const prefix = (this.customGatewayPrefix || "https://ipfs.io/ipfs/").replace(/\/$/, "") + "/";
+              return prefix + cid;
+            }
+            return "https://dweb.link/ipfs/" + cid;
+          });
       },
       renderedFullContent() {
         const text = this.noteContent.trim();
@@ -970,10 +972,11 @@
           tags.push(["content-warning", this.contentWarningReason.trim() || "nsfw"]);
         }
 
-        // imeta tags for each attached image
+        // imeta tags for each attached image with valid CID
         for (let i = 0; i < this.images.length; i++) {
           const img = this.images[i];
-          const cid = img.cid || "QmPlaceholderCID";
+          if (!img.cid) continue;
+          const cid = img.cid;
           let primaryUrl = "";
           const fallbacks = [];
 
