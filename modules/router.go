@@ -19,8 +19,6 @@ func NewRouter(ipfsClient *Client, janitorManager *Manager, archiver *Archiver, 
 	mux.HandleFunc("GET /history", handler.History)
 	mux.HandleFunc("GET /pins", handler.PinStats)
 	mux.HandleFunc("GET /archive", handler.ArchiveList)
-	mux.HandleFunc("GET /archive/{cid}", handler.ArchiveGet)
-	mux.HandleFunc("GET /archive/{cid}/{path...}", handler.ArchiveGet)
 	mux.HandleFunc("GET /metrics", metrics.Handler(janitorManager, ipfsClient, archiver))
 
 	mux.Handle("/", http.FileServer(http.FS(uiFS)))

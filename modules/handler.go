@@ -478,50 +478,6 @@ func (h *Handler) ArchiveList(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (h *Handler) ArchiveGet(w http.ResponseWriter, r *http.Request) {
-	if h.archive == nil {
-		writeJSON(w, http.StatusNotFound, map[string]any{"error": "Archive not available"})
-		return
-	}
-
-	cid := r.PathValue("cid")
-	if !ValidCID(cid) {
-		writeJSON(w, http.StatusBadRequest, map[string]any{"error": "Invalid CID"})
-		return
-	}
-
-	root := h.archive.Path(cid)
-	info, err := os.Stat(root)
-	if err != nil {
-		writeJSON(w, http.StatusNotFound, map[string]any{"error": "Not in archive"})
-		return
-	}
-
-	rest := r.PathValue("path")
-	if !info.IsDir() {
-		if rest != "" {
-			writeJSON(w, http.StatusNotFound, map[string]any{"error": "Not a directory"})
-			return
-		}
-		if item, _ := h.archive.Get(cid); item != nil {
-			if item.Mime != "" {
-				w.Header().Set("Content-Type", item.Mime)
-			}
-			name := item.Filename
-			if name == "" {
-				name = cid
-			}
-			w.Header().Set("Content-Disposition", "inline; filename=\""+name+"\"")
-		}
-		http.ServeFile(w, r, root)
-		return
-	}
-
-	prefix := "/archive/" + cid
-	fs := http.StripPrefix(prefix, http.FileServer(http.Dir(root)))
-	fs.ServeHTTP(w, r)
-}
-
 func writeJSON(w http.ResponseWriter, status int, payload any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
