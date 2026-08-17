@@ -137,7 +137,7 @@
           <nav class="nav-groups">${desktop}</nav>
           <div class="top-actions">
             <div class="peers"><span class="dot"></span><span class="mono" data-ol-peers>{{ status.peerscount }} peers</span></div>
-            <a class="btn btn-ghost" href="https://github.com/besoeasy/Originless/tree/main/examples" target="_blank" rel="noopener">Examples</a>
+            <a class="btn btn-ghost" href="https://dweb.link/ipns/originless.besoeasy.com" target="_blank" rel="noopener">Examples</a>
           </div>
         </div>
         <nav class="mobile-nav">${mobile}</nav>
