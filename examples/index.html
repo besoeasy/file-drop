@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Examples & Tools — Originless</title>
+  <meta name="description" content="Standalone client tools and examples for Originless IPFS nodes." />
+  <meta name="theme-color" content="#211e1e" />
+  <link rel="icon" type="image/svg+xml" href="/logo.svg" />
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
+  <style>
+    @import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap");
+
+    :root {
+      --bg: hsl(0, 20%, 99%);
+      --bg-2: hsl(0, 8%, 97%);
+      --bg-hover: hsl(0, 8%, 94%);
+      --surface: hsl(0, 20%, 99%);
+      --ink: hsl(0, 5%, 12%);
+      --muted: hsl(0, 1%, 39%);
+      --faint: hsl(0, 1%, 60%);
+      --line: hsla(0, 100%, 3%, 0.12);
+      --line-strong: hsl(30, 2%, 81%);
+      --brand: hsl(0, 5%, 12%);
+      --accent: hsl(62, 84%, 88%);
+      --ok: #03b000;
+      --err: #c41222;
+      --ease: cubic-bezier(0.22, 1, 0.36, 1);
+      --font: "IBM Plex Sans", Helvetica, Arial, sans-serif;
+      --mono: "IBM Plex Mono", ui-monospace, monospace;
+      --radius: 4px;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      min-height: 100%;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: var(--font);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    a { color: inherit; text-decoration: none; }
+    .mono { font-family: var(--mono); }
+    .shell { min-height: 100vh; display: flex; flex-direction: column; }
+    .wrap { width: min(1080px, calc(100% - 2.5rem)); margin-inline: auto; padding: 2.5rem 0 5rem; flex: 1; }
+
+    .page-header-clean {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1.25rem 0 1rem;
+      border-bottom: 1px solid var(--line);
+      margin-bottom: 2.5rem;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+    .page-brand {
+      display: flex;
+      align-items: center;
+      gap: .75rem;
+      font-family: var(--mono);
+      font-weight: 700;
+      font-size: 1.05rem;
+      color: var(--ink);
+    }
+    .brand-mark {
+      width: 1.35rem; height: 1.35rem;
+      background:
+        linear-gradient(var(--ink), var(--ink)) 0 0 / 55% 55% no-repeat,
+        linear-gradient(var(--line-strong), var(--line-strong)) 45% 45% / 55% 55% no-repeat;
+    }
+
+    .kicker {
+      display: block;
+      font-family: var(--mono);
+      font-size: .78rem;
+      color: var(--faint);
+      margin: 0 0 .7rem;
+    }
+    .hero h1 {
+      margin: 0;
+      font-size: clamp(2rem, 4vw, 2.75rem);
+      font-weight: 700;
+      letter-spacing: -.04em;
+      line-height: 1.1;
+    }
+    .hero p {
+      margin: .85rem 0 0;
+      color: var(--muted);
+      max-width: 44rem;
+      line-height: 1.55;
+      font-size: 1.02rem;
+    }
+    .mb { margin-bottom: 2.5rem; }
+
+    .grid { display: grid; gap: 1.5rem; }
+    .grid-2 { grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
+    .grid-3 { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+
+    .section-title {
+      font-family: var(--mono);
+      font-size: .85rem;
+      font-weight: 600;
+      color: var(--faint);
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      margin: 2rem 0 1rem;
+    }
+
+    .tile {
+      background: var(--bg-2);
+      border-radius: .5rem;
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: background .2s var(--ease), transform .2s var(--ease);
+      border: 1px solid transparent;
+    }
+    .tile:hover {
+      background: var(--bg-hover);
+      transform: translateY(-2px);
+      border-color: var(--line);
+    }
+
+    .card-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: .75rem;
+      margin-bottom: 1.1rem;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      font-family: var(--mono);
+      padding: .2rem .55rem;
+      font-size: .72rem;
+      border-radius: 4px;
+      font-weight: 500;
+    }
+    .pill-get { background: var(--bg); color: var(--muted); border: 1px solid var(--line); }
+    .pill-post { background: var(--ink); color: #fff; }
+
+    .link-more {
+      font-family: var(--mono);
+      font-size: .8rem;
+      color: var(--faint);
+      transition: color .2s, transform .2s;
+    }
+    .tile:hover .link-more {
+      color: var(--ink);
+      transform: translateX(4px);
+    }
+
+    .tile h2 {
+      margin: 0 0 .5rem;
+      font-size: 1.15rem;
+      font-weight: 600;
+      letter-spacing: -.02em;
+    }
+    .muted {
+      color: var(--muted);
+      font-size: .88rem;
+      line-height: 1.55;
+      margin: 0;
+    }
+
+    .foot-clean {
+      margin-top: 4rem;
+      border-top: 1px solid var(--line);
+      padding: 1.5rem 0;
+      font-family: var(--mono);
+      font-size: .78rem;
+      color: var(--muted);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+    .foot-clean a:hover { color: var(--ink); }
+  </style>
+</head>
+<body>
+<div class="shell">
+  <main class="wrap">
+    <header class="page-header-clean">
+      <div class="page-brand">
+        <span class="brand-mark"></span>
+        <span>originless examples</span>
+      </div>
+      <a href="https://github.com/besoeasy/Originless" target="_blank" rel="noopener" class="mono" style="font-size:.8rem;color:var(--muted)">
+        <i class="fab fa-github"></i> GitHub
+      </a>
+    </header>
+
+    <div class="hero mb">
+      <p class="kicker">[*] Client examples &amp; tools</p>
+      <h1>Examples &amp; Tools</h1>
+      <p>Decoupled client applications that communicate with any Originless IPFS node (<span class="mono">http://localhost:3232</span>). Open them directly in your browser or deploy them anywhere.</p>
+    </div>
+
+    <!-- Storage & Upload Tools -->
+    <div class="section-title">Storage &amp; Publishing Tools</div>
+    <div class="grid grid-3 mb">
+      <!-- File Uploader -->
+      <a class="tile" href="upload-file.html">
+        <div>
+          <div class="card-head">
+            <span class="pill pill-post">POST /upload</span>
+            <span class="link-more">Open →</span>
+          </div>
+          <h2>Single File Uploader</h2>
+          <p class="muted">Upload and pin images, videos, audio, and documents to IPFS. Computes SHA-256 multihashes and generates ready-to-use HTML/Markdown embed codes.</p>
+        </div>
+      </a>
+
+      <!-- Folder / DApp Uploader -->
+      <a class="tile" href="upload-folder.html">
+        <div>
+          <div class="card-head">
+            <span class="pill pill-post">POST /uploadfolder</span>
+            <span class="link-more">Open →</span>
+          </div>
+          <h2>Folder &amp; DApp Uploader</h2>
+          <p class="muted">Upload full static websites or React/Vite <span class="mono">dist/</span> build directories with preserved relative paths under a single root CID.</p>
+        </div>
+      </a>
+
+      <!-- Snippets & Pastebin -->
+      <a class="tile" href="snippet.html">
+        <div>
+          <div class="card-head">
+            <span class="pill pill-post">NIP-C0 · Kind 1337</span>
+            <span class="link-more">Open →</span>
+          </div>
+          <h2>Share Snippets &amp; Pastebin</h2>
+          <p class="muted">Pin code snippets and text pastes to IPFS. Generates NIP-C0 Kind 1337 events with syntax highlighting, SHA-256 hashes, and Nostr publishing.</p>
+        </div>
+      </a>
+    </div>
+
+    <!-- Nostr Generators -->
+    <div class="section-title">Nostr Event Generators</div>
+    <div class="grid grid-2">
+      <!-- Kind 20 Picture Post Generator -->
+      <a class="tile" href="picture.html">
+        <div>
+          <div class="card-head">
+            <span class="pill pill-post">NIP-68 · Kind 20</span>
+            <span class="link-more">Open →</span>
+          </div>
+          <h2>Kind 20 Picture Post Generator</h2>
+          <p class="muted">Create Instagram-like multi-image photo dumps with NIP-92 <span class="mono">imeta</span> tags. Batch upload to IPFS, preview carousel, copy JSON for NoStrudel, or publish directly.</p>
+        </div>
+      </a>
+
+      <!-- Kind 1 Note & Image Generator -->
+      <a class="tile" href="post.html">
+        <div>
+          <div class="card-head">
+            <span class="pill pill-get">NIP-01 · Kind 1</span>
+            <span class="link-more">Open →</span>
+          </div>
+          <h2>Kind 1 Note &amp; Image Generator</h2>
+          <p class="muted">Compose short Nostr text notes with IPFS image attachments and NIP-92 <span class="mono">imeta</span> tags. Preview live note rendering, copy JSON, or publish directly.</p>
+        </div>
+      </a>
+    </div>
+
+    <footer class="foot-clean">
+      <div>
+        <a href="https://github.com/besoeasy/Originless" target="_blank" rel="noopener">GitHub</a> ·
+        <a href="http://localhost:3232" target="_blank" rel="noopener">Node Dashboard</a>
+      </div>
+      <div>Originless Decoupled Client Examples</div>
+    </footer>
+  </main>
+</div>
+</body>
+</html>

@@ -16,7 +16,7 @@
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
   <script>
     (function () {
-      var map = { stats: "/", upload: "/publish.html", paste: "/publish.html#paste", files: "/library.html", archive: "/archive.html", api: "/docs.html" };
+      var map = { stats: "/", files: "/library.html", archive: "/archive.html" };
       var key = location.hash.replace(/^#\/?/, "");
       if (map[key]) location.replace(map[key]);
     })();
@@ -106,7 +106,7 @@
           <a class="link-more" href="/library.html">View all →</a>
         </div>
         <div v-if="history.length === 0" class="empty">
-          [*] No uploads yet. <a href="/publish.html">Publish</a> a file to pin it on this node.
+          [*] No uploads yet. Upload files via the HTTP API or client examples.
         </div>
         <div v-else>
           <div v-for="item in recentUploads" :key="item.cid" class="between list-row">

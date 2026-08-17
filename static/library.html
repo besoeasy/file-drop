@@ -41,7 +41,7 @@
         </div>
       </div>
       <div v-if="filteredHistory.length === 0" class="empty">
-        <template v-if="history.length === 0">[*] No uploads yet. <a href="/publish.html">Publish</a> a file to pin it on this node.</template>
+        <template v-if="history.length === 0">[*] No uploads yet. Upload files via the HTTP API or client examples.</template>
         <template v-else>[*] No matches for “{{ searchQuery }}”.</template>
       </div>
       <div v-else class="table-wrap">

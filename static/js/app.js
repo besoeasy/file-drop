@@ -1,11 +1,8 @@
 (() => {
   const LEGACY = {
     stats: "/",
-    upload: "/publish.html",
-    paste: "/publish.html#paste",
     files: "/library.html",
     archive: "/archive.html",
-    api: "/docs.html",
   };
 
   const path = location.pathname;
@@ -16,10 +13,8 @@
 
   const PAGES = [
     { id: "overview", href: "/", label: "Overview", icon: "fa-chart-line", group: "Look" },
-    { id: "publish", href: "/publish.html", label: "Publish", icon: "fa-cloud-arrow-up", group: "Create" },
     { id: "library", href: "/library.html", label: "Library", icon: "fa-folder-open", group: "Keep" },
     { id: "archive", href: "/archive.html", label: "Archive", icon: "fa-box-archive", group: "Keep" },
-    { id: "docs", href: "/docs.html", label: "Docs", icon: "fa-book-open", group: "Learn" },
   ];
 
   function formatBytes(bytes) {
@@ -142,7 +137,7 @@
           <nav class="nav-groups">${desktop}</nav>
           <div class="top-actions">
             <div class="peers"><span class="dot"></span><span class="mono" data-ol-peers>{{ status.peerscount }} peers</span></div>
-            ${active === "publish" ? "" : '<a class="btn btn-brand" href="/publish.html">Publish</a>'}
+            <a class="btn btn-ghost" href="https://github.com/besoeasy/Originless/tree/main/examples" target="_blank" rel="noopener">Examples</a>
           </div>
         </div>
         <nav class="mobile-nav">${mobile}</nav>
@@ -154,8 +149,8 @@
       <footer class="foot">
         <div class="foot-inner">
           <a href="https://github.com/besoeasy/Originless" target="_blank" rel="noopener">GitHub</a>
-          <a href="/docs.html">Docs</a>
-          <a href="/examples/">Examples</a>
+          <a href="https://github.com/besoeasy/Originless#%EF%B8%8F-api-quick-reference" target="_blank" rel="noopener">API Docs</a>
+          <a href="https://github.com/besoeasy/Originless/tree/main/examples" target="_blank" rel="noopener">Examples</a>
           <span data-ol-ver>v{{ status.appver }}</span>
         </div>
       </footer>`;

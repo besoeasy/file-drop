@@ -3,13 +3,75 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Kind 20 Picture Post Generator — Originless</title>
-  <meta name="description" content="Generate Nostr Kind 20 Instagram-like picture post events with NIP-92 imeta tags and IPFS hosting." />
+  <title>Kind 1 Short Note & Image Post Generator — Originless</title>
+  <meta name="description" content="Generate Nostr Kind 1 short text notes with embedded IPFS images and NIP-92 imeta tags." />
   <meta name="theme-color" content="#211e1e" />
   <link rel="icon" type="image/svg+xml" href="/logo.svg" />
-  <link rel="stylesheet" href="/css/app.css" />
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
   <style>
+    @import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap");
+
+    :root {
+      --bg: hsl(0, 20%, 99%);
+      --bg-2: hsl(0, 8%, 97%);
+      --bg-hover: hsl(0, 8%, 94%);
+      --surface: hsl(0, 20%, 99%);
+      --ink: hsl(0, 5%, 12%);
+      --muted: hsl(0, 1%, 39%);
+      --faint: hsl(0, 1%, 60%);
+      --line: hsla(0, 100%, 3%, 0.12);
+      --line-strong: hsl(30, 2%, 81%);
+      --brand: hsl(0, 5%, 12%);
+      --accent: hsl(62, 84%, 88%);
+      --ok: #03b000;
+      --err: #c41222;
+      --ease: cubic-bezier(0.22, 1, 0.36, 1);
+      --font: "IBM Plex Sans", Helvetica, Arial, sans-serif;
+      --mono: "IBM Plex Mono", ui-monospace, monospace;
+      --radius: 2px;
+      --focus: 0 0 0 2px var(--bg), 0 0 0 4px var(--ink);
+    }
+
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      min-height: 100%;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: var(--font);
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: inherit; text-decoration: none; }
+    button, input, textarea, select { font: inherit; }
+    button { cursor: pointer; }
+    .mono { font-family: var(--mono); }
+    .shell { min-height: 100vh; display: flex; flex-direction: column; }
+    .wrap { width: min(1080px, calc(100% - 2.5rem)); margin-inline: auto; padding: 2rem 0 5rem; flex: 1; }
+    .mb { margin-bottom: 2rem; }
+    .kicker { display: block; font-family: var(--mono); font-size: .78rem; color: var(--faint); margin: 0 0 .5rem; }
+    .hero h1 { margin: 0; font-size: clamp(1.85rem, 3.8vw, 2.6rem); font-weight: 700; letter-spacing: -.035em; line-height: 1.12; }
+    .hero p { margin: .75rem 0 0; color: var(--muted); max-width: 44rem; line-height: 1.55; font-size: .98rem; }
+    .card { background: var(--bg-2); border-radius: .5rem; padding: 1.25rem; }
+    .card-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; gap: .75rem; flex-wrap: wrap; }
+    .card-head h2 { margin: 0; font-family: var(--mono); font-size: .92rem; font-weight: 600; }
+    .field { width: 100%; background: #ffffff; border: 1px solid var(--line); border-radius: var(--radius); padding: .65rem .85rem; font-size: .88rem; color: var(--ink); }
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: .45rem; border: 0; border-radius: 999px; padding: .65rem 1.15rem; font-family: var(--mono); font-size: .82rem; font-weight: 500; transition: background .2s var(--ease), color .2s, opacity .2s; }
+    .btn:disabled { opacity: .45; cursor: not-allowed; }
+    .btn-brand, .btn-ink { background: var(--ink); color: #fff; }
+    .btn-brand:hover:not(:disabled), .btn-ink:hover:not(:disabled) { background: hsl(0, 5%, 22%); }
+    .btn-ghost { background: transparent; color: var(--muted); padding-inline: .6rem; }
+    .btn-ghost:hover:not(:disabled) { color: var(--ink); background: var(--bg-2); }
+    .btn-sm { padding: .4rem .75rem; font-size: .75rem; }
+    .pill { display: inline-flex; align-items: center; font-family: var(--mono); padding: .15rem .5rem; font-size: .72rem; border-radius: 4px; font-weight: 500; }
+    .pill-get { background: var(--bg-2); color: var(--muted); border: 1px solid var(--line); }
+    .pill-post { background: var(--ink); color: #fff; }
+    .pill-ok { background: rgba(3, 176, 0, 0.12); color: var(--ok); }
+    .code { display: block; background: #1e1e1e; color: #d4d4d4; border-radius: .4rem; padding: .85rem 1rem; font-family: var(--mono); font-size: .76rem; line-height: 1.55; word-break: break-all; }
+    .addon { display: flex; align-items: stretch; }
+    .addon .field { border-top-right-radius: 0; border-bottom-right-radius: 0; }
+    .addon-btn { display: flex; align-items: center; justify-content: center; background: var(--bg-2); border: 1px solid var(--line); border-left: 0; border-top-right-radius: var(--radius); border-bottom-right-radius: var(--radius); padding: 0 .9rem; color: var(--muted); font-size: .82rem; }
+    .brand-mark { width: 1.35rem; height: 1.35rem; background: linear-gradient(var(--ink), var(--ink)) 0 0 / 55% 55% no-repeat, linear-gradient(var(--line-strong), var(--line-strong)) 45% 45% / 55% 55% no-repeat; }
+
     /* Global Page Structure */
     body {
       overflow-x: hidden;
@@ -46,7 +108,7 @@
     }
 
     /* Grid Layout with strictly bounded column widths */
-    .k20-layout {
+    .note-layout {
       display: grid;
       grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
       gap: 2rem;
@@ -54,13 +116,13 @@
       max-width: 100%;
       box-sizing: border-box;
     }
-    .k20-layout > * {
+    .note-layout > * {
       min-width: 0;
       max-width: 100%;
       box-sizing: border-box;
     }
     @media (max-width: 960px) {
-      .k20-layout {
+      .note-layout {
         grid-template-columns: minmax(0, 1fr);
       }
     }
@@ -70,7 +132,7 @@
       border: 2px dashed var(--line-strong);
       background: var(--bg-2);
       border-radius: var(--radius);
-      padding: 2.2rem 1.5rem;
+      padding: 2rem 1.5rem;
       text-align: center;
       cursor: pointer;
       transition: all .2s var(--ease);
@@ -192,8 +254,8 @@
       color: #fff;
     }
 
-    /* Instagram Feed Preview Card */
-    .ig-card {
+    /* Nostr Short Note Preview Card */
+    .nostr-note-card {
       background: #ffffff;
       border: 1px solid var(--line);
       border-radius: 12px;
@@ -203,56 +265,50 @@
       color: #211e1e;
       max-width: 100%;
       box-sizing: border-box;
+      padding: 1.25rem;
     }
-    .ig-header {
-      padding: .75rem 1rem;
+    .note-header {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      border-bottom: 1px solid rgba(0,0,0,0.06);
+      margin-bottom: .85rem;
     }
-    .ig-user-info {
+    .note-user-row {
       display: flex;
       align-items: center;
-      gap: .65rem;
+      gap: .75rem;
       min-width: 0;
     }
-    .ig-avatar {
-      width: 36px;
-      height: 36px;
-      min-width: 36px;
+    .note-avatar {
+      width: 42px;
+      height: 42px;
+      min-width: 42px;
       border-radius: 50%;
-      background: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);
-      padding: 2px;
+      background: #7952b3;
+      color: #fff;
       display: flex;
       align-items: center;
       justify-content: center;
+      font-size: 1.1rem;
       flex-shrink: 0;
     }
-    .ig-avatar-inner {
-      width: 100%;
-      height: 100%;
-      border-radius: 50%;
-      background: #fff;
+    .note-names {
+      min-width: 0;
+    }
+    .note-display-name {
+      font-weight: 700;
+      font-size: .92rem;
+      line-height: 1.2;
       display: flex;
       align-items: center;
-      justify-content: center;
-      font-size: .9rem;
-      color: #211e1e;
+      gap: .35rem;
     }
-    .ig-username {
-      font-weight: 600;
-      font-size: .88rem;
-      line-height: 1.2;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
+    .note-handle {
+      font-family: var(--mono);
+      font-size: .75rem;
+      color: var(--muted);
     }
-    .ig-location {
-      font-size: .72rem;
-      color: #737373;
-    }
-    .ig-badge-kind {
+    .note-badge-kind {
       font-family: var(--mono);
       font-size: .72rem;
       background: var(--bg-2);
@@ -261,181 +317,50 @@
       font-weight: 500;
       flex-shrink: 0;
     }
-
-    /* Carousel Container & Slides */
-    .ig-carousel {
-      position: relative;
-      background: #111;
-      width: 100%;
-      max-width: 100%;
+    .note-content-body {
+      font-size: .95rem;
+      line-height: 1.5;
+      word-break: break-word;
+      overflow-wrap: break-word;
+      margin-bottom: 1rem;
+      white-space: pre-wrap;
+    }
+    .note-media-container {
+      border-radius: 10px;
       overflow: hidden;
-      user-select: none;
-      box-sizing: border-box;
-    }
-    .ig-carousel.ratio-1-1 { aspect-ratio: 1 / 1; }
-    .ig-carousel.ratio-4-5 { aspect-ratio: 4 / 5; }
-    .ig-carousel.ratio-16-9 { aspect-ratio: 16 / 9; }
-    .ig-carousel.ratio-orig { min-height: 280px; max-height: 480px; }
-
-    .ig-carousel-slides {
-      display: flex;
-      width: 100%;
-      max-width: 100%;
-      height: 100%;
-      transition: transform .35s var(--ease);
-    }
-    .ig-slide {
-      flex: 0 0 100%;
-      width: 100%;
-      min-width: 100%;
-      max-width: 100%;
-      height: 100%;
+      border: 1px solid var(--line);
+      background: #181616;
+      max-height: 420px;
       display: flex;
       align-items: center;
       justify-content: center;
-      position: relative;
-      background: #181616;
-      overflow: hidden;
-      box-sizing: border-box;
+      margin-bottom: 1rem;
     }
-    .ig-slide img {
+    .note-media-container img {
       width: 100%;
       height: 100%;
-      max-width: 100%;
+      max-height: 420px;
       object-fit: cover;
       display: block;
     }
-    .ig-carousel.ratio-orig .ig-slide img {
-      width: 100%;
-      max-height: 480px;
-      object-fit: contain;
-    }
-    .ig-slide-empty {
-      color: #888;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: .75rem;
-      padding: 2.5rem 1rem;
-      text-align: center;
-      width: 100%;
-      box-sizing: border-box;
-    }
-    .ig-nav-btn {
-      position: absolute;
-      top: 50%;
-      transform: translateY(-50%);
-      width: 32px;
-      height: 32px;
-      border-radius: 50%;
-      background: rgba(255,255,255,0.85);
-      color: #111;
-      border: 0;
-      display: grid;
-      place-items: center;
-      font-size: .8rem;
-      cursor: pointer;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.25);
-      z-index: 5;
-      transition: background .2s, transform .2s;
-    }
-    .ig-nav-btn:hover {
-      background: #fff;
-      transform: translateY(-50%) scale(1.08);
-    }
-    .ig-nav-prev { left: 10px; }
-    .ig-nav-next { right: 10px; }
-
-    .ig-counter-badge {
-      position: absolute;
-      top: 12px;
-      right: 12px;
-      background: rgba(0,0,0,0.72);
-      color: #fff;
-      padding: .2rem .55rem;
-      border-radius: 12px;
-      font-size: .72rem;
-      font-family: var(--mono);
-      backdrop-filter: blur(4px);
-      z-index: 5;
-    }
-
-    .ig-dots {
-      position: absolute;
-      bottom: 12px;
-      left: 0;
-      right: 0;
-      display: flex;
-      justify-content: center;
-      gap: 5px;
-      z-index: 5;
-    }
-    .ig-dot {
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-      background: rgba(255,255,255,0.45);
-      transition: all .2s;
-    }
-    .ig-dot.is-active {
-      background: #3897f0;
-      transform: scale(1.3);
-    }
-
-    /* Actions & Caption */
-    .ig-actions {
-      padding: .85rem 1rem .4rem;
+    .note-actions {
       display: flex;
       align-items: center;
       justify-content: space-between;
-    }
-    .ig-actions-left {
-      display: flex;
-      gap: 1.1rem;
-      font-size: 1.25rem;
-      color: #211e1e;
-    }
-    .ig-btn-like {
-      cursor: pointer;
-      transition: transform .15s, color .15s;
-    }
-    .ig-btn-like:hover { transform: scale(1.15); }
-    .ig-btn-like.is-liked { color: #ed4956; }
-    .ig-likes {
-      padding: 0 1rem;
-      font-weight: 600;
-      font-size: .84rem;
-    }
-    .ig-body {
-      padding: .4rem 1rem .9rem;
-      font-size: .88rem;
-      line-height: 1.45;
-      word-break: break-word;
-      overflow-wrap: break-word;
-    }
-    .ig-body strong {
-      font-weight: 600;
-      margin-right: .35rem;
-    }
-    .ig-imeta-peek {
-      padding: .6rem 1rem;
-      background: var(--bg-2);
-      border-top: 1px solid rgba(0,0,0,0.05);
-      font-family: var(--mono);
-      font-size: .72rem;
+      padding-top: .75rem;
+      border-top: 1px solid var(--line);
       color: var(--muted);
+      font-size: .88rem;
+    }
+    .note-act-btn {
       display: flex;
       align-items: center;
-      justify-content: space-between;
-      gap: .5rem;
-      overflow: hidden;
+      gap: .4rem;
+      cursor: pointer;
+      transition: color .2s;
     }
-    .ig-imeta-peek span {
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
+    .note-act-btn:hover { color: var(--ink); }
+    .note-act-btn.is-zap { color: #f59e0b; }
 
     /* Code Block & JSON Output */
     .json-card {
@@ -522,24 +447,47 @@
         <span class="brand-mark" aria-hidden="true"></span>
         <span>Originless</span>
       </div>
-      <a class="page-back-link" href="/examples/">
+      <a class="page-back-link" href="index.html">
         <i class="fas fa-arrow-left"></i> Back to Examples
       </a>
     </header>
 
     <div class="hero mb">
-      <p class="kicker">[*] NIP-68 · NIP-92 · Kind 20</p>
-      <h1>Kind 20 Picture Post Generator</h1>
-      <p>Create Instagram-style multi-image photo dump events with IPFS <span class="mono">imeta</span> tags. Upload pictures directly to your Originless node, inspect the generated Kind 20 JSON, and publish via NoStrudel or browser extension.</p>
+      <p class="kicker">[*] NIP-01 · NIP-92 · Kind 1</p>
+      <h1>Short Note &amp; Image Post Generator</h1>
+      <p>Compose Nostr Kind 1 text notes with IPFS-anchored image attachments and NIP-92 <span class="mono">imeta</span> tags. Upload images to Originless, preview your post in real-time, copy JSON for NoStrudel, or publish directly via extension.</p>
     </div>
 
-    <div class="k20-layout">
-      <!-- Left Column: Image upload & Post metadata form -->
+    <div class="note-layout">
+      <!-- Left Column: Note Text, Image Upload & Config -->
       <div>
+        <!-- Note Content Field -->
         <section class="card">
           <div class="card-head">
-            <h2>1. Upload Photos to Node</h2>
-            <span class="mono faint" style="font-size:.75rem">{{ images.length }} photo(s) selected</span>
+            <h2>1. Compose Note</h2>
+            <span class="mono faint" style="font-size:.75rem">{{ noteContent.length }} chars</span>
+          </div>
+
+          <div class="space">
+            <div>
+              <label class="kicker" for="note-text">Note Text / Message</label>
+              <textarea id="note-text" v-model="noteContent" class="field" rows="4" placeholder="What's happening on decentralized Nostr today? 🚀✨ #nostr #ipfs"></textarea>
+            </div>
+
+            <div style="margin-top:.75rem">
+              <label style="display:flex;align-items:center;gap:.45rem;font-size:.82rem;cursor:pointer">
+                <input v-model="appendUrlToContent" type="checkbox" />
+                <span>Append IPFS image URL(s) to note content</span>
+              </label>
+            </div>
+          </div>
+        </section>
+
+        <!-- Image Upload Section -->
+        <section class="card" style="margin-top:1.75rem">
+          <div class="card-head">
+            <h2>2. Attach Image to Note</h2>
+            <span class="mono faint" style="font-size:.75rem">{{ images.length }} attached</span>
           </div>
 
           <!-- Drop Area -->
@@ -547,10 +495,10 @@
                  @dragover.prevent="isDragOver = true"
                  @dragleave.prevent="isDragOver = false"
                  @drop.prevent="handleDrop($event)">
-            <span class="drop-ico"><i class="fas fa-images"></i></span>
-            <div style="font-weight:600;font-size:1rem">Drop photos here or click to browse</div>
-            <div class="muted" style="font-size:.82rem">Supports multiple JPEG, PNG, WEBP, GIF files (batch uploaded to Originless)</div>
-            <span class="btn btn-ink" style="margin-top:.4rem">Select Images</span>
+            <span class="drop-ico"><i class="fas fa-camera"></i></span>
+            <div style="font-weight:600;font-size:1rem">Drop image here or click to browse</div>
+            <div class="muted" style="font-size:.82rem">JPEG, PNG, WEBP, GIF (uploaded &amp; pinned to Originless IPFS)</div>
+            <span class="btn btn-ink" style="margin-top:.4rem">Select Image</span>
             <input type="file" multiple accept="image/*" class="hidden" style="display:none" @change="handleFileSelect" />
           </label>
 
@@ -574,14 +522,8 @@
                 <input v-model="img.alt" type="text" class="field" style="padding:.35rem .55rem;font-size:.76rem;margin-top:.35rem" placeholder="Alt text / description (optional)" />
               </div>
 
-              <!-- Re-order and delete actions -->
+              <!-- Delete action -->
               <div class="image-actions">
-                <button type="button" class="btn-icon-tiny" title="Move Up" :disabled="idx === 0" @click="moveImage(idx, -1)">
-                  <i class="fas fa-chevron-up"></i>
-                </button>
-                <button type="button" class="btn-icon-tiny" title="Move Down" :disabled="idx === images.length - 1" @click="moveImage(idx, 1)">
-                  <i class="fas fa-chevron-down"></i>
-                </button>
                 <button type="button" class="btn-icon-tiny btn-delete" title="Remove" @click="removeImage(idx)">
                   <i class="fas fa-times"></i>
                 </button>
@@ -590,33 +532,23 @@
           </div>
 
           <div v-if="images.length > 0" class="row" style="margin-top:.85rem;justify-content:space-between">
-            <button class="btn btn-ghost" type="button" @click="clearImages" style="font-size:.76rem">Clear all images</button>
+            <button class="btn btn-ghost" type="button" @click="clearImages" style="font-size:.76rem">Clear attachments</button>
             <button v-if="hasPendingUploads" class="btn btn-brand" type="button" @click="retryUploads" :disabled="isUploadingAny">
               <i :class="isUploadingAny ? 'fas fa-circle-notch fa-spin' : 'fas fa-cloud-arrow-up'"></i>
-              {{ isUploadingAny ? 'Uploading…' : 'Upload Pending Photos' }}
+              {{ isUploadingAny ? 'Uploading…' : 'Upload Pending Image' }}
             </button>
           </div>
         </section>
 
-        <!-- Post Content & Metadata Config -->
+        <!-- Metadata & Tags Config -->
         <section class="card" style="margin-top:1.75rem">
           <div class="card-head">
-            <h2>2. Post Details &amp; Tags</h2>
+            <h2>3. Metadata &amp; Tag Settings</h2>
           </div>
 
           <div class="space">
-            <div>
-              <label class="kicker" for="post-title">Title (optional <span class="mono">["title", "..."]</span> tag)</label>
-              <input id="post-title" v-model="postTitle" class="field" type="text" placeholder="e.g. Tiger Encounter or Weekend Photo Dump" />
-            </div>
-
-            <div style="margin-top:1rem">
-              <label class="kicker" for="post-content">Caption / Content</label>
-              <textarea id="post-content" v-model="postContent" class="field" rows="4" placeholder="Some moments are too good for just one photo dump. 📸✨ #photography #nature"></textarea>
-            </div>
-
             <!-- Presets Selector -->
-            <div style="margin-top:1.25rem">
+            <div>
               <label class="kicker">Metadata Tags Preset</label>
               <div class="row" style="gap:.5rem;margin-bottom:.85rem">
                 <button type="button" class="preset-pill" :class="{ 'is-active': metaPreset === 'simple' }" @click="setPreset('simple')">
@@ -694,99 +626,48 @@
         </section>
       </div>
 
-      <!-- Right Column: Instagram Visual Preview & Generated JSON -->
+      <!-- Right Column: Live Nostr Note Visual Preview & Generated JSON -->
       <div>
         <div class="card-head">
-          <h2>Feed Preview &amp; Event Publisher</h2>
+          <h2>Live Note Preview &amp; Publisher</h2>
           <div class="row">
-            <span class="pill pill-post">kind: 20</span>
+            <span class="pill pill-post">kind: 1</span>
           </div>
         </div>
 
-        <!-- Instagram Carousel Post Mockup -->
-        <div class="ig-card">
-          <div class="ig-header">
-            <div class="ig-user-info">
-              <div class="ig-avatar">
-                <div class="ig-avatar-inner">
-                  <i class="fas fa-camera"></i>
+        <!-- Nostr Short Note Mockup Card -->
+        <div class="nostr-note-card">
+          <div class="note-header">
+            <div class="note-user-row">
+              <div class="note-avatar">
+                <i class="fas fa-user"></i>
+              </div>
+              <div class="note-names">
+                <div class="note-display-name">
+                  <span>{{ pubkey ? pubkey.slice(0, 10) + '…' : 'Originless User' }}</span>
+                  <i class="fas fa-check-circle" style="color:#3897f0;font-size:.8rem"></i>
                 </div>
-              </div>
-              <div style="min-width:0">
-                <div class="ig-username">{{ postTitle || 'originless.gallery' }}</div>
-                <div class="ig-location">{{ images.length }} photos · Nostr Kind 20</div>
+                <div class="note-handle">{{ pubkey ? 'npub1…' + pubkey.slice(-6) : '@originless' }} · just now</div>
               </div>
             </div>
-            <span class="ig-badge-kind">NIP-68</span>
+            <span class="note-badge-kind">Kind 1</span>
           </div>
 
-          <!-- Carousel Slider View -->
-          <div class="ig-carousel ratio-1-1" :class="'ratio-' + aspectPreset">
-            <div v-if="images.length === 0" class="ig-slide-empty">
-              <i class="fas fa-images" style="font-size:2.8rem;color:#555"></i>
-              <div>No photos added yet.<br><span style="font-size:.8rem;color:#777">Add images on the left to see the photo dump carousel.</span></div>
-            </div>
+          <!-- Note Content -->
+          <div class="note-content-body">{{ renderedFullContent || 'Your note message will appear here… ✨' }}</div>
 
-            <div v-else class="ig-carousel-slides" :style="{ transform: 'translateX(-' + (activeSlide * 100) + '%)' }">
-              <div v-for="(img, idx) in images" :key="img.id" class="ig-slide">
-                <img :src="img.previewUrl" :alt="img.alt || img.name" />
-              </div>
-            </div>
-
-            <!-- Slide Navigation Buttons -->
-            <button v-if="images.length > 1 && activeSlide > 0" class="ig-nav-btn ig-nav-prev" type="button" @click="activeSlide--">
-              <i class="fas fa-chevron-left"></i>
-            </button>
-            <button v-if="images.length > 1 && activeSlide < images.length - 1" class="ig-nav-btn ig-nav-next" type="button" @click="activeSlide++">
-              <i class="fas fa-chevron-right"></i>
-            </button>
-
-            <!-- Counter Badge -->
-            <div v-if="images.length > 1" class="ig-counter-badge">
-              {{ activeSlide + 1 }} / {{ images.length }}
-            </div>
-
-            <!-- Pagination Dots -->
-            <div v-if="images.length > 1" class="ig-dots">
-              <div v-for="(img, idx) in images" :key="idx" class="ig-dot" :class="{ 'is-active': activeSlide === idx }"></div>
-            </div>
+          <!-- Attached Image Preview -->
+          <div v-if="images.length > 0" class="note-media-container">
+            <img :src="images[0].previewUrl" :alt="images[0].alt || images[0].name" />
           </div>
 
-          <!-- Carousel Aspect Ratio Selector -->
-          <div style="padding:.4rem 1rem;background:#fafafa;border-bottom:1px solid rgba(0,0,0,0.06);display:flex;align-items:center;justify-content:space-between;font-size:.76rem">
-            <span class="muted">Aspect ratio:</span>
-            <div class="row" style="gap:.4rem">
-              <button class="chip" :style="aspectPreset === '1-1' ? 'background:var(--ink);color:#fff' : ''" @click="aspectPreset = '1-1'">1:1 Square</button>
-              <button class="chip" :style="aspectPreset === '4-5' ? 'background:var(--ink);color:#fff' : ''" @click="aspectPreset = '4-5'">4:5 Portrait</button>
-              <button class="chip" :style="aspectPreset === '16-9' ? 'background:var(--ink);color:#fff' : ''" @click="aspectPreset = '16-9'">16:9 Wide</button>
-              <button class="chip" :style="aspectPreset === 'orig' ? 'background:var(--ink);color:#fff' : ''" @click="aspectPreset = 'orig'">Original</button>
-            </div>
-          </div>
-
-          <!-- Social Actions -->
-          <div class="ig-actions">
-            <div class="ig-actions-left">
-              <span class="ig-btn-like" :class="{ 'is-liked': isLiked }" @click="toggleLike">
-                <i :class="isLiked ? 'fas fa-heart' : 'far fa-heart'"></i>
-              </span>
-              <span style="cursor:pointer"><i class="far fa-comment"></i></span>
-              <span style="cursor:pointer"><i class="far fa-paper-plane"></i></span>
-            </div>
-            <span style="cursor:pointer;font-size:1.15rem"><i class="far fa-bookmark"></i></span>
-          </div>
-
-          <div class="ig-likes">{{ likeCount }} likes</div>
-
-          <!-- Caption & Body -->
-          <div class="ig-body">
-            <strong>originless</strong>
-            <span>{{ postContent || 'Your photo dump caption here… 📸' }}</span>
-          </div>
-
-          <!-- Active image imeta peek info -->
-          <div v-if="currentActiveImage && currentActiveImage.cid" class="ig-imeta-peek">
-            <span><i class="fas fa-fingerprint"></i> CID: {{ currentActiveImage.cid.slice(0, 10) }}…</span>
-            <span v-if="currentActiveImage.blurhash">BlurHash: {{ currentActiveImage.blurhash.slice(0, 10) }}…</span>
+          <!-- Social Actions Row -->
+          <div class="note-actions">
+            <span class="note-act-btn"><i class="far fa-comment"></i> <span>12</span></span>
+            <span class="note-act-btn"><i class="fas fa-retweet"></i> <span>5</span></span>
+            <span class="note-act-btn is-zap" @click="toggleZap"><i class="fas fa-bolt"></i> <span>{{ zapCount }} sats</span></span>
+            <span class="note-act-btn"><i class="far fa-heart"></i> <span>48</span></span>
+            <span class="note-act-btn"><i class="far fa-bookmark"></i></span>
           </div>
         </div>
 
@@ -795,7 +676,7 @@
           <div class="between">
             <div>
               <p class="kicker" style="margin:0">Event Structure</p>
-              <h3 style="margin:.2rem 0 0">Generated Kind 20 JSON</h3>
+              <h3 style="margin:.2rem 0 0">Generated Kind 1 JSON</h3>
             </div>
             <span class="mono faint" style="font-size:.75rem">{{ generatedEvent.tags.length }} tag(s)</span>
           </div>
@@ -824,7 +705,7 @@
           <div class="callout-nostrudel">
             <strong><i class="fas fa-info-circle"></i> Publishing with NoStrudel:</strong>
             <p style="margin:.3rem 0 0">
-              Clicking <strong>Open in NoStrudel ↗</strong> automatically copies your Kind 20 JSON to your clipboard (safely sanitized against Handlebars template collisions) and opens <a href="https://nostrudel.ninja/tools/publisher" target="_blank" rel="noopener" style="text-decoration:underline;font-weight:600;color:inherit">nostrudel.ninja/tools/publisher</a>. Paste directly to sign and publish across Nostr relays!
+              Clicking <strong>Open in NoStrudel ↗</strong> automatically copies your Kind 1 JSON to your clipboard (safely formatted for Handlebars) and opens <a href="https://nostrudel.ninja/tools/publisher" target="_blank" rel="noopener" style="text-decoration:underline;font-weight:600;color:inherit">nostrudel.ninja/tools/publisher</a>.
             </p>
           </div>
 
@@ -847,9 +728,9 @@
               <textarea id="nip-relays" v-model="relaysText" class="field mono" rows="3" style="min-height:4.5rem;font-size:.78rem"></textarea>
               
               <div class="row" style="margin-top:.6rem">
-                <button type="button" class="btn btn-brand" @click="signAndPublishNip07" :disabled="publishingExt || images.length === 0 || hasPendingUploads">
+                <button type="button" class="btn btn-brand" @click="signAndPublishNip07" :disabled="publishingExt || hasPendingUploads || !noteContent.trim()">
                   <i :class="publishingExt ? 'fas fa-circle-notch fa-spin' : 'fas fa-paper-plane'"></i>
-                  {{ publishingExt ? 'Broadcasting…' : 'Sign &amp; Publish Kind 20' }}
+                  {{ publishingExt ? 'Broadcasting…' : 'Sign &amp; Publish Kind 1' }}
                 </button>
               </div>
             </div>
@@ -937,7 +818,6 @@
     for (let i = 0; i < ac.length; i++) {
       hash += encode83(encodeAC(ac[i][0], ac[i][1], ac[i][2], maxAc), 2);
     }
-    // Sanitize consecutive curly braces so template engines (e.g. Handlebars in NoStrudel) never mistake blurhash for template variables
     hash = hash.replaceAll("{{", "{_").replaceAll("}}", "}_");
     return hash;
   }
@@ -996,23 +876,20 @@
       return {
         isDragOver: false,
         images: [],
-        activeSlide: 0,
-        aspectPreset: "1-1",
-        postTitle: "Tiger Encounter",
-        postContent: "Some moments are too good for just one photo dump. 📸✨ #photography #nature",
+        noteContent: "Exploring decentralized storage with Originless! 📸✨ #nostr #ipfs #freedom",
+        appendUrlToContent: true,
         gatewayFormat: "dweb",
         customGatewayPrefix: "https://ipfs.io/ipfs/",
-        metaPreset: "simple",
-        includeMime: false,
-        includeDim: false,
-        includeHash: false,
+        metaPreset: "standard",
+        includeMime: true,
+        includeDim: true,
+        includeHash: true,
         includeBlurhash: false,
         includeAlt: false,
         autoExtractHashtags: true,
         includeContentWarning: false,
         contentWarningReason: "",
-        isLiked: false,
-        likeCount: 42,
+        zapCount: 210,
         copiedJson: false,
         isUploadingAny: false,
         // NIP-07 Direct Publish
@@ -1028,18 +905,33 @@
       hasPendingUploads() {
         return this.images.some((img) => !img.cid && !img.uploading);
       },
-      currentActiveImage() {
-        return this.images[this.activeSlide] || null;
+      imageUrls() {
+        return this.images.map((img) => {
+          const cid = img.cid || "QmPlaceholderCID";
+          if (this.gatewayFormat === "dweb") return "https://dweb.link/ipfs/" + cid;
+          if (this.gatewayFormat === "ipfs") return "ipfs://" + cid;
+          if (this.gatewayFormat === "local") return window.location.origin + "/ipfs/" + cid;
+          if (this.gatewayFormat === "custom") {
+            const prefix = (this.customGatewayPrefix || "https://ipfs.io/ipfs/").replace(/\/$/, "") + "/";
+            return prefix + cid;
+          }
+          return "https://dweb.link/ipfs/" + cid;
+        });
+      },
+      renderedFullContent() {
+        const text = this.noteContent.trim();
+        if (!this.appendUrlToContent || this.imageUrls.length === 0) {
+          return text;
+        }
+        const urlsStr = this.imageUrls.join("\n");
+        return text ? `${text}\n\n${urlsStr}` : urlsStr;
       },
       generatedTags() {
         const tags = [];
-        if (this.postTitle && this.postTitle.trim()) {
-          tags.push(["title", this.postTitle.trim()]);
-        }
 
         // Hashtag tags
-        if (this.autoExtractHashtags && this.postContent) {
-          const matched = this.postContent.match(/#[a-zA-Z0-9_\u0080-\uFFFF]+/g);
+        if (this.autoExtractHashtags && this.noteContent) {
+          const matched = this.noteContent.match(/#[a-zA-Z0-9_\u0080-\uFFFF]+/g);
           if (matched) {
             const unique = [...new Set(matched.map((t) => t.slice(1).toLowerCase()))];
             for (const tag of unique) {
@@ -1053,20 +945,10 @@
           tags.push(["content-warning", this.contentWarningReason.trim() || "nsfw"]);
         }
 
-        // imeta tags for each image
-        for (const img of this.images) {
-          const cid = img.cid || "QmPlaceholderCID";
-          let url = "";
-          if (this.gatewayFormat === "dweb") {
-            url = "https://dweb.link/ipfs/" + cid;
-          } else if (this.gatewayFormat === "ipfs") {
-            url = "ipfs://" + cid;
-          } else if (this.gatewayFormat === "local") {
-            url = window.location.origin + "/ipfs/" + cid;
-          } else if (this.gatewayFormat === "custom") {
-            const prefix = (this.customGatewayPrefix || "https://ipfs.io/ipfs/").replace(/\/$/, "") + "/";
-            url = prefix + cid;
-          }
+        // imeta tags for each attached image
+        for (let i = 0; i < this.images.length; i++) {
+          const img = this.images[i];
+          const url = this.imageUrls[i];
 
           if (this.metaPreset === "simple") {
             tags.push(["imeta", "url " + url]);
@@ -1088,9 +970,9 @@
       },
       generatedEvent() {
         return {
-          kind: 20,
+          kind: 1,
           created_at: Math.floor(Date.now() / 1000),
-          content: this.postContent || "",
+          content: this.renderedFullContent,
           tags: this.generatedTags,
         };
       },
@@ -1122,9 +1004,8 @@
           this.includeAlt = true;
         }
       },
-      toggleLike() {
-        this.isLiked = !this.isLiked;
-        this.likeCount += this.isLiked ? 1 : -1;
+      toggleZap() {
+        this.zapCount += 21;
       },
       async handleDrop(e) {
         this.isDragOver = false;
@@ -1188,7 +1069,7 @@
         try {
           const form = new FormData();
           form.append("file", imgItem.file, imgItem.name);
-          const origin = window.location.origin;
+          const origin = (window.location.origin && window.location.origin !== "null" && window.location.protocol.startsWith("http")) ? window.location.origin : "http://localhost:3232";
           const res = await fetch(origin + "/upload", { method: "POST", body: form });
           const body = await res.json();
           if (!res.ok || !body.cid) {
@@ -1210,26 +1091,11 @@
           }
         }
       },
-      moveImage(index, dir) {
-        const target = index + dir;
-        if (target < 0 || target >= this.images.length) return;
-        const item = this.images.splice(index, 1)[0];
-        this.images.splice(target, 0, item);
-        if (this.activeSlide === index) {
-          this.activeSlide = target;
-        } else if (this.activeSlide === target) {
-          this.activeSlide = index;
-        }
-      },
       removeImage(index) {
         this.images.splice(index, 1);
-        if (this.activeSlide >= this.images.length && this.images.length > 0) {
-          this.activeSlide = this.images.length - 1;
-        }
       },
       clearImages() {
         this.images = [];
-        this.activeSlide = 0;
       },
       copyEventJson() {
         let text = this.jsonOutputFormatted;
@@ -1250,7 +1116,7 @@
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        a.download = "kind20-photo-dump.json";
+        a.download = "kind1-nostr-note.json";
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -1282,19 +1148,19 @@
           await this.connectExtension();
           if (!this.pubkey) return;
         }
-        if (this.images.length === 0) {
-          this.publishStatus = "Please add at least one image.";
+        if (!this.noteContent.trim() && this.images.length === 0) {
+          this.publishStatus = "Please enter some text or attach an image.";
           this.publishStatusKind = "err";
           return;
         }
         this.publishingExt = true;
-        this.publishStatus = "Signing Kind 20 event with extension…";
+        this.publishStatus = "Signing Kind 1 note with extension…";
         this.publishStatusKind = "";
         try {
           const eventToSign = {
-            kind: 20,
+            kind: 1,
             created_at: Math.floor(Date.now() / 1000),
-            content: this.postContent || "",
+            content: this.renderedFullContent,
             tags: this.generatedTags,
           };
           const signedEvent = await window.nostr.signEvent(eventToSign);
@@ -1302,7 +1168,7 @@
 
           const relays = this.relaysText.split(/\s+/).map((s) => s.trim()).filter(Boolean);
           const results = await this.broadcastToRelays(relays, signedEvent);
-          this.publishStatus = "Published Kind 20 Event!\nID: " + signedEvent.id + "\n\n" + results.join("\n");
+          this.publishStatus = "Published Kind 1 Note!\nID: " + signedEvent.id + "\n\n" + results.join("\n");
           this.publishStatusKind = "ok";
         } catch (e) {
           this.publishStatus = "Publish failed: " + (e.message || e);
