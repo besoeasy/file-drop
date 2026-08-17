@@ -43,6 +43,7 @@
     }
 
     a { color: inherit; text-decoration: none; }
+    button { font: inherit; cursor: pointer; }
     .mono { font-family: var(--mono); }
     .shell { min-height: 100vh; display: flex; flex-direction: column; }
     .wrap { width: min(1080px, calc(100% - 2.5rem)); margin-inline: auto; padding: 2.5rem 0 5rem; flex: 1; }
@@ -72,6 +73,29 @@
         linear-gradient(var(--ink), var(--ink)) 0 0 / 55% 55% no-repeat,
         linear-gradient(var(--line-strong), var(--line-strong)) 45% 45% / 55% 55% no-repeat;
     }
+
+    .node-status-bar {
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+      font-family: var(--mono);
+      font-size: .75rem;
+      background: var(--bg-2);
+      padding: .35rem .75rem;
+      border-radius: 999px;
+    }
+    .dot { width: .45rem; height: .45rem; border-radius: 50%; background: var(--ok); }
+    .dot.is-offline { background: var(--faint); }
+
+    .btn-ghost {
+      background: transparent;
+      border: 0;
+      color: var(--muted);
+      padding: .2rem .4rem;
+      border-radius: 4px;
+      transition: color .2s;
+    }
+    .btn-ghost:hover { color: var(--ink); }
 
     .kicker {
       display: block;
@@ -187,22 +211,30 @@
   </style>
 </head>
 <body>
-<div class="shell">
+<div id="app" class="shell">
   <main class="wrap">
     <header class="page-header-clean">
       <div class="page-brand">
         <span class="brand-mark"></span>
         <span>originless examples</span>
       </div>
-      <a href="https://github.com/besoeasy/Originless" target="_blank" rel="noopener" class="mono" style="font-size:.8rem;color:var(--muted)">
-        <i class="fab fa-github"></i> GitHub
-      </a>
+      <div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap">
+        <div class="node-status-bar">
+          <span class="dot" :class="{ 'is-offline': !nodeOnline }"></span>
+          <span>Node: <strong class="mono">{{ nodeUrl }}</strong></span>
+          <span v-if="nodeOnline" class="faint">({{ peerCount }} peers)</span>
+          <button class="btn-ghost" @click="promptChangeNode" title="Change Node URL"><i class="fas fa-gear"></i></button>
+        </div>
+        <a href="https://github.com/besoeasy/Originless" target="_blank" rel="noopener" class="mono" style="font-size:.8rem;color:var(--muted)">
+          <i class="fab fa-github"></i> GitHub
+        </a>
+      </div>
     </header>
 
     <div class="hero mb">
       <p class="kicker">[*] Client examples &amp; tools</p>
       <h1>Examples &amp; Tools</h1>
-      <p>Decoupled client applications that communicate with any Originless IPFS node (<span class="mono">http://localhost:3232</span>). Open them directly in your browser or deploy them anywhere.</p>
+      <p>Decoupled client applications that communicate with your Originless IPFS node (<span class="mono">{{ nodeUrl }}</span>). Open them directly in your browser or deploy them anywhere.</p>
     </div>
 
     <!-- Storage & Upload Tools -->
@@ -276,11 +308,56 @@
     <footer class="foot-clean">
       <div>
         <a href="https://github.com/besoeasy/Originless" target="_blank" rel="noopener">GitHub</a> ·
-        <a href="http://localhost:3232" target="_blank" rel="noopener">Node Dashboard</a>
+        <a :href="nodeUrl" target="_blank" rel="noopener">Node Dashboard</a>
       </div>
       <div>Originless Decoupled Client Examples</div>
     </footer>
   </main>
 </div>
+
+<script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+<script>
+  const { createApp } = Vue;
+
+  createApp({
+    data() {
+      const initialNode = localStorage.getItem("originless_node_url") ||
+        ((window.location.origin && window.location.origin !== "null" && window.location.protocol.startsWith("http"))
+          ? window.location.origin
+          : "http://localhost:3232");
+
+      return {
+        nodeUrl: initialNode,
+        nodeOnline: false,
+        peerCount: 0,
+      };
+    },
+    methods: {
+      promptChangeNode() {
+        const url = prompt("Enter Originless Node URL:", this.nodeUrl);
+        if (url && url.trim()) {
+          this.nodeUrl = url.trim().replace(/\/+$/, "");
+          localStorage.setItem("originless_node_url", this.nodeUrl);
+          this.checkNodeStatus();
+        }
+      },
+      async checkNodeStatus() {
+        try {
+          const res = await fetch(this.nodeUrl + "/status");
+          const data = await res.json();
+          if (data.status === "success") {
+            this.nodeOnline = true;
+            this.peerCount = data.peers?.count || 0;
+            return;
+          }
+        } catch (_) {}
+        this.nodeOnline = false;
+      },
+    },
+    mounted() {
+      this.checkNodeStatus();
+    },
+  }).mount("#app");
+</script>
 </body>
 </html>

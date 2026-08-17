@@ -71,6 +71,9 @@
     .addon .field { border-top-right-radius: 0; border-bottom-right-radius: 0; }
     .addon-btn { display: flex; align-items: center; justify-content: center; background: var(--bg-2); border: 1px solid var(--line); border-left: 0; border-top-right-radius: var(--radius); border-bottom-right-radius: var(--radius); padding: 0 .9rem; color: var(--muted); font-size: .82rem; }
     .brand-mark { width: 1.35rem; height: 1.35rem; background: linear-gradient(var(--ink), var(--ink)) 0 0 / 55% 55% no-repeat, linear-gradient(var(--line-strong), var(--line-strong)) 45% 45% / 55% 55% no-repeat; }
+    .node-status-bar { display: flex; align-items: center; gap: .5rem; font-family: var(--mono); font-size: .75rem; background: var(--bg-2); padding: .35rem .75rem; border-radius: 999px; }
+    .dot { width: .45rem; height: .45rem; border-radius: 50%; background: var(--ok); }
+    .dot.is-offline { background: var(--faint); }
 
     /* Global Page Structure */
     body {
@@ -444,12 +447,21 @@
     <!-- Clean Page Header (No Navbar) -->
     <header class="page-header-clean">
       <div class="page-brand">
-        <span class="brand-mark" aria-hidden="true"></span>
-        <span>Originless</span>
+        <a class="page-back-link" href="index.html">
+          <i class="fas fa-arrow-left"></i> Examples
+        </a>
+        <span>/</span>
+        <span style="display:flex;align-items:center;gap:.5rem">
+          <span class="brand-mark" aria-hidden="true"></span>
+          <span>Notes &amp; Images</span>
+        </span>
       </div>
-      <a class="page-back-link" href="index.html">
-        <i class="fas fa-arrow-left"></i> Back to Examples
-      </a>
+      <div class="node-status-bar">
+        <span class="dot" :class="{ 'is-offline': !nodeOnline }"></span>
+        <span>Node: <strong class="mono">{{ nodeUrl }}</strong></span>
+        <span v-if="nodeOnline" class="faint">({{ peerCount }} peers)</span>
+        <button class="btn btn-ghost btn-sm" @click="promptChangeNode" style="padding:0 .3rem" title="Change Node URL"><i class="fas fa-gear"></i></button>
+      </div>
     </header>
 
     <div class="hero mb">
@@ -873,7 +885,15 @@
   const { createApp } = Vue;
   createApp({
     data() {
+      const initialNode = localStorage.getItem("originless_node_url") ||
+        ((window.location.origin && window.location.origin !== "null" && window.location.protocol.startsWith("http"))
+          ? window.location.origin
+          : "http://localhost:3232");
+
       return {
+        nodeUrl: initialNode,
+        nodeOnline: false,
+        peerCount: 0,
         isDragOver: false,
         images: [],
         noteContent: "Exploring decentralized storage with Originless! 📸✨ #nostr #ipfs #freedom",
@@ -910,7 +930,7 @@
           const cid = img.cid || "QmPlaceholderCID";
           if (this.gatewayFormat === "dweb") return "https://dweb.link/ipfs/" + cid;
           if (this.gatewayFormat === "ipfs") return "ipfs://" + cid;
-          if (this.gatewayFormat === "local") return window.location.origin + "/ipfs/" + cid;
+          if (this.gatewayFormat === "local") return (this.nodeUrl || "http://localhost:3232") + "/ipfs/" + cid;
           if (this.gatewayFormat === "custom") {
             const prefix = (this.customGatewayPrefix || "https://ipfs.io/ipfs/").replace(/\/$/, "") + "/";
             return prefix + cid;
@@ -1069,7 +1089,7 @@
         try {
           const form = new FormData();
           form.append("file", imgItem.file, imgItem.name);
-          const origin = (window.location.origin && window.location.origin !== "null" && window.location.protocol.startsWith("http")) ? window.location.origin : "http://localhost:3232";
+          const origin = this.nodeUrl || "http://localhost:3232";
           const res = await fetch(origin + "/upload", { method: "POST", body: form });
           const body = await res.json();
           if (!res.ok || !body.cid) {
@@ -1212,6 +1232,29 @@
           });
         }));
       },
+      promptChangeNode() {
+        const url = prompt("Enter Originless Node URL:", this.nodeUrl);
+        if (url && url.trim()) {
+          this.nodeUrl = url.trim().replace(/\/+$/, "");
+          localStorage.setItem("originless_node_url", this.nodeUrl);
+          this.checkNodeStatus();
+        }
+      },
+      async checkNodeStatus() {
+        try {
+          const res = await fetch(this.nodeUrl + "/status");
+          const data = await res.json();
+          if (data.status === "success") {
+            this.nodeOnline = true;
+            this.peerCount = data.peers?.count || 0;
+            return;
+          }
+        } catch (_) {}
+        this.nodeOnline = false;
+      },
+    },
+    mounted() {
+      this.checkNodeStatus();
     },
   }).mount("#app");
 </script>
