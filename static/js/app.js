@@ -1,7 +1,7 @@
 (() => {
   const LEGACY = {
     stats: "/",
-    files: "/library.html",
+    files: "/",
     archive: "/archive.html",
   };
 
@@ -13,7 +13,6 @@
 
   const PAGES = [
     { id: "overview", href: "/", label: "Overview", icon: "fa-chart-line", group: "Look" },
-    { id: "library", href: "/library.html", label: "Library", icon: "fa-folder-open", group: "Keep" },
     { id: "archive", href: "/archive.html", label: "Archive", icon: "fa-box-archive", group: "Keep" },
   ];
 
@@ -135,9 +134,6 @@
             <span class="brand-name">originless</span>
           </a>
           <nav class="nav-groups">${desktop}</nav>
-          <div class="top-actions">
-            <a class="btn btn-ghost" href="https://dweb.link/ipns/originless.besoeasy.com" target="_blank" rel="noopener">Examples</a>
-          </div>
         </div>
         <nav class="mobile-nav">${mobile}</nav>
       </header>`;
@@ -212,7 +208,7 @@
         },
         async fetchHistory() {
           try {
-            const response = await fetch("/history?limit=20");
+            const response = await fetch("/history?limit=100");
             const data = await response.json();
             if (data.status === "success" && data.uploads) this.history = data.uploads;
           } catch (error) {
@@ -307,7 +303,7 @@
       method: "GET",
       path: "/history",
       description: "Upload history with CID, filename, size and pin status.",
-      curl: "curl 'http://localhost:3232/history?limit=20'",
+      curl: "curl 'http://localhost:3232/history?limit=100'",
     },
     {
       method: "GET",

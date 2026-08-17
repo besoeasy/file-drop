@@ -20,6 +20,9 @@ func NewRouter(ipfsClient *Client, janitorManager *Manager, archiver *Archiver, 
 	mux.HandleFunc("GET /pins", handler.PinStats)
 	mux.HandleFunc("GET /archive", handler.ArchiveList)
 	mux.HandleFunc("GET /metrics", metrics.Handler(janitorManager, ipfsClient, archiver))
+	mux.HandleFunc("GET /library.html", func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "/", http.StatusMovedPermanently)
+	})
 
 	mux.Handle("/", http.FileServer(http.FS(uiFS)))
 

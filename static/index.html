@@ -16,7 +16,7 @@
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
   <script>
     (function () {
-      var map = { stats: "/", files: "/library.html", archive: "/archive.html" };
+      var map = { stats: "/", files: "/", archive: "/archive.html" };
       var key = location.hash.replace(/^#\/?/, "");
       if (map[key]) location.replace(map[key]);
     })();
@@ -32,6 +32,7 @@
 
     <div class="dash stagger">
       <article class="tile dash-peers dash-span-2" aria-live="polite">
+        <div class="dash-peers-wash" :class="peerFlash" :key="peerFlashKey" aria-hidden="true"></div>
         <div class="kicker">Online</div>
         <div class="dash-peers-main">
           <span class="pulse-rings" aria-hidden="true"><span class="dot"></span></span>
@@ -68,6 +69,12 @@
         <div class="stat-value">{{ status.repoObjects }}</div>
         <div class="fig">in repository</div>
       </article>
+
+      <a class="tile tile-examples dash-span-3" href="https://dweb.link/ipns/originless.besoeasy.com" target="_blank" rel="noopener">
+        <div class="kicker">Clients</div>
+        <div class="stat-value" style="font-size:1.45rem">Examples</div>
+        <div class="fig">File, folder, snippet, and Nostr tools →</div>
+      </a>
     </div>
 
     <section class="mb">
@@ -107,24 +114,42 @@
 
     <section>
       <div class="card-head">
-        <h2>Recent uploads</h2>
-        <a class="link-more" href="/library.html">View all →</a>
-      </div>
-      <div v-if="history.length === 0" class="empty">
-        [*] No uploads yet. Upload files via the HTTP API or client examples.
-      </div>
-      <div v-else>
-        <div v-for="item in recentUploads" :key="item.cid" class="between list-row">
-          <div class="grow">
-            <div class="mono faint truncate" :title="item.cid">{{ item.cid.slice(0, 14) }}…</div>
-            <div class="muted truncate" style="margin-top:.2rem">{{ item.filename }}</div>
-          </div>
-          <div style="text-align:right;flex-shrink:0;margin-left:1rem">
-            <span v-if="item.unpinned" class="pill pill-mute">unpinned</span>
-            <span v-else class="pill pill-ok">pinned</span>
-            <div class="stat-sub">{{ formatBytes(item.size) }} · {{ formatDate(item.created_at) }}</div>
-          </div>
+        <h2>Upload history</h2>
+        <div class="search">
+          <i class="fas fa-magnifying-glass"></i>
+          <input v-model="searchQuery" class="field" type="text" placeholder="Search filename or CID" />
         </div>
+      </div>
+      <div v-if="filteredHistory.length === 0" class="empty">
+        <template v-if="history.length === 0">[*] No uploads yet. Upload files via the HTTP API or client examples.</template>
+        <template v-else>[*] No matches for “{{ searchQuery }}”.</template>
+      </div>
+      <div v-else class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>File</th>
+              <th>CID</th>
+              <th style="text-align:right">Size</th>
+              <th style="text-align:right">Status</th>
+              <th style="text-align:right">Date</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="item in filteredHistory" :key="item.cid">
+              <td><div class="truncate" style="max-width:14rem">{{ item.filename }}</div></td>
+              <td>
+                <a class="mono break" :href="getGatewayUrlForCid(item.cid, item.filename)" target="_blank" rel="noopener">{{ item.cid }}</a>
+              </td>
+              <td style="text-align:right" class="muted">{{ formatBytes(item.size) }}</td>
+              <td style="text-align:right">
+                <span v-if="item.unpinned" class="pill pill-mute">unpinned</span>
+                <span v-else class="pill pill-ok">pinned</span>
+              </td>
+              <td style="text-align:right" class="faint">{{ formatDate(item.created_at) }}</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </section>
   </main>
@@ -139,12 +164,27 @@
   const { createApp } = Vue;
   createApp({
     mixins: [OL.pageMixin()],
+    data() { return { searchQuery: "", peerFlash: "", peerFlashKey: 0 }; },
     computed: {
-      recentUploads() { return this.history.slice(0, 5); },
+      filteredHistory() {
+        if (!this.searchQuery) return this.history;
+        const q = this.searchQuery.toLowerCase();
+        return this.history.filter((h) =>
+          (h.filename || "").toLowerCase().includes(q) ||
+          (h.cid || "").toLowerCase().includes(q)
+        );
+      },
       storagePercent() {
         if (!this.status.storageMaxBytes) return 0;
         const pct = (this.status.repoSizeBytes / this.status.storageMaxBytes) * 100;
         return Math.min(100, Math.max(0, Math.round(pct)));
+      },
+    },
+    watch: {
+      "status.peerscount"(next, prev) {
+        if (next === prev) return;
+        this.peerFlash = next > (prev ?? 0) ? "is-up" : "is-down";
+        this.peerFlashKey += 1;
       },
     },
     mounted() {
