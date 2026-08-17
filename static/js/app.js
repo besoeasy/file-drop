@@ -133,7 +133,7 @@
             <span class="brand-mark" aria-hidden="true"></span>
             <span class="brand-name">originless</span>
           </a>
-          <nav class="nav-groups">${desktop}</nav>
+          <nav class="nav-groups"><div class="nav-seg">${desktop}</div></nav>
         </div>
         <nav class="mobile-nav">${mobile}</nav>
       </header>`;
