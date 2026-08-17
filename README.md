@@ -47,6 +47,37 @@ docker run -d \
   ghcr.io/besoeasy/originless:latest
 ```
 
+## ⚡ Quick Showcase — Upload in One Command
+
+Uploading to Originless is a single `POST /upload` request — **no API keys, no accounts, no auth**:
+
+```bash
+curl -X POST -F "file=@my-image.png" http://localhost:3232/upload
+```
+
+*Response:*
+```json
+{
+  "status": "success",
+  "cid": "QmX...",
+  "size": 1048576,
+  "type": "image/png",
+  "filename": "my-image.png"
+}
+```
+
+The file is pinned to IPFS and instantly available anywhere on the swarm:
+
+- **Native IPFS:** `ipfs://QmX...`
+- **Public gateway:** `https://ipfs.io/ipfs/QmX...`
+- **Alt gateway:** `https://dweb.link/ipfs/QmX...`
+
+Your `cid` is the file's cryptographic hash — anyone can verify the bytes match the address with zero trust in this server. Upload an entire folder (static site, `dist/`, asset bundle) as one root CID with [`/uploadfolder`](#upload-folder--dapp). Or run the ready-made script at the repo root to upload the whole [`examples/`](examples/) folder in one go:
+
+```bash
+./upload-examples.sh
+```
+
 ### Examples & Client Tools
 
 Client examples and decoupled tools are located in the [`examples/`](examples/) folder at the root of the repository. Open them directly in your browser or deploy them independently to interact with any running Originless node (`http://localhost:3232`):
