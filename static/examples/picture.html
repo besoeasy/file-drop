@@ -10,17 +10,62 @@
   <link rel="stylesheet" href="/css/app.css" />
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
   <style>
+    /* Global Page Structure */
+    body {
+      overflow-x: hidden;
+      background: var(--bg);
+    }
+    .page-header-clean {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1.25rem 0 1rem;
+      border-bottom: 1px solid var(--line);
+      margin-bottom: 2rem;
+    }
+    .page-brand {
+      display: flex;
+      align-items: center;
+      gap: .75rem;
+      font-family: var(--mono);
+      font-weight: 700;
+      font-size: 1.05rem;
+      color: var(--ink);
+    }
+    .page-back-link {
+      font-family: var(--mono);
+      font-size: .8rem;
+      color: var(--muted);
+      display: inline-flex;
+      align-items: center;
+      gap: .4rem;
+      transition: color .2s;
+    }
+    .page-back-link:hover {
+      color: var(--ink);
+    }
+
+    /* Grid Layout with strictly bounded column widths */
     .k20-layout {
       display: grid;
-      grid-template-columns: 1.15fr 1fr;
+      grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
       gap: 2rem;
       align-items: start;
+      max-width: 100%;
+      box-sizing: border-box;
+    }
+    .k20-layout > * {
+      min-width: 0;
+      max-width: 100%;
+      box-sizing: border-box;
     }
     @media (max-width: 960px) {
       .k20-layout {
-        grid-template-columns: 1fr;
+        grid-template-columns: minmax(0, 1fr);
       }
     }
+
+    /* Uploader Drop Box */
     .uploader-drop {
       border: 2px dashed var(--line-strong);
       background: var(--bg-2);
@@ -34,16 +79,21 @@
       align-items: center;
       justify-content: center;
       gap: .5rem;
+      max-width: 100%;
+      box-sizing: border-box;
     }
     .uploader-drop:hover, .uploader-drop.is-over {
       border-color: var(--ink);
       background: var(--accent);
     }
+
+    /* Images List */
     .image-item-list {
       display: flex;
       flex-direction: column;
       gap: .85rem;
       margin-top: 1.25rem;
+      max-width: 100%;
     }
     .image-item {
       background: var(--bg-2);
@@ -51,24 +101,32 @@
       border-radius: .35rem;
       padding: .85rem 1rem;
       display: grid;
-      grid-template-columns: 76px 1fr auto;
+      grid-template-columns: 76px minmax(0, 1fr) auto;
       gap: 1rem;
       align-items: center;
+      max-width: 100%;
+      box-sizing: border-box;
       transition: background .2s;
     }
     .image-thumb {
       width: 76px;
       height: 76px;
+      min-width: 76px;
+      max-width: 76px;
       border-radius: .25rem;
       object-fit: cover;
       background: #e2dedc;
       border: 1px solid var(--line);
+      flex-shrink: 0;
+      display: block;
     }
     .image-details {
       display: flex;
       flex-direction: column;
-      gap: .25rem;
+      gap: .3rem;
       min-width: 0;
+      max-width: 100%;
+      overflow: hidden;
     }
     .image-name {
       font-size: .86rem;
@@ -76,6 +134,7 @@
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
+      max-width: 100%;
     }
     .meta-tag-chips {
       display: flex;
@@ -83,6 +142,8 @@
       gap: .35rem;
       font-size: .7rem;
       font-family: var(--mono);
+      max-width: 100%;
+      overflow: hidden;
     }
     .meta-chip {
       background: var(--bg);
@@ -90,6 +151,10 @@
       padding: .15rem .45rem;
       border-radius: 3px;
       color: var(--muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 100%;
     }
     .meta-chip.ok {
       color: var(--ok);
@@ -99,6 +164,7 @@
       display: flex;
       flex-direction: column;
       gap: .3rem;
+      flex-shrink: 0;
     }
     .btn-icon-tiny {
       border: 0;
@@ -135,6 +201,8 @@
       box-shadow: 0 4px 20px rgba(0,0,0,0.04);
       margin-bottom: 1.5rem;
       color: #211e1e;
+      max-width: 100%;
+      box-sizing: border-box;
     }
     .ig-header {
       padding: .75rem 1rem;
@@ -147,16 +215,19 @@
       display: flex;
       align-items: center;
       gap: .65rem;
+      min-width: 0;
     }
     .ig-avatar {
       width: 36px;
       height: 36px;
+      min-width: 36px;
       border-radius: 50%;
       background: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);
       padding: 2px;
       display: flex;
       align-items: center;
       justify-content: center;
+      flex-shrink: 0;
     }
     .ig-avatar-inner {
       width: 100%;
@@ -173,6 +244,9 @@
       font-weight: 600;
       font-size: .88rem;
       line-height: 1.2;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
     .ig-location {
       font-size: .72rem;
@@ -185,44 +259,55 @@
       padding: .2rem .5rem;
       border-radius: 4px;
       font-weight: 500;
+      flex-shrink: 0;
     }
 
-    /* Carousel container */
+    /* Carousel Container & Slides */
     .ig-carousel {
       position: relative;
       background: #111;
       width: 100%;
+      max-width: 100%;
       overflow: hidden;
       user-select: none;
+      box-sizing: border-box;
     }
     .ig-carousel.ratio-1-1 { aspect-ratio: 1 / 1; }
     .ig-carousel.ratio-4-5 { aspect-ratio: 4 / 5; }
     .ig-carousel.ratio-16-9 { aspect-ratio: 16 / 9; }
-    .ig-carousel.ratio-orig { min-height: 280px; max-height: 520px; }
+    .ig-carousel.ratio-orig { min-height: 280px; max-height: 480px; }
 
     .ig-carousel-slides {
       display: flex;
       width: 100%;
+      max-width: 100%;
       height: 100%;
       transition: transform .35s var(--ease);
     }
     .ig-slide {
       flex: 0 0 100%;
       width: 100%;
+      min-width: 100%;
+      max-width: 100%;
       height: 100%;
       display: flex;
       align-items: center;
       justify-content: center;
       position: relative;
       background: #181616;
+      overflow: hidden;
+      box-sizing: border-box;
     }
     .ig-slide img {
       width: 100%;
       height: 100%;
+      max-width: 100%;
       object-fit: cover;
       display: block;
     }
     .ig-carousel.ratio-orig .ig-slide img {
+      width: 100%;
+      max-height: 480px;
       object-fit: contain;
     }
     .ig-slide-empty {
@@ -232,8 +317,10 @@
       align-items: center;
       justify-content: center;
       gap: .75rem;
-      padding: 2.5rem;
+      padding: 2.5rem 1rem;
       text-align: center;
+      width: 100%;
+      box-sizing: border-box;
     }
     .ig-nav-btn {
       position: absolute;
@@ -324,15 +411,12 @@
       padding: .4rem 1rem .9rem;
       font-size: .88rem;
       line-height: 1.45;
+      word-break: break-word;
+      overflow-wrap: break-word;
     }
     .ig-body strong {
       font-weight: 600;
       margin-right: .35rem;
-    }
-    .ig-hashtag {
-      color: #00376b;
-      font-weight: 500;
-      text-decoration: none;
     }
     .ig-imeta-peek {
       padding: .6rem 1rem;
@@ -344,13 +428,22 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
+      gap: .5rem;
+      overflow: hidden;
+    }
+    .ig-imeta-peek span {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
-    /* Code block styling */
+    /* Code Block & JSON Output */
     .json-card {
       background: var(--bg-2);
       border-radius: .4rem;
       padding: 1.15rem 1.2rem;
+      max-width: 100%;
+      box-sizing: border-box;
     }
     .json-pre {
       background: #181616;
@@ -361,13 +454,14 @@
       font-size: .76rem;
       line-height: 1.5;
       overflow-x: auto;
+      white-space: pre-wrap;
+      word-break: break-word;
+      overflow-wrap: anywhere;
       max-height: 380px;
       margin: .85rem 0 1rem;
+      max-width: 100%;
+      box-sizing: border-box;
     }
-    .json-key { color: #9cdcfe; }
-    .json-str { color: #ce9178; }
-    .json-num { color: #b5cea8; }
-    .json-bool { color: #569cd6; }
 
     .action-grid {
       display: grid;
@@ -395,14 +489,44 @@
       color: #4a2574;
       line-height: 1.45;
       margin-top: .85rem;
+      word-break: break-word;
+    }
+    .preset-pill {
+      font-family: var(--mono);
+      font-size: .74rem;
+      padding: .35rem .75rem;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: var(--bg);
+      color: var(--muted);
+      cursor: pointer;
+      transition: all .2s;
+    }
+    .preset-pill:hover {
+      color: var(--ink);
+      border-color: var(--ink);
+    }
+    .preset-pill.is-active {
+      background: var(--ink);
+      color: #fff;
+      border-color: var(--ink);
     }
   </style>
 </head>
 <body>
 <div id="app" class="shell">
-  <div data-ol-nav></div>
+  <main class="wrap" style="padding-top:1.5rem">
+    <!-- Clean Page Header (No Navbar) -->
+    <header class="page-header-clean">
+      <div class="page-brand">
+        <span class="brand-mark" aria-hidden="true"></span>
+        <span>Originless</span>
+      </div>
+      <a class="page-back-link" href="/examples/">
+        <i class="fas fa-arrow-left"></i> Back to Examples
+      </a>
+    </header>
 
-  <main class="wrap">
     <div class="hero mb">
       <p class="kicker">[*] NIP-68 · NIP-92 · Kind 20</p>
       <h1>Kind 20 Picture Post Generator</h1>
@@ -488,10 +612,26 @@
 
             <div style="margin-top:1rem">
               <label class="kicker" for="post-content">Caption / Content</label>
-              <textarea id="post-content" v-model="postContent" class="field" rows="4" placeholder="Some moments are too good for just one photo dump. 📸✨ #photography #vibes"></textarea>
+              <textarea id="post-content" v-model="postContent" class="field" rows="4" placeholder="Some moments are too good for just one photo dump. 📸✨ #photography #nature"></textarea>
             </div>
 
-            <div class="grid grid-2" style="margin-top:1rem">
+            <!-- Presets Selector -->
+            <div style="margin-top:1.25rem">
+              <label class="kicker">Metadata Tags Preset</label>
+              <div class="row" style="gap:.5rem;margin-bottom:.85rem">
+                <button type="button" class="preset-pill" :class="{ 'is-active': metaPreset === 'simple' }" @click="setPreset('simple')">
+                  Simple (URL only)
+                </button>
+                <button type="button" class="preset-pill" :class="{ 'is-active': metaPreset === 'standard' }" @click="setPreset('standard')">
+                  Standard (NIP-92: URL, MIME, Dim, Hash)
+                </button>
+                <button type="button" class="preset-pill" :class="{ 'is-active': metaPreset === 'full' }" @click="setPreset('full')">
+                  Full (All + BlurHash + Alt)
+                </button>
+              </div>
+            </div>
+
+            <div class="grid grid-2" style="margin-top:.85rem">
               <div>
                 <label class="kicker">Gateway URL Format</label>
                 <select v-model="gatewayFormat" class="field">
@@ -501,18 +641,38 @@
                   <option value="custom">Custom Gateway Prefix</option>
                 </select>
               </div>
-              <div>
-                <label class="kicker">imeta Detail Level</label>
-                <select v-model="metaDetailLevel" class="field">
-                  <option value="full">Full NIP-92 (url, m, x, dim, blurhash, alt)</option>
-                  <option value="simple">Simple imeta (url only)</option>
-                </select>
-              </div>
             </div>
 
             <div v-if="gatewayFormat === 'custom'" style="margin-top:.85rem">
               <label class="kicker">Custom Gateway Prefix</label>
               <input v-model="customGatewayPrefix" class="field" type="text" placeholder="https://ipfs.io/ipfs/" />
+            </div>
+
+            <!-- Tag Options Checkboxes -->
+            <div style="margin-top:1.15rem;padding:1rem;background:var(--bg-2);border-radius:6px;border:1px solid var(--line)">
+              <div class="kicker" style="margin-bottom:.65rem">Included imeta Tag Fields:</div>
+              <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(160px, 1fr));gap:.6rem;font-size:.82rem">
+                <label style="display:flex;align-items:center;gap:.45rem;cursor:pointer">
+                  <input v-model="includeMime" type="checkbox" @change="metaPreset = 'custom'" />
+                  <span>MIME (<span class="mono">m</span>)</span>
+                </label>
+                <label style="display:flex;align-items:center;gap:.45rem;cursor:pointer">
+                  <input v-model="includeDim" type="checkbox" @change="metaPreset = 'custom'" />
+                  <span>Dimensions (<span class="mono">dim</span>)</span>
+                </label>
+                <label style="display:flex;align-items:center;gap:.45rem;cursor:pointer">
+                  <input v-model="includeHash" type="checkbox" @change="metaPreset = 'custom'" />
+                  <span>SHA-256 (<span class="mono">x</span>)</span>
+                </label>
+                <label style="display:flex;align-items:center;gap:.45rem;cursor:pointer">
+                  <input v-model="includeBlurhash" type="checkbox" @change="metaPreset = 'custom'" />
+                  <span>BlurHash (<span class="mono">blurhash</span>)</span>
+                </label>
+                <label style="display:flex;align-items:center;gap:.45rem;cursor:pointer">
+                  <input v-model="includeAlt" type="checkbox" @change="metaPreset = 'custom'" />
+                  <span>Alt text (<span class="mono">alt</span>)</span>
+                </label>
+              </div>
             </div>
 
             <div style="margin-top:1rem;display:flex;gap:1.5rem;flex-wrap:wrap">
@@ -552,7 +712,7 @@
                   <i class="fas fa-camera"></i>
                 </div>
               </div>
-              <div>
+              <div style="min-width:0">
                 <div class="ig-username">{{ postTitle || 'originless.gallery' }}</div>
                 <div class="ig-location">{{ images.length }} photos · Nostr Kind 20</div>
               </div>
@@ -626,7 +786,7 @@
           <!-- Active image imeta peek info -->
           <div v-if="currentActiveImage && currentActiveImage.cid" class="ig-imeta-peek">
             <span><i class="fas fa-fingerprint"></i> CID: {{ currentActiveImage.cid.slice(0, 10) }}…</span>
-            <span v-if="currentActiveImage.blurhash">Blurhash: {{ currentActiveImage.blurhash.slice(0, 10) }}…</span>
+            <span v-if="currentActiveImage.blurhash">BlurHash: {{ currentActiveImage.blurhash.slice(0, 10) }}…</span>
           </div>
         </div>
 
@@ -664,7 +824,7 @@
           <div class="callout-nostrudel">
             <strong><i class="fas fa-info-circle"></i> Publishing with NoStrudel:</strong>
             <p style="margin:.3rem 0 0">
-              Clicking <strong>Open in NoStrudel ↗</strong> automatically copies your Kind 20 JSON to your clipboard and opens <a href="https://nostrudel.ninja/tools/publisher" target="_blank" rel="noopener" style="text-decoration:underline;font-weight:600;color:inherit">nostrudel.ninja/tools/publisher</a>. Paste into the event editor to sign and publish across Nostr relays!
+              Clicking <strong>Open in NoStrudel ↗</strong> automatically copies your Kind 20 JSON to your clipboard (safely sanitized against Handlebars template collisions) and opens <a href="https://nostrudel.ninja/tools/publisher" target="_blank" rel="noopener" style="text-decoration:underline;font-weight:600;color:inherit">nostrudel.ninja/tools/publisher</a>. Paste directly to sign and publish across Nostr relays!
             </p>
           </div>
 
@@ -700,15 +860,10 @@
       </div>
     </div>
   </main>
-
-  <div data-ol-foot></div>
 </div>
 
 <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
-<script src="/js/app.js"></script>
 <script>
-  OL.injectChrome("docs");
-
   // BlurHash pure JavaScript encoder
   const BASE83 = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz#$%*+,-.:;=?@[]^_{|}~";
   function encode83(n, length) {
@@ -782,6 +937,8 @@
     for (let i = 0; i < ac.length; i++) {
       hash += encode83(encodeAC(ac[i][0], ac[i][1], ac[i][2], maxAc), 2);
     }
+    // Sanitize consecutive curly braces so template engines (e.g. Handlebars in NoStrudel) never mistake blurhash for template variables
+    hash = hash.replaceAll("{{", "{_").replaceAll("}}", "}_");
     return hash;
   }
 
@@ -826,20 +983,31 @@
     });
   }
 
+  function formatBytes(bytes) {
+    if (!bytes) return "0 Bytes";
+    const sizes = ["Bytes", "KB", "MB", "GB", "TB"];
+    const i = Math.floor(Math.log(bytes) / Math.log(1024));
+    return (bytes / Math.pow(1024, i)).toFixed(2) + " " + sizes[i];
+  }
+
   const { createApp } = Vue;
   createApp({
-    mixins: [OL.pageMixin()],
     data() {
       return {
         isDragOver: false,
         images: [],
         activeSlide: 0,
         aspectPreset: "1-1",
-        postTitle: "Some moments are too good for just one photo dump.",
-        postContent: "Some moments are too good for just one photo dump. 📸✨ #photography #vibes",
+        postTitle: "Tiger Encounter",
+        postContent: "Some moments are too good for just one photo dump. 📸✨ #photography #nature",
         gatewayFormat: "dweb",
         customGatewayPrefix: "https://ipfs.io/ipfs/",
-        metaDetailLevel: "full",
+        metaPreset: "simple",
+        includeMime: false,
+        includeDim: false,
+        includeHash: false,
+        includeBlurhash: false,
+        includeAlt: false,
         autoExtractHashtags: true,
         includeContentWarning: false,
         contentWarningReason: "",
@@ -900,15 +1068,18 @@
             url = prefix + cid;
           }
 
-          if (this.metaDetailLevel === "simple") {
+          if (this.metaPreset === "simple") {
             tags.push(["imeta", "url " + url]);
           } else {
             const imetaParts = ["imeta", "url " + url];
-            if (img.mime) imetaParts.push("m " + img.mime);
-            if (img.sha256) imetaParts.push("x " + img.sha256);
-            if (img.dimensions) imetaParts.push("dim " + img.dimensions);
-            if (img.blurhash) imetaParts.push("blurhash " + img.blurhash);
-            if (img.alt && img.alt.trim()) imetaParts.push("alt " + img.alt.trim());
+            if (this.includeMime && img.mime) imetaParts.push("m " + img.mime);
+            if (this.includeHash && img.sha256) imetaParts.push("x " + img.sha256);
+            if (this.includeDim && img.dimensions) imetaParts.push("dim " + img.dimensions);
+            if (this.includeBlurhash && img.blurhash) {
+              const safeBlur = img.blurhash.replaceAll("{{", "{_").replaceAll("}}", "}_");
+              imetaParts.push("blurhash " + safeBlur);
+            }
+            if (this.includeAlt && img.alt && img.alt.trim()) imetaParts.push("alt " + img.alt.trim());
             tags.push(imetaParts);
           }
         }
@@ -928,6 +1099,29 @@
       },
     },
     methods: {
+      formatBytes,
+      setPreset(preset) {
+        this.metaPreset = preset;
+        if (preset === "simple") {
+          this.includeMime = false;
+          this.includeDim = false;
+          this.includeHash = false;
+          this.includeBlurhash = false;
+          this.includeAlt = false;
+        } else if (preset === "standard") {
+          this.includeMime = true;
+          this.includeDim = true;
+          this.includeHash = true;
+          this.includeBlurhash = false;
+          this.includeAlt = false;
+        } else if (preset === "full") {
+          this.includeMime = true;
+          this.includeDim = true;
+          this.includeHash = true;
+          this.includeBlurhash = true;
+          this.includeAlt = true;
+        }
+      },
       toggleLike() {
         this.isLiked = !this.isLiked;
         this.likeCount += this.isLiked ? 1 : -1;
@@ -1038,7 +1232,11 @@
         this.activeSlide = 0;
       },
       copyEventJson() {
-        navigator.clipboard.writeText(this.jsonOutputFormatted).then(() => {
+        let text = this.jsonOutputFormatted;
+        if (text.includes("{{")) {
+          text = text.replaceAll("{{", "\\{{");
+        }
+        navigator.clipboard.writeText(text).then(() => {
           this.copiedJson = true;
           setTimeout(() => { this.copiedJson = false; }, 2500);
         });
@@ -1148,9 +1346,6 @@
           });
         }));
       },
-    },
-    mounted() {
-      // Setup demo placeholder if desired
     },
   }).mount("#app");
 </script>
