@@ -27,42 +27,48 @@
   <div data-ol-nav></div>
 
   <main class="wrap">
-    <div class="hero mb">
-      <p class="kicker">[*] Private · Decentralized · Origin-independent</p>
-      <h1>Pin files to IPFS without a server</h1>
-      <p>Durable, cryptographic file hosting. Zero API keys, zero accounts, zero friction.</p>
-    </div>
+    <p class="kicker">[*] Private · Decentralized · Origin-independent</p>
+    <h1 class="dash-title">Overview</h1>
 
-    <div class="grid grid-4 stagger mb">
-      <article class="tile">
-        <div class="stat-value">{{ status.peerscount }}</div>
-        <div class="fig">peers</div>
+    <div class="dash stagger">
+      <article class="tile dash-peers dash-span-2" aria-live="polite">
+        <div class="kicker">Online</div>
+        <div class="dash-peers-main">
+          <span class="pulse-rings" aria-hidden="true"><span class="dot"></span></span>
+          <div class="stat-value">{{ status.peerscount }}</div>
+        </div>
+        <div class="fig">peers on the swarm</div>
       </article>
+
       <article class="tile">
+        <div class="kicker">Storage</div>
+        <div class="stat-value" style="font-size:1.35rem">{{ storagePercent }}%</div>
+        <div class="meter" style="margin-top:1rem"><span :style="{ width: storagePercent + '%' }"></span></div>
+        <div class="stat-sub">{{ status.repoSize }}</div>
+        <div class="stat-sub">{{ pinStats.count }} pinned · {{ pinStats.sizeStr }}</div>
+        <div class="stat-sub">evict at {{ pinStats.threshold }}%</div>
+      </article>
+
+      <article class="tile">
+        <div class="kicker">Bandwidth</div>
+        <div class="stat-value" style="font-size:1.25rem">{{ status.bandwidthIn }}</div>
+        <div class="stat-sub">in · {{ status.bandwidthOut }} out</div>
+        <div class="stat-sub">{{ status.bandwidthRate }}</div>
+      </article>
+
+      <article class="tile">
+        <div class="kicker">Client</div>
+        <div class="stat-value" style="font-size:1.05rem">{{ status.version }}</div>
+        <div class="stat-sub mono truncate" :title="status.nodeId">{{ status.nodeId }}</div>
+        <div class="stat-sub">sync {{ status.timestamp }}</div>
+      </article>
+
+      <article class="tile">
+        <div class="kicker">Objects</div>
         <div class="stat-value">{{ status.repoObjects }}</div>
-        <div class="fig">objects</div>
-      </article>
-      <article class="tile">
-        <div class="stat-value">{{ pinStats.count }}</div>
-        <div class="fig">pinned · {{ pinStats.sizeStr }}</div>
-      </article>
-      <article class="tile">
-        <div class="stat-value" style="font-size:1.15rem">{{ status.version }}</div>
-        <div class="fig">client</div>
+        <div class="fig">in repository</div>
       </article>
     </div>
-
-    <section class="mb">
-      <div class="between" style="margin-bottom:1rem">
-        <h2 class="kicker" style="margin:0">Storage</h2>
-        <span class="mono faint" style="font-size:.75rem">{{ status.repoSize }}</span>
-      </div>
-      <div class="meter"><span :style="{ width: storagePercent + '%' }"></span></div>
-      <div class="between" style="margin-top:.7rem">
-        <span class="stat-sub">{{ storagePercent }}% used</span>
-        <span class="stat-sub">threshold {{ pinStats.threshold }}%</span>
-      </div>
-    </section>
 
     <section class="mb">
       <div class="card-head">
@@ -99,62 +105,25 @@
       </div>
     </section>
 
-    <div class="grid grid-12 mb">
-      <section>
-        <div class="card-head">
-          <h2>Recent uploads</h2>
-          <a class="link-more" href="/library.html">View all →</a>
-        </div>
-        <div v-if="history.length === 0" class="empty">
-          [*] No uploads yet. Upload files via the HTTP API or client examples.
-        </div>
-        <div v-else>
-          <div v-for="item in recentUploads" :key="item.cid" class="between list-row">
-            <div class="grow">
-              <div class="mono faint truncate" :title="item.cid">{{ item.cid.slice(0, 14) }}…</div>
-              <div class="muted truncate" style="margin-top:.2rem">{{ item.filename }}</div>
-            </div>
-            <div style="text-align:right;flex-shrink:0;margin-left:1rem">
-              <span v-if="item.unpinned" class="pill pill-mute">unpinned</span>
-              <span v-else class="pill pill-ok">pinned</span>
-              <div class="stat-sub">{{ formatBytes(item.size) }} · {{ formatDate(item.created_at) }}</div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section>
-        <div class="card-head"><h2>Node</h2></div>
-        <div class="stack">
-          <div class="between">
-            <span class="kicker" style="margin:0">Peer ID</span>
-            <span class="mono" style="font-size:.75rem">{{ status.nodeId }}</span>
-          </div>
-          <div class="between">
-            <span class="kicker" style="margin:0">Sync</span>
-            <span class="mono faint" style="font-size:.75rem">{{ status.timestamp }}</span>
-          </div>
-        </div>
-      </section>
-    </div>
-
     <section>
-      <div class="card-head"><h2>Bandwidth</h2></div>
-      <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(12rem,1fr));gap:1.5rem">
-        <div>
-          <div class="kicker">Ingress</div>
-          <div class="stat-value">{{ status.bandwidthIn }}</div>
-          <div class="stat-sub">total received</div>
-        </div>
-        <div>
-          <div class="kicker">Egress</div>
-          <div class="stat-value">{{ status.bandwidthOut }}</div>
-          <div class="stat-sub">total sent</div>
-        </div>
-        <div>
-          <div class="kicker">Rate</div>
-          <div class="mono muted" style="font-size:.9rem">{{ status.bandwidthRate }}</div>
-          <div class="stat-sub">current in / out</div>
+      <div class="card-head">
+        <h2>Recent uploads</h2>
+        <a class="link-more" href="/library.html">View all →</a>
+      </div>
+      <div v-if="history.length === 0" class="empty">
+        [*] No uploads yet. Upload files via the HTTP API or client examples.
+      </div>
+      <div v-else>
+        <div v-for="item in recentUploads" :key="item.cid" class="between list-row">
+          <div class="grow">
+            <div class="mono faint truncate" :title="item.cid">{{ item.cid.slice(0, 14) }}…</div>
+            <div class="muted truncate" style="margin-top:.2rem">{{ item.filename }}</div>
+          </div>
+          <div style="text-align:right;flex-shrink:0;margin-left:1rem">
+            <span v-if="item.unpinned" class="pill pill-mute">unpinned</span>
+            <span v-else class="pill pill-ok">pinned</span>
+            <div class="stat-sub">{{ formatBytes(item.size) }} · {{ formatDate(item.created_at) }}</div>
+          </div>
         </div>
       </div>
     </section>

@@ -136,7 +136,6 @@
           </a>
           <nav class="nav-groups">${desktop}</nav>
           <div class="top-actions">
-            <div class="peers"><span class="dot"></span><span class="mono" data-ol-peers>{{ status.peerscount }} peers</span></div>
             <a class="btn btn-ghost" href="https://dweb.link/ipns/originless.besoeasy.com" target="_blank" rel="noopener">Examples</a>
           </div>
         </div>
@@ -160,7 +159,7 @@
     const nav = document.querySelector("[data-ol-nav]");
     const foot = document.querySelector("[data-ol-foot]");
     const vue = opts.vue !== false;
-    if (nav) nav.outerHTML = vue ? navHTML(active) : navHTML(active).replace("{{ status.peerscount }} peers", "— peers");
+    if (nav) nav.outerHTML = navHTML(active);
     if (foot) foot.outerHTML = vue ? footHTML() : footHTML().replace("v{{ status.appver }}", "v…");
   }
 
@@ -169,9 +168,7 @@
       .then((r) => r.json())
       .then((data) => {
         if (data.status !== "success") return;
-        const peers = document.querySelector("[data-ol-peers]");
         const ver = document.querySelector("[data-ol-ver]");
-        if (peers) peers.textContent = (data.peers?.count || 0) + " peers";
         if (ver) ver.textContent = "v" + (data.appVersion || "");
       })
       .catch(() => {});
