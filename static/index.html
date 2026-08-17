@@ -27,9 +27,6 @@
   <div data-ol-nav></div>
 
   <main class="wrap">
-    <p class="kicker">[*] Private · Decentralized · Origin-independent</p>
-    <h1 class="dash-title">Overview</h1>
-
     <div class="dash stagger">
       <article class="tile dash-peers dash-span-2" aria-live="polite">
         <div class="dash-peers-bg" aria-hidden="true"></div>
@@ -80,37 +77,13 @@
 
     <section class="panel mb">
       <div class="card-head">
-        <h2>Nostr backup</h2>
-        <a class="link-more" href="/archive.html">Details →</a>
+        <h2>Agent prompt</h2>
+        <button class="link-more" type="button" @click="copyText(agentPrompt, 'prompt')" :class="{ 'is-copied': copied === 'prompt' }">
+          {{ copied === "prompt" ? "Copied" : "Copy" }}
+        </button>
       </div>
-      <div v-if="!archive.enabled" class="empty">
-        [*] No npubs configured. Set <span class="mono">NOSTR_NPUBS</span> to back up IPFS media from those accounts.
-      </div>
-      <div v-else class="stack">
-        <div class="grid grid-4">
-          <div>
-            <div class="kicker">Accounts</div>
-            <div class="stat-value" style="font-size:1.25rem">{{ archive.accounts.length }}</div>
-          </div>
-          <div>
-            <div class="kicker">Archived</div>
-            <div class="stat-value" style="font-size:1.25rem">{{ archive.count }}</div>
-            <div class="stat-sub">{{ archive.sizeStr }}</div>
-          </div>
-          <div>
-            <div class="kicker">Scan</div>
-            <div class="mono" style="font-size:.9rem">every {{ archive.scanMinutes }}m</div>
-          </div>
-          <div>
-            <div class="kicker">Re-pin</div>
-            <div class="mono" style="font-size:.9rem">every {{ archive.repinHours }}h</div>
-          </div>
-        </div>
-        <div v-for="acc in archive.accounts" :key="acc.npub" class="between list-row">
-          <div class="mono faint grow truncate" :title="acc.npub">{{ acc.npub }}</div>
-          <div class="stat-sub" style="flex-shrink:0">{{ acc.objects || 0 }} objects · {{ acc.sizeStr || '0 Bytes' }}</div>
-        </div>
-      </div>
+      <p class="empty">Paste this into Cursor, Claude, or any agent that should publish a static site through this node.</p>
+      <pre class="code prompt">{{ agentPrompt }}</pre>
     </section>
 
     <section class="panel">
@@ -179,6 +152,30 @@
         if (!this.status.storageMaxBytes) return 0;
         const pct = (this.status.repoSizeBytes / this.status.storageMaxBytes) * 100;
         return Math.min(100, Math.max(0, Math.round(pct)));
+      },
+      agentPrompt() {
+        const origin = this.currentUrl;
+        const gateway = this.gatewayBase;
+        return `Publish static single-page websites with Originless. Pin them to IPFS on this node, then share the CID through a public gateway.
+
+Repo: https://github.com/besoeasy/Originless
+This Originless node: ${origin}
+IPFS gateway: ${gateway}
+
+Use this node for all uploads. Do not invent another host or API key. There is no auth.
+
+Endpoints:
+- POST ${origin}/uploadfolder — upload a site or folder (dist/, build/). Multipart field name is "file" for each file; set filename to the relative path so index.html, css, and js stay linked.
+- POST ${origin}/upload — single file. Multipart field "file".
+- GET ${origin}/health — liveness check.
+
+The JSON response includes "cid". That CID is the site's content address. This node's HTTP origin does not serve the site.
+
+After upload, return gateway URLs to the user:
+- ${gateway}{cid}/
+- ipfs://{cid}
+
+The folder's index.html is at the CID root. Keep relative asset paths. Never wrap the CID in ${origin}/upload or a local file path.`;
       },
     },
     watch: {
