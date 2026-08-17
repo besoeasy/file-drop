@@ -459,9 +459,13 @@
       },
       nostrImetaTag() {
         if (!this.result) return [];
+        const cid = this.result.cid;
+        const fn = encodeURIComponent(this.result.filename);
         const tag = [
           "imeta",
-          `url ${this.gatewayUrl}`,
+          `url https://dweb.link/ipfs/${cid}?filename=${fn}`,
+          `fallback https://ipfs.io/ipfs/${cid}?filename=${fn}`,
+          `fallback ipfs://${cid}?filename=${fn}`,
           `m ${this.result.mime || 'application/octet-stream'}`,
           `size ${this.result.size}`,
         ];

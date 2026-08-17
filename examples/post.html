@@ -577,10 +577,10 @@
 
             <div class="grid grid-2" style="margin-top:.85rem">
               <div>
-                <label class="kicker">Gateway URL Format</label>
+                <label class="kicker">Gateway URL Format &amp; Primary Source</label>
                 <select v-model="gatewayFormat" class="field">
-                  <option value="dweb">https://dweb.link/ipfs/ (Public IPFS)</option>
-                  <option value="ipfs">ipfs:// (Native URI)</option>
+                  <option value="dweb">https://dweb.link/ipfs/ (Web Compatible with Fallbacks)</option>
+                  <option value="ipfs">ipfs:// (Decentralized Native with Web Fallbacks)</option>
                   <option value="local">Originless Local Node Gateway</option>
                   <option value="custom">Custom Gateway Prefix</option>
                 </select>
@@ -596,6 +596,10 @@
             <div style="margin-top:1.15rem;padding:1rem;background:var(--bg-2);border-radius:6px;border:1px solid var(--line)">
               <div class="kicker" style="margin-bottom:.65rem">Included imeta Tag Fields:</div>
               <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(160px, 1fr));gap:.6rem;font-size:.82rem">
+                <label style="display:flex;align-items:center;gap:.45rem;cursor:pointer">
+                  <input v-model="includeFallbacks" type="checkbox" @change="metaPreset = 'custom'" />
+                  <span>Fallbacks (<span class="mono">fallback</span>)</span>
+                </label>
                 <label style="display:flex;align-items:center;gap:.45rem;cursor:pointer">
                   <input v-model="includeMime" type="checkbox" @change="metaPreset = 'custom'" />
                   <span>MIME (<span class="mono">m</span>)</span>
@@ -901,6 +905,7 @@
         gatewayFormat: "dweb",
         customGatewayPrefix: "https://ipfs.io/ipfs/",
         metaPreset: "standard",
+        includeFallbacks: true,
         includeMime: true,
         includeDim: true,
         includeHash: true,
@@ -968,22 +973,47 @@
         // imeta tags for each attached image
         for (let i = 0; i < this.images.length; i++) {
           const img = this.images[i];
-          const url = this.imageUrls[i];
+          const cid = img.cid || "QmPlaceholderCID";
+          let primaryUrl = "";
+          const fallbacks = [];
 
-          if (this.metaPreset === "simple") {
-            tags.push(["imeta", "url " + url]);
-          } else {
-            const imetaParts = ["imeta", "url " + url];
-            if (this.includeMime && img.mime) imetaParts.push("m " + img.mime);
-            if (this.includeHash && img.sha256) imetaParts.push("x " + img.sha256);
-            if (this.includeDim && img.dimensions) imetaParts.push("dim " + img.dimensions);
-            if (this.includeBlurhash && img.blurhash) {
-              const safeBlur = img.blurhash.replaceAll("{{", "{_").replaceAll("}}", "}_");
-              imetaParts.push("blurhash " + safeBlur);
-            }
-            if (this.includeAlt && img.alt && img.alt.trim()) imetaParts.push("alt " + img.alt.trim());
-            tags.push(imetaParts);
+          if (this.gatewayFormat === "dweb") {
+            primaryUrl = "https://dweb.link/ipfs/" + cid;
+            fallbacks.push("https://ipfs.io/ipfs/" + cid);
+            fallbacks.push("ipfs://" + cid);
+          } else if (this.gatewayFormat === "ipfs") {
+            primaryUrl = "ipfs://" + cid;
+            fallbacks.push("https://dweb.link/ipfs/" + cid);
+            fallbacks.push("https://ipfs.io/ipfs/" + cid);
+          } else if (this.gatewayFormat === "local") {
+            primaryUrl = (this.nodeUrl || "http://localhost:3232") + "/ipfs/" + cid;
+            fallbacks.push("https://dweb.link/ipfs/" + cid);
+            fallbacks.push("https://ipfs.io/ipfs/" + cid);
+            fallbacks.push("ipfs://" + cid);
+          } else if (this.gatewayFormat === "custom") {
+            const prefix = (this.customGatewayPrefix || "https://ipfs.io/ipfs/").replace(/\/$/, "") + "/";
+            primaryUrl = prefix + cid;
+            fallbacks.push("https://dweb.link/ipfs/" + cid);
+            fallbacks.push("ipfs://" + cid);
           }
+
+          const imetaParts = ["imeta", "url " + primaryUrl];
+
+          if (this.includeFallbacks) {
+            for (const fb of fallbacks) {
+              imetaParts.push("fallback " + fb);
+            }
+          }
+
+          if (this.includeMime && img.mime) imetaParts.push("m " + img.mime);
+          if (this.includeHash && img.sha256) imetaParts.push("x " + img.sha256);
+          if (this.includeDim && img.dimensions) imetaParts.push("dim " + img.dimensions);
+          if (this.includeBlurhash && img.blurhash) {
+            const safeBlur = img.blurhash.replaceAll("{{", "{_").replaceAll("}}", "}_");
+            imetaParts.push("blurhash " + safeBlur);
+          }
+          if (this.includeAlt && img.alt && img.alt.trim()) imetaParts.push("alt " + img.alt.trim());
+          tags.push(imetaParts);
         }
 
         return tags;
@@ -1005,18 +1035,21 @@
       setPreset(preset) {
         this.metaPreset = preset;
         if (preset === "simple") {
+          this.includeFallbacks = true;
           this.includeMime = false;
           this.includeDim = false;
           this.includeHash = false;
           this.includeBlurhash = false;
           this.includeAlt = false;
         } else if (preset === "standard") {
+          this.includeFallbacks = true;
           this.includeMime = true;
           this.includeDim = true;
           this.includeHash = true;
           this.includeBlurhash = false;
           this.includeAlt = false;
         } else if (preset === "full") {
+          this.includeFallbacks = true;
           this.includeMime = true;
           this.includeDim = true;
           this.includeHash = true;

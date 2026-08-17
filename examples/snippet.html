@@ -925,6 +925,8 @@ CREATE INDEX IF NOT EXISTS idx_uploads_created ON uploads(created_at DESC);`,
           if (this.receipt) {
             tags.push(["x", this.receipt.sha256]);
             tags.push(["url", this.receipt.gatewayUrl]);
+            tags.push(["fallback", `https://ipfs.io/ipfs/${this.receipt.cid}`]);
+            tags.push(["fallback", `ipfs://${this.receipt.cid}`]);
             tags.push(["i", `ipfs://${this.receipt.cid}`]);
           }
 
@@ -949,7 +951,14 @@ CREATE INDEX IF NOT EXISTS idx_uploads_created ON uploads(created_at DESC);`,
           ["t", "code"],
         ];
         if (this.receipt) {
-          tags.push(["imeta", `url ${this.receipt.gatewayUrl}`, `m ${lang.mime}`, `x ${this.receipt.sha256}`]);
+          tags.push([
+            "imeta",
+            `url ${this.receipt.gatewayUrl}`,
+            `fallback https://ipfs.io/ipfs/${this.receipt.cid}`,
+            `fallback ipfs://${this.receipt.cid}`,
+            `m ${lang.mime}`,
+            `x ${this.receipt.sha256}`,
+          ]);
         }
 
         return {
