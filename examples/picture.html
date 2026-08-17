@@ -1264,47 +1264,49 @@
             previewUrl: "",
           };
           this.images.push(imgItem);
+          const target = this.images.find((im) => im.id === id) || imgItem;
 
           // Asynchronously extract metadata & compute sha256
           (async () => {
             try {
               const meta = await extractImageMeta(file);
-              imgItem.dimensions = meta.dimensions;
-              imgItem.blurhash = meta.blurhash;
-              imgItem.previewUrl = meta.previewUrl;
+              target.dimensions = meta.dimensions;
+              target.blurhash = meta.blurhash;
+              target.previewUrl = meta.previewUrl;
             } catch (err) {
               console.warn(err);
             }
             try {
-              imgItem.sha256 = await calculateSha256(file);
+              target.sha256 = await calculateSha256(file);
             } catch (err) {
               console.warn(err);
             }
             // Auto-trigger upload
-            this.uploadSingleImage(imgItem);
+            this.uploadSingleImage(target);
           })();
         }
       },
       async uploadSingleImage(imgItem) {
-        if (imgItem.cid || imgItem.uploading) return;
-        imgItem.uploading = true;
-        imgItem.error = "";
+        const item = this.images.find((im) => im.id === imgItem.id) || imgItem;
+        if (item.cid || item.uploading) return;
+        item.uploading = true;
+        item.error = "";
         this.isUploadingAny = true;
         try {
           const form = new FormData();
-          form.append("file", imgItem.file, imgItem.name);
+          form.append("file", item.file, item.name);
           const origin = this.nodeUrl || "http://localhost:3232";
           const res = await fetch(origin + "/upload", { method: "POST", body: form });
           const body = await res.json();
           if (!res.ok || !body.cid) {
             throw new Error(body.details || body.error || body.message || ("HTTP " + res.status));
           }
-          imgItem.cid = body.cid;
-          if (body.type && !imgItem.mime) imgItem.mime = body.type;
+          item.cid = body.cid;
+          if (body.type && !item.mime) item.mime = body.type;
         } catch (err) {
-          imgItem.error = err.message || "Upload failed";
+          item.error = err.message || "Upload failed";
         } finally {
-          imgItem.uploading = false;
+          item.uploading = false;
           this.isUploadingAny = this.images.some((im) => im.uploading);
         }
       },
