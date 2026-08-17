@@ -14,6 +14,16 @@
   --accent: hsl(62, 84%, 88%);
   --ok: #03b000;
   --err: #c41222;
+  --c-peer: hsl(142, 72%, 32%);
+  --c-peer-bg: hsl(142, 48%, 93%);
+  --c-storage: hsl(34, 82%, 38%);
+  --c-storage-bg: hsl(40, 88%, 93%);
+  --c-bw: hsl(211, 78%, 40%);
+  --c-bw-bg: hsl(206, 78%, 94%);
+  --c-client: hsl(268, 42%, 44%);
+  --c-client-bg: hsl(268, 38%, 95%);
+  --c-objects: hsl(8, 72%, 46%);
+  --c-objects-bg: hsl(8, 78%, 95%);
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
   --font: "IBM Plex Sans", Helvetica, Arial, sans-serif;
   --mono: "IBM Plex Mono", ui-monospace, monospace;
@@ -95,8 +105,8 @@ button { cursor: pointer; }
 
 .top-actions { margin-left: .5rem; display: flex; align-items: center; gap: .85rem; flex-shrink: 0; }
 .dot {
-  width: .7rem; height: .7rem; flex-shrink: 0; background: var(--ok);
-  box-shadow: 0 0 0 0 rgb(3 176 0 / 0.45);
+  width: .7rem; height: .7rem; flex-shrink: 0; background: var(--c-peer);
+  box-shadow: 0 0 0 0 hsl(142 72% 32% / 0.45);
   animation: pulse 2.2s ease-out infinite;
 }
 .dash-title {
@@ -115,8 +125,23 @@ button { cursor: pointer; }
   display: flex;
   flex-direction: column;
   min-height: 10.5rem;
+  background: var(--tile-bg, var(--bg-2));
+  border-top: 3px solid var(--tile, transparent);
 }
-.dash-peers { justify-content: center; min-height: 14rem; }
+.dash > .tile .kicker {
+  color: var(--tile, var(--faint));
+  font-weight: 500;
+}
+.dash-peers {
+  --tile: var(--c-peer);
+  --tile-bg: var(--c-peer-bg);
+  justify-content: center;
+  min-height: 14rem;
+}
+.tile-storage { --tile: var(--c-storage); --tile-bg: var(--c-storage-bg); }
+.tile-bw { --tile: var(--c-bw); --tile-bg: var(--c-bw-bg); }
+.tile-client { --tile: var(--c-client); --tile-bg: var(--c-client-bg); }
+.tile-objects { --tile: var(--c-objects); --tile-bg: var(--c-objects-bg); }
 .dash-peers-main {
   display: flex;
   align-items: center;
@@ -127,7 +152,11 @@ button { cursor: pointer; }
   font-size: clamp(3.1rem, 8vw, 5.4rem);
   letter-spacing: -.06em;
   line-height: .9;
+  color: var(--c-peer);
 }
+.dash-peers .fig { color: var(--c-peer); opacity: .7; }
+.tile-storage .meter { background: hsl(40, 50%, 84%); }
+.tile-storage .meter > span { background: var(--c-storage); }
 .pulse-rings {
   position: relative;
   width: 1.35rem;
@@ -141,14 +170,14 @@ button { cursor: pointer; }
   content: "";
   position: absolute;
   inset: -6px;
-  border: 1px solid var(--ok);
+  border: 1px solid var(--c-peer);
   opacity: 0;
   animation: ring 2.4s ease-out infinite;
 }
 .pulse-rings::after { animation-delay: 1.2s; }
 @keyframes pulse {
-  70% { box-shadow: 0 0 0 8px rgb(3 176 0 / 0); }
-  100% { box-shadow: 0 0 0 0 rgb(3 176 0 / 0); }
+  70% { box-shadow: 0 0 0 8px hsl(142 72% 32% / 0); }
+  100% { box-shadow: 0 0 0 0 hsl(142 72% 32% / 0); }
 }
 @keyframes ring {
   0% { transform: scale(1); opacity: .45; }

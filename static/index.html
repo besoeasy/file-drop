@@ -40,7 +40,7 @@
         <div class="fig">peers on the swarm</div>
       </article>
 
-      <article class="tile">
+      <article class="tile tile-storage">
         <div class="kicker">Storage</div>
         <div class="stat-value" style="font-size:1.35rem">{{ storagePercent }}%</div>
         <div class="meter" style="margin-top:1rem"><span :style="{ width: storagePercent + '%' }"></span></div>
@@ -49,21 +49,21 @@
         <div class="stat-sub">evict at {{ pinStats.threshold }}%</div>
       </article>
 
-      <article class="tile">
+      <article class="tile tile-bw">
         <div class="kicker">Bandwidth</div>
         <div class="stat-value" style="font-size:1.25rem">{{ status.bandwidthIn }}</div>
         <div class="stat-sub">in · {{ status.bandwidthOut }} out</div>
         <div class="stat-sub">{{ status.bandwidthRate }}</div>
       </article>
 
-      <article class="tile">
+      <article class="tile tile-client">
         <div class="kicker">Client</div>
         <div class="stat-value" style="font-size:1.05rem">{{ status.version }}</div>
         <div class="stat-sub mono truncate" :title="status.nodeId">{{ status.nodeId }}</div>
         <div class="stat-sub">sync {{ status.timestamp }}</div>
       </article>
 
-      <article class="tile">
+      <article class="tile tile-objects">
         <div class="kicker">Objects</div>
         <div class="stat-value">{{ status.repoObjects }}</div>
         <div class="fig">in repository</div>
