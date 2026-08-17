@@ -82,7 +82,7 @@
           {{ copied === "prompt" ? "Copied" : "Copy" }}
         </button>
       </div>
-      <p class="empty">Paste this into Cursor, Claude, or any agent that should publish a static site through this node.</p>
+      <p class="empty">Paste this into Cursor, Claude, or any agent that should publish files through this node.</p>
       <pre class="code prompt">{{ agentPrompt }}</pre>
     </section>
 
@@ -156,7 +156,9 @@
       agentPrompt() {
         const origin = this.currentUrl;
         const gateway = this.gatewayBase;
-        return `Publish static single-page websites with Originless. Pin them to IPFS on this node, then share the CID through a public gateway.
+        return `Publish files with Originless. Pin them to IPFS on this node, then share the CID through a public gateway.
+
+This is not limited to websites. Use it for a music file, a generated index.html report, a photo, an image gallery, a video, a PDF, a folder of mixed assets, or a full dist/ site.
 
 Repo: https://github.com/besoeasy/Originless
 This Originless node: ${origin}
@@ -165,17 +167,19 @@ IPFS gateway: ${gateway}
 Use this node for all uploads. Do not invent another host or API key. There is no auth.
 
 Endpoints:
-- POST ${origin}/uploadfolder — upload a site or folder (dist/, build/). Multipart field name is "file" for each file; set filename to the relative path so index.html, css, and js stay linked.
-- POST ${origin}/upload — single file. Multipart field "file".
+- POST ${origin}/upload — one file. Multipart field "file".
+- POST ${origin}/uploadfolder — a folder (gallery, album, report, site). Multipart field name is "file" for each file; set filename to the relative path so links stay intact.
+- POST ${origin}/paste — text. JSON body {"content":"...","title":"optional"}.
 - GET ${origin}/health — liveness check.
 
-The JSON response includes "cid". That CID is the site's content address. This node's HTTP origin does not serve the site.
+The JSON response includes "cid". That CID is the content address. This node's HTTP origin does not serve the bytes.
 
 After upload, return gateway URLs to the user:
-- ${gateway}{cid}/
+- ${gateway}{cid}            (single file)
+- ${gateway}{cid}/           (folder; index.html at the root is served automatically)
 - ipfs://{cid}
 
-The folder's index.html is at the CID root. Keep relative asset paths. Never wrap the CID in ${origin}/upload or a local file path.`;
+Keep relative paths inside folders. Never wrap the CID in ${origin}/upload or a local file path.`;
       },
     },
     watch: {
