@@ -4,7 +4,7 @@
   --bg: #000000;
   --bg-2: rgba(44, 44, 46, 0.72);
   --bg-hover: rgba(255, 255, 255, 0.06);
-  --surface: rgba(28, 28, 30, 0.78);
+  --surface: #1c1c1e;
   --elevated: #2c2c2e;
   --ink: #f5f5f7;
   --muted: #98989d;
@@ -141,22 +141,34 @@ button { cursor: pointer; }
   display: flex;
   flex-direction: column;
   min-height: 10.5rem;
-  background: var(--tile-bg, var(--surface));
+  background: var(--surface);
   backdrop-filter: blur(22px) saturate(160%);
   -webkit-backdrop-filter: blur(22px) saturate(160%);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow: var(--shadow);
 }
 .dash > .tile .kicker {
-  color: var(--tile, var(--faint));
+  color: var(--tile, var(--muted));
   font-weight: 600;
   font-size: .72rem;
-  letter-spacing: .02em;
+  letter-spacing: .04em;
   text-transform: uppercase;
 }
+.dash > .tile .kicker::before {
+  content: "";
+  display: inline-block;
+  width: .42rem;
+  height: .42rem;
+  margin-right: .45rem;
+  border-radius: 50%;
+  background: var(--tile, var(--faint));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--tile) 22%, transparent);
+  vertical-align: 0.08em;
+}
+.dash > .tile .stat-value { color: var(--ink); }
+.dash > .tile.dash-peers .stat-value { color: var(--c-peer); }
 .dash-peers {
   --tile: var(--c-peer);
-  --tile-bg: var(--c-peer-bg);
   position: relative;
   overflow: hidden;
   justify-content: center;
@@ -165,37 +177,53 @@ button { cursor: pointer; }
   min-height: 22rem;
   padding: 2rem 2.1rem;
 }
+.dash-peers > :not(.dash-peers-bg) {
+  position: relative;
+  z-index: 1;
+}
+.dash-peers-bg {
+  position: absolute;
+  inset: -55%;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 46% 40% at 26% 38%, rgba(48, 209, 88, 0.22), transparent 58%),
+    radial-gradient(ellipse 38% 48% at 74% 64%, rgba(48, 209, 88, 0.1), transparent 56%),
+    radial-gradient(ellipse 30% 34% at 58% 16%, rgba(140, 255, 180, 0.08), transparent 52%);
+  filter: blur(22px);
+  animation: peer-aurora 16s ease-in-out infinite;
+}
 .dash-peers-wash {
   position: absolute;
   inset: 0;
+  z-index: 2;
   pointer-events: none;
   opacity: 0;
 }
 .dash-peers-wash.is-up {
-  background: radial-gradient(ellipse 75% 90% at 16% 55%, hsl(142 78% 48% / 0.5), transparent 64%);
+  background: radial-gradient(ellipse 75% 90% at 16% 55%, rgba(48, 209, 88, 0.35), transparent 64%);
   animation: peer-wash-up 1s var(--ease);
 }
 .dash-peers-wash.is-down {
-  background: radial-gradient(ellipse 75% 90% at 16% 55%, hsl(142 35% 28% / 0.28), transparent 64%);
+  background: radial-gradient(ellipse 75% 90% at 16% 55%, rgba(48, 209, 88, 0.12), transparent 64%);
   animation: peer-wash-down 1s var(--ease);
 }
-.tile-storage { --tile: var(--c-storage); --tile-bg: var(--c-storage-bg); }
-.tile-bw { --tile: var(--c-bw); --tile-bg: var(--c-bw-bg); }
-.tile-client { --tile: var(--c-client); --tile-bg: var(--c-client-bg); }
-.tile-objects { --tile: var(--c-objects); --tile-bg: var(--c-objects-bg); }
+.tile-storage { --tile: var(--c-storage); }
+.tile-bw { --tile: var(--c-bw); }
+.tile-client { --tile: var(--c-client); }
+.tile-objects { --tile: var(--c-objects); }
 .tile-examples {
   --tile: var(--accent);
-  --tile-bg: var(--accent-fill);
   justify-content: center;
   min-height: 7.5rem;
-  transition: transform .2s var(--ease), box-shadow .2s var(--ease), background .2s;
+  transition: transform .2s var(--ease), box-shadow .2s var(--ease), background .2s, border-color .2s;
 }
 .tile-examples:hover {
-  background: rgba(10, 132, 255, 0.28);
+  background: var(--elevated);
+  border-color: rgba(10, 132, 255, 0.45);
   transform: translateY(-1px);
-  box-shadow: 0 8px 28px rgba(10, 132, 255, 0.22);
+  box-shadow: 0 8px 28px rgba(10, 132, 255, 0.14);
 }
-.tile-examples .stat-value { color: var(--ink); }
 .tile-examples .fig { color: var(--accent); }
 .dash-peers-main {
   display: flex;
@@ -251,6 +279,12 @@ button { cursor: pointer; }
   0% { opacity: 0; transform: scale(1.2); }
   28% { opacity: 1; }
   100% { opacity: 0; transform: scale(.7); }
+}
+@keyframes peer-aurora {
+  0% { transform: translate(-5%, -4%) rotate(0deg) scale(1); }
+  40% { transform: translate(7%, 5%) rotate(12deg) scale(1.12); }
+  70% { transform: translate(2%, 9%) rotate(-8deg) scale(1.06); }
+  100% { transform: translate(-5%, -4%) rotate(0deg) scale(1); }
 }
 
 .btn {
