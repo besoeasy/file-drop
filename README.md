@@ -47,9 +47,10 @@ docker run -d \
   ghcr.io/besoeasy/originless:latest
 ```
 
-### Post an image to Nostr (`ipfs://`)
+### Examples & Nostr Posting
 
-With Originless running, open **[http://localhost:3232/examples/post.html](http://localhost:3232/examples/post.html)** in a browser with a NIP-07 extension (Alby, nos2x, …). It uploads the image to this node, then signs a kind `1` note (NIP-92 `imeta`) and a kind `1063` file event pointing at `ipfs://<cid>`.
+- **Kind 20 Picture Post Generator (Instagram-style photo dump)**: Open **[http://localhost:3232/examples/picture.html](http://localhost:3232/examples/picture.html)** to batch upload photos to IPFS, preview an interactive carousel feed, generate NIP-68 Kind 20 JSON with NIP-92 `imeta` tags (URL, MIME, SHA-256, dimensions, blurhash, alt), and publish directly or via [NoStrudel Publisher](https://nostrudel.ninja/tools/publisher).
+- **Post to Nostr with ipfs:// (Kind 1 + 1063)**: Open **[http://localhost:3232/examples/post.html](http://localhost:3232/examples/post.html)** to connect a browser extension (Alby, nos2x, …), upload an image, and publish kind `1` note + kind `1063` file events.
 
 ---
 

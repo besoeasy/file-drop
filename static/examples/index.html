@@ -18,11 +18,28 @@
       <h1>Examples</h1>
       <p>Small pages that talk to this node. Open them from the Originless origin so uploads and NIP-07 stay on the same host.</p>
     </div>
-    <a class="card card-pad" href="/examples/post.html" style="display:block;max-width:36rem">
-      <p class="kicker">NIP-07</p>
-      <h2 style="margin:0 0 .4rem">Post to Nostr with ipfs://</h2>
-      <p class="muted" style="margin:0">Connect a browser extension, upload an image, and publish kind 1 + 1063 events.</p>
-    </a>
+    <div class="grid grid-2 stagger">
+      <a class="tile" href="/examples/picture.html" style="display:block">
+        <div class="card-head">
+          <span class="pill pill-post">NIP-68 · Kind 20</span>
+          <span class="link-more">Open →</span>
+        </div>
+        <div class="card-pad" style="padding-top:0">
+          <h2 style="margin:0 0 .4rem;font-size:1.1rem">Kind 20 Picture Post Generator</h2>
+          <p class="muted" style="margin:0">Create Instagram-like multi-image photo dumps with NIP-92 imeta tags. Upload to IPFS, preview carousel, copy JSON for NoStrudel, or publish directly.</p>
+        </div>
+      </a>
+      <a class="tile" href="/examples/post.html" style="display:block">
+        <div class="card-head">
+          <span class="pill pill-get">NIP-07 · Kind 1 + 1063</span>
+          <span class="link-more">Open →</span>
+        </div>
+        <div class="card-pad" style="padding-top:0">
+          <h2 style="margin:0 0 .4rem;font-size:1.1rem">Post to Nostr with ipfs://</h2>
+          <p class="muted" style="margin:0">Connect a browser extension, upload an image to this node, and publish kind 1 + 1063 events pointing at ipfs://&lt;cid&gt;.</p>
+        </div>
+      </a>
+    </div>
   </main>
   <div data-ol-foot></div>
 </div>
