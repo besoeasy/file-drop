@@ -7,7 +7,6 @@
   <meta name="theme-color" content="#000000" />
   <link rel="icon" type="image/svg+xml" href="/logo.svg" />
   <link rel="stylesheet" href="/css/app.css" />
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
 </head>
 <body>
 <div id="app" class="shell">
@@ -80,10 +79,10 @@
                     <div v-if="acc.pubkey" class="mono faint" style="font-size:.62rem;margin-top:.3rem;word-break:break-all">{{ acc.pubkey }}</div>
                   </div>
                   <button class="icon-btn" type="button" @click="copyText(acc.npub, acc.npub)" :class="{ 'is-copied': copied === acc.npub }" :title="copied === acc.npub ? 'Copied' : 'Copy npub'">
-                    <i class="fas fa-copy"></i>
+                    <img class="icon" src="/icons/copy.svg" alt="" />
                   </button>
                   <a class="icon-btn" :href="'https://njump.me/' + acc.npub" target="_blank" rel="noopener" title="Open profile">
-                    <i class="fas fa-external-link-alt"></i>
+                    <img class="icon" src="/icons/external-link.svg" alt="" />
                   </a>
                 </div>
               </td>

@@ -12,8 +12,8 @@
   }
 
   const PAGES = [
-    { id: "overview", href: "/", label: "Overview", icon: "fa-chart-line", group: "Look" },
-    { id: "archive", href: "/archive.html", label: "Archive", icon: "fa-box-archive", group: "Keep" },
+    { id: "overview", href: "/", label: "Overview", icon: "/icons/chart.svg", group: "Look" },
+    { id: "archive", href: "/archive.html", label: "Archive", icon: "/icons/archive.svg", group: "Keep" },
   ];
 
   function formatBytes(bytes) {
@@ -123,7 +123,7 @@
     const desktop = PAGES.map(links).join("");
     const mobile = PAGES.map(
       (page) =>
-        `<a href="${page.href}" class="${page.id === active ? "is-active" : ""}"><i class="fas ${page.icon}"></i>${page.label}</a>`
+        `<a href="${page.href}" class="${page.id === active ? "is-active" : ""}"><img class="icon" src="${page.icon}" alt="" />${page.label}</a>`
     ).join("");
 
     return `
