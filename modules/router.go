@@ -19,9 +19,11 @@ func NewRouter(ipfsClient *Client, janitorManager *Manager, archiver *Archiver, 
 	mux.HandleFunc("GET /archive", handler.ArchiveList)
 	mux.HandleFunc("GET /metrics", metrics.Handler(janitorManager, ipfsClient, archiver))
 	// The Nostr archive page is only available when at least one npub is configured.
-	mux.HandleFunc("GET /archive.html", func(w http.ResponseWriter, r *http.Request) {
+	// Pattern without a method so the guard covers GET, HEAD, and any other verb
+	// (otherwise non-GET requests fall through to the "/" FileServer).
+	mux.HandleFunc("/archive.html", func(w http.ResponseWriter, r *http.Request) {
 		if len(NostrNpubs) == 0 {
-			http.NotFound(w, r)
+			http.Redirect(w, r, "/", http.StatusFound)
 			return
 		}
 		http.ServeFileFS(w, r, uiFS, "archive.html")
