@@ -5,7 +5,6 @@
     { label: "ipfs.io (Official)", url: "https://ipfs.io/ipfs/" },
     { label: "w3s.link (Web3.Storage)", url: "https://w3s.link/ipfs/" },
     { label: "cloudflare-ipfs.com (Cloudflare)", url: "https://cloudflare-ipfs.com/ipfs/" },
-    { label: "localhost:8080 (Local Kubo)", url: "http://localhost:8080/ipfs/" },
   ];
 
   function formatBytes(bytes) {
