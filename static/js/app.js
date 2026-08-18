@@ -141,7 +141,7 @@
           typeFilter: "all",
           sortBy: "date-desc",
           
-          activeTab: "upload", // upload, folder, paste, prompt, api
+          activeTab: "upload", // upload, folder, prompt
           
           // Single File Upload
           dragOver: false,
@@ -156,13 +156,6 @@
           folderTotalSize: 0,
           isUploadingFolder: false,
           lastFolderResult: null,
-
-          // Snippet Paste
-          pasteContent: "",
-          pasteTitle: "",
-          pasteLanguage: "markdown",
-          isPasting: false,
-          lastPasteResult: null,
 
           // Agent Prompt Config
           promptFormat: "plain", // plain, markdown, curl, python
@@ -260,7 +253,6 @@
 #### API Endpoints
 - **Upload Single File**: \`POST ${origin}/upload\` (Multipart field: \`file\`)
 - **Upload Directory / DApp**: \`POST ${origin}/uploadfolder\` (Multipart field: \`file\`, relative paths)
-- **Pin Code / Text Paste**: \`POST ${origin}/paste\` (JSON body: \`{"content":"...", "title":"..."}\`)
 - **Node Health Probe**: \`GET ${origin}/health\`
 - **Node Telemetry**: \`GET ${origin}/status\`
 
@@ -289,12 +281,7 @@ curl -X POST \\
   -F "file=@dist/assets/app.js;filename=assets/app.js" \\
   ${origin}/uploadfolder
 
-# 3. Create a text paste / JSON snippet
-curl -X POST -H "Content-Type: application/json" \\
-  -d '{"content":"Hello Decentralized IPFS","title":"welcome.txt"}' \\
-  ${origin}/paste
-
-# 4. Check node telemetry & swarm status
+# 3. Check node telemetry & swarm status
 curl ${origin}/status`;
           }
 
@@ -309,12 +296,7 @@ with open("sample.png", "rb") as f:
     r = requests.post(f"{ORIGIN}/upload", files={"file": f})
     data = r.json()
     cid = data["cid"]
-    print(f"Pinned: {GATEWAY}{cid}")
-
-# 2. Upload a text snippet
-payload = {"content": "Hello Autonomous Agents", "title": "note.txt"}
-r = requests.post(f"{ORIGIN}/paste", json=payload)
-print("Paste CID:", r.json()["cid"])`;
+    print(f"Pinned: {GATEWAY}{cid}")`;
           }
 
           // Plain text default
@@ -331,7 +313,6 @@ Use this node for all uploads. Do not invent another host or API key. There is n
 Endpoints:
 - POST ${origin}/upload — one file. Multipart field "file".
 - POST ${origin}/uploadfolder — a folder (gallery, album, report, site). Multipart field name is "file" for each file; set filename to the relative path so links stay intact.
-- POST ${origin}/paste — text. JSON body {"content":"...","title":"optional"}.
 - GET ${origin}/health — liveness check.
 
 The JSON response includes "cid". That CID is the content address. This node's HTTP origin does not serve the bytes.
@@ -600,47 +581,6 @@ To confirm you have understood this skill, complete this check:
             if (this.$refs.folderInput) {
               this.$refs.folderInput.value = "";
             }
-          }
-        },
-
-        // Paste Snippet
-        async submitPaste() {
-          if (!this.pasteContent.trim()) {
-            this.showToast("Paste content cannot be empty", "error");
-            return;
-          }
-
-          this.isPasting = true;
-          this.lastPasteResult = null;
-
-          try {
-            const res = await fetch("/paste", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                content: this.pasteContent,
-                title: this.pasteTitle.trim() || undefined,
-                language: this.pasteLanguage,
-              }),
-            });
-
-            const data = await res.json();
-            if (res.ok && data.status === "success") {
-              this.lastPasteResult = data;
-              this.showToast(`Pinned snippet "${data.title}"!`, "success");
-              this.pasteContent = "";
-              this.pasteTitle = "";
-              this.fetchHistory();
-              this.fetchPinStats();
-              this.fetchStatus();
-            } else {
-              throw new Error(data.message || data.error || "Paste failed");
-            }
-          } catch (err) {
-            console.error("Paste error:", err);
-            this.showToast(err.message, "error");
-          } finally {
-            this.isPasting = false;
           }
         },
 

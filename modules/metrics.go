@@ -19,7 +19,6 @@ type Metrics struct {
 	errors     atomic.Int64
 	uploads    atomic.Int64
 	uploadSize atomic.Int64
-	pastes     atomic.Int64
 
 	ipfsHealthy atomic.Int64
 	peers       atomic.Int64
@@ -80,8 +79,6 @@ func (m *Metrics) IncUpload(size int64) {
 	m.uploads.Add(1)
 	m.uploadSize.Add(size)
 }
-
-func (m *Metrics) IncPaste() { m.pastes.Add(1) }
 
 func (m *Metrics) SetIPFS(healthy bool, peers int) {
 	if healthy {
@@ -158,10 +155,6 @@ func (m *Metrics) Handler(janitor *Manager, ipfs *Client, archiver *Archiver) ht
 		sb.WriteString("# HELP originless_upload_bytes_total Total bytes uploaded.\n")
 		sb.WriteString("# TYPE originless_upload_bytes_total counter\n")
 		fmt.Fprintf(&sb, "originless_upload_bytes_total %d\n", m.uploadSize.Load())
-
-		sb.WriteString("# HELP originless_pastes_total Total pastes created.\n")
-		sb.WriteString("# TYPE originless_pastes_total counter\n")
-		fmt.Fprintf(&sb, "originless_pastes_total %d\n", m.pastes.Load())
 
 		sb.WriteString("# HELP originless_pinned_count Number of pinned uploads.\n")
 		sb.WriteString("# TYPE originless_pinned_count gauge\n")

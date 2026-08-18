@@ -189,17 +189,6 @@
               Folder / DApp
             </button>
 
-            <button class="action-tab-button" :class="{ 'is-active': activeTab === 'paste' }" @click="activeTab = 'paste'">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                <polyline points="14 2 14 8 20 8"></polyline>
-                <line x1="16" y1="13" x2="8" y2="13"></line>
-                <line x1="16" y1="17" x2="8" y2="17"></line>
-                <polyline points="10 9 9 9 8 9"></polyline>
-              </svg>
-              Paste Snippet
-            </button>
-
             <button class="action-tab-button" :class="{ 'is-active': activeTab === 'prompt' }" @click="activeTab = 'prompt'">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"></path>
@@ -351,59 +340,6 @@
                   <a class="btn-core btn-core-primary btn-core-sm" :href="currentGateway + lastFolderResult.cid + '/'" target="_blank" rel="noopener">
                     Launch ↗
                   </a>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- 3. Snippet Paste -->
-          <div v-if="activeTab === 'paste'">
-            <div style="display: grid; grid-template-columns: 1fr 140px; gap: 0.75rem; margin-bottom: 0.75rem;">
-              <input v-model="pasteTitle" class="form-input-modern" type="text" placeholder="Title (e.g. config.json, note.md)" />
-              <select v-model="pasteLanguage" class="form-input-modern">
-                <option value="markdown">Markdown</option>
-                <option value="javascript">JavaScript</option>
-                <option value="typescript">TypeScript</option>
-                <option value="json">JSON</option>
-                <option value="html">HTML</option>
-                <option value="css">CSS</option>
-                <option value="python">Python</option>
-                <option value="go">Go</option>
-                <option value="text">Plain Text</option>
-              </select>
-            </div>
-
-            <textarea v-model="pasteContent" class="form-textarea-modern" placeholder="Paste your text or code snippet here..."></textarea>
-
-            <div style="display: flex; justify-content: flex-end; margin-top: 0.75rem;">
-              <button class="btn-core btn-core-primary" :disabled="isPasting || !pasteContent.trim()" @click="submitPaste">
-                {{ isPasting ? 'Pinning...' : 'Pin Snippet to IPFS' }}
-              </button>
-            </div>
-
-            <div v-if="lastPasteResult" class="pin-result-banner">
-              <div class="pin-result-header">
-                <div class="pin-result-title">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-                    <polyline points="22 4 12 14.01 9 11.01"></polyline>
-                  </svg>
-                  <span>Snippet Pinned: {{ lastPasteResult.title }}</span>
-                </div>
-              </div>
-
-              <div class="meta-record-grid">
-                <div class="meta-record-row">
-                  <span class="meta-record-key">CID</span>
-                  <span class="meta-record-val">{{ lastPasteResult.cid }}</span>
-                  <div style="display: flex; gap: 0.35rem;">
-                    <button class="btn-core btn-core-secondary btn-core-sm" @click="copyText(lastPasteResult.cid, 'CID copied!')">
-                      Copy
-                    </button>
-                    <a class="btn-core btn-core-primary btn-core-sm" :href="'/paste/' + lastPasteResult.cid" target="_blank">
-                      Raw View
-                    </a>
-                  </div>
                 </div>
               </div>
             </div>

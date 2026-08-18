@@ -19,8 +19,7 @@ const (
 	AppVersion       = "0.6.0"
 	MaxConcurrentOps = 3
 	PinThreshold     = 75
-	JanitorInterval  = 60      // minutes
-	PasteLimit       = 1 << 20 // 1 MiB max paste size
+	JanitorInterval  = 60 // minutes
 )
 
 var (
