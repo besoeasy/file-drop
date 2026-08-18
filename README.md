@@ -47,6 +47,12 @@ docker run -d \
   ghcr.io/besoeasy/originless:latest
 ```
 
+## Testing
+
+```bash
+docker build -t originless:local . && docker run --name originless -p 3232:3232 originless:local
+```
+
 ## ⚡ Quick Showcase — Upload in One Command
 
 Uploading to Originless is a single `POST /upload` request — **no API keys, no accounts, no auth**:
@@ -55,7 +61,8 @@ Uploading to Originless is a single `POST /upload` request — **no API keys, no
 curl -X POST -F "file=@my-image.png" http://localhost:3232/upload
 ```
 
-*Response:*
+_Response:_
+
 ```json
 {
   "status": "success",
@@ -105,27 +112,27 @@ Client examples and decoupled tools are located in the [`examples/`](examples/) 
 
 ## ⚡ Why Originless vs. Nostr Blossom & Centralized Media Servers
 
-| Feature | Nostr Blossom / Centralized HTTP Servers | 🌐 **Originless** |
-| :--- | :--- | :--- |
-| **Domain & Network Setup** | ❌ **Requires** public domain, SSL certificates (HTTPS), and open public web ports. | ✅ **Zero Domain / NAT Ready**. Runs behind home routers, firewalls, or local Docker containers via `libp2p`. |
-| **Hosting Liability & Risk** | ❌ Server acts as direct HTTP web host (`https://server.com/<hash>`), making operator directly liable. | ✅ **Decentralized Swarm Buffer**. Content is content-addressed (`ipfs://CID`) and distributed over global P2P nodes. |
-| **Link Resilience** | ❌ Single point of failure. If server operator shuts down, all file links break instantly. | ✅ **Origin-Independent**. Content propagates across global IPFS swarm and stays alive even if your node shuts down. |
-| **Multi-File & DApp Support** | ❌ Single flat files/blobs only (photos/videos). | ✅ **Full Directory & DApp Hosting**. Upload entire Vite/React `dist/` folders or static apps. |
-| **Trustless Client Verification**| ❌ Relies on server trust. | ✅ **Content-Addressed Cryptography**. Verifiable via `@helia/verified-fetch` down to raw data blocks. |
+| Feature                           | Nostr Blossom / Centralized HTTP Servers                                                               | 🌐 **Originless**                                                                                                     |
+| :-------------------------------- | :----------------------------------------------------------------------------------------------------- | :-------------------------------------------------------------------------------------------------------------------- |
+| **Domain & Network Setup**        | ❌ **Requires** public domain, SSL certificates (HTTPS), and open public web ports.                    | ✅ **Zero Domain / NAT Ready**. Runs behind home routers, firewalls, or local Docker containers via `libp2p`.         |
+| **Hosting Liability & Risk**      | ❌ Server acts as direct HTTP web host (`https://server.com/<hash>`), making operator directly liable. | ✅ **Decentralized Swarm Buffer**. Content is content-addressed (`ipfs://CID`) and distributed over global P2P nodes. |
+| **Link Resilience**               | ❌ Single point of failure. If server operator shuts down, all file links break instantly.             | ✅ **Origin-Independent**. Content propagates across global IPFS swarm and stays alive even if your node shuts down.  |
+| **Multi-File & DApp Support**     | ❌ Single flat files/blobs only (photos/videos).                                                       | ✅ **Full Directory & DApp Hosting**. Upload entire Vite/React `dist/` folders or static apps.                        |
+| **Trustless Client Verification** | ❌ Relies on server trust.                                                                             | ✅ **Content-Addressed Cryptography**. Verifiable via `@helia/verified-fetch` down to raw data blocks.                |
 
 ---
 
 ## 🌟 Primary Use Cases
 
-| Use Case | Description |
-| :--- | :--- |
-| **🚀 Decentralized DApp Hosting** | Drag-and-drop or upload your frontend `dist/` folder to host permanent, censorship-resistant web applications on IPFS. |
-| **💬 Nostr Media Attachments** | Instant, zero-auth media uploader for decentralized social apps (e.g., [0xchat](https://0xchat.com/)). |
-| **📡 Personal Nostr IPFS Archive** | Mirror IPFS media from your (or followed) `npub`s onto a local volume so kind 1063 files, `ipfs://` notes, and gateway links survive even if the original pin disappears. |
-| **🤖 Autonomous AI Agent Outputs** | Give AI assistants the ability to publish reports, interactive charts, and generated images with zero setup or API keys. |
-| **🖼️ Anonymous Image & Screenshot Sharing** | Instant backend for screenshot capture tools, screen recordings, and temporary image uploads. |
-| **📝 Pastebin & Code Snippet Sharing** | Share text, log files, or code snippets without fear of link rot or centralized deletion. |
-| **📦 Resilient Asset Distribution** | Distribute software releases, binaries, audio/podcasts, or heavy media over a self-healing P2P network. |
+| Use Case                                    | Description                                                                                                                                                               |
+| :------------------------------------------ | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **🚀 Decentralized DApp Hosting**           | Drag-and-drop or upload your frontend `dist/` folder to host permanent, censorship-resistant web applications on IPFS.                                                    |
+| **💬 Nostr Media Attachments**              | Instant, zero-auth media uploader for decentralized social apps (e.g., [0xchat](https://0xchat.com/)).                                                                    |
+| **📡 Personal Nostr IPFS Archive**          | Mirror IPFS media from your (or followed) `npub`s onto a local volume so kind 1063 files, `ipfs://` notes, and gateway links survive even if the original pin disappears. |
+| **🤖 Autonomous AI Agent Outputs**          | Give AI assistants the ability to publish reports, interactive charts, and generated images with zero setup or API keys.                                                  |
+| **🖼️ Anonymous Image & Screenshot Sharing** | Instant backend for screenshot capture tools, screen recordings, and temporary image uploads.                                                                             |
+| **📝 Pastebin & Code Snippet Sharing**      | Share text, log files, or code snippets without fear of link rot or centralized deletion.                                                                                 |
+| **📦 Resilient Asset Distribution**         | Distribute software releases, binaries, audio/podcasts, or heavy media over a self-healing P2P network.                                                                   |
 
 ---
 
@@ -167,16 +174,18 @@ Client examples and decoupled tools are located in the [`examples/`](examples/) 
 
 ### 🛡️ Recommended for Automated Fetching: [`@helia/verified-fetch`](https://github.com/ipfs/helia-verified-fetch)
 
-We strongly recommend using [**`@helia/verified-fetch`**](https://github.com/ipfs/helia-verified-fetch) for programmatic and automated retrieval of files pinned via Originless. 
+We strongly recommend using [**`@helia/verified-fetch`**](https://github.com/ipfs/helia-verified-fetch) for programmatic and automated retrieval of files pinned via Originless.
 
 Unlike traditional HTTP requests to central gateways, `helia-verified-fetch` provides **trustless, content-addressed verification**. It downloads raw blocks directly over IPFS / libp2p, verifies the cryptographic hash against the CID in real-time, and protects your applications from tampered or stale data.
 
 #### Installation
+
 ```bash
 npm install @helia/verified-fetch
 ```
 
 #### Example Usage
+
 ```javascript
 import { verifiedFetch } from "@helia/verified-fetch";
 
@@ -190,6 +199,7 @@ const fileBlob = await response.blob();
 ```
 
 ### 🌐 Standard Public Gateways
+
 For simple browser links or non-verified web views, standard IPFS gateway URLs can also be used:
 
 ```text
@@ -203,10 +213,13 @@ https://dweb.link/ipfs/QmX...?filename=document.pdf
 Base URL: `http://localhost:3232`
 
 ### Upload Single File
+
 ```bash
 curl -X POST -F "file=@photo.png" http://localhost:3232/upload
 ```
-*Response:*
+
+_Response:_
+
 ```json
 {
   "status": "success",
@@ -218,6 +231,7 @@ curl -X POST -F "file=@photo.png" http://localhost:3232/upload
 ```
 
 ### Upload Folder / DApp
+
 ```bash
 curl -X POST \
   -F "file=@dist/index.html;filename=index.html" \
@@ -226,6 +240,7 @@ curl -X POST \
 ```
 
 ### Check Storage & Pins
+
 ```bash
 curl http://localhost:3232/pins
 curl http://localhost:3232/history
@@ -233,16 +248,17 @@ curl http://localhost:3232/status
 ```
 
 ### Nostr IPFS Archive
+
 When `NOSTR_NPUBS` is set, Originless walks those accounts every `ARCHIVE_INTERVAL` minutes (first scan at startup), extracts IPFS CIDs, and copies the bytes to `/archive`.
 
 **Sources scanned**
 
-| Source | Example |
-| :--- | :--- |
-| `ipfs://` in note content | `ipfs://bafybei...` |
-| Public gateway URLs | `https://ipfs.io/ipfs/bafybei...`, `https://dweb.link/ipfs/...`, Pinata, Cloudflare, `<cid>.ipfs.*` subdomains |
-| NIP-94 kind `1063` | `["url", "ipfs://..."]`, `["m", "image/png"]`, `["x", "<sha256>"]` |
-| NIP-92 `imeta` tags | `["imeta", "url https://.../ipfs/<cid>", "m image/jpeg", "x <sha256>"]` |
+| Source                    | Example                                                                                                        |
+| :------------------------ | :------------------------------------------------------------------------------------------------------------- |
+| `ipfs://` in note content | `ipfs://bafybei...`                                                                                            |
+| Public gateway URLs       | `https://ipfs.io/ipfs/bafybei...`, `https://dweb.link/ipfs/...`, Pinata, Cloudflare, `<cid>.ipfs.*` subdomains |
+| NIP-94 kind `1063`        | `["url", "ipfs://..."]`, `["m", "image/png"]`, `["x", "<sha256>"]`                                             |
+| NIP-92 `imeta` tags       | `["imeta", "url https://.../ipfs/<cid>", "m image/jpeg", "x <sha256>"]`                                        |
 
 **Kinds:** `1` notes, `6` reposts, `20` pictures, `1063` files, `30023`/`30024` long-form, `9802` highlights.
 
@@ -259,10 +275,13 @@ curl -O http://localhost:3232/archive/<cid>
 ```
 
 ### Health Check
+
 ```bash
 curl http://localhost:3232/health
 ```
-*Response:*
+
+_Response:_
+
 ```json
 {
   "status": "healthy",
@@ -271,11 +290,15 @@ curl http://localhost:3232/health
 ```
 
 ### Prometheus Metrics
+
 Exposes Prometheus text-format metrics (request counts, uploads, pinned storage, IPFS health, Nostr archive size) for scraping by Prometheus, Grafana, or any metrics collector:
+
 ```bash
 curl http://localhost:3232/metrics
 ```
-*Sample output:*
+
+_Sample output:_
+
 ```
 originless_http_requests_total{path="/upload"} 42
 originless_uploads_total 42
@@ -292,21 +315,21 @@ originless_archive_bytes 2097152
 
 ## ⚙️ Environment Configuration
 
-| Variable | Default | Description |
-| :--- | :--- | :--- |
-| `STORAGE_MAX` | `100GB` | Maximum storage limit allocated to IPFS data. |
-| `PIN_EXPIRY_DAYS` | `30` | Days a file stays pinned before the janitor may evict it. |
-| `NOSTR_NPUBS` | `""` | Comma-separated list or JSON array of Nostr `npub` public keys. Enables the IPFS media archiver. |
-| `NOSTR_RELAYS` | famous relays | WebSocket relay URLs (comma-separated or JSON). Defaults: `wss://relay.damus.io`, `wss://nos.lol`, `wss://relay.nostr.band`, `wss://relay.primal.net`, `wss://nostr.mom`, `wss://purplerelay.com`, `wss://offchain.pub`, `wss://eden.nostr.land`. |
-| `ARCHIVE_DIR` | `/archive` | Directory (Docker volume) for permanent Nostr IPFS media. Never garbage-collected. |
-| `ARCHIVE_INTERVAL` | `15` | Minutes between Nostr archive scans. First scan runs at startup. |
-| `ARCHIVE_REPIN_HOURS` | `6` | Hours between re-pinning every archived CID into Kubo (DHT provide + restore blocks from `/archive` if needed). |
+| Variable              | Default       | Description                                                                                                                                                                                                                                       |
+| :-------------------- | :------------ | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `STORAGE_MAX`         | `100GB`       | Maximum storage limit allocated to IPFS data.                                                                                                                                                                                                     |
+| `PIN_EXPIRY_DAYS`     | `30`          | Days a file stays pinned before the janitor may evict it.                                                                                                                                                                                         |
+| `NOSTR_NPUBS`         | `""`          | Comma-separated list or JSON array of Nostr `npub` public keys. Enables the IPFS media archiver.                                                                                                                                                  |
+| `NOSTR_RELAYS`        | famous relays | WebSocket relay URLs (comma-separated or JSON). Defaults: `wss://relay.damus.io`, `wss://nos.lol`, `wss://relay.nostr.band`, `wss://relay.primal.net`, `wss://nostr.mom`, `wss://purplerelay.com`, `wss://offchain.pub`, `wss://eden.nostr.land`. |
+| `ARCHIVE_DIR`         | `/archive`    | Directory (Docker volume) for permanent Nostr IPFS media. Never garbage-collected.                                                                                                                                                                |
+| `ARCHIVE_INTERVAL`    | `15`          | Minutes between Nostr archive scans. First scan runs at startup.                                                                                                                                                                                  |
+| `ARCHIVE_REPIN_HOURS` | `6`           | Hours between re-pinning every archived CID into Kubo (DHT provide + restore blocks from `/archive` if needed).                                                                                                                                   |
 
 **Volumes**
 
-| Path | Role |
-| :--- | :--- |
-| `/data` | SQLite database and Kubo IPFS repository. Janitor may unpin content here. |
+| Path       | Role                                                                                |
+| :--------- | :---------------------------------------------------------------------------------- |
+| `/data`    | SQLite database and Kubo IPFS repository. Janitor may unpin content here.           |
 | `/archive` | Permanent copies of IPFS media discovered on configured Nostr accounts. Never GC'd. |
 
 ---
