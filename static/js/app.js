@@ -3,8 +3,6 @@
   const GATEWAYS = [
     { label: "dweb.link (Protocol Labs)", url: "https://dweb.link/ipfs/" },
     { label: "ipfs.io (Official)", url: "https://ipfs.io/ipfs/" },
-    { label: "w3s.link (Web3.Storage)", url: "https://w3s.link/ipfs/" },
-    { label: "cloudflare-ipfs.com (Cloudflare)", url: "https://cloudflare-ipfs.com/ipfs/" },
   ];
 
   function formatBytes(bytes) {
