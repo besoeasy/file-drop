@@ -3,6 +3,7 @@ package modules
 import (
 	"encoding/json"
 	"errors"
+	"io/fs"
 	"log"
 	"net/http"
 	"strconv"
@@ -10,20 +11,22 @@ import (
 )
 
 type Handler struct {
-	ipfs      *Client
-	janitor   *Manager
-	metrics   *Metrics
-	archive   *Archiver
-	semaphore chan struct{}
+	ipfs       *Client
+	janitor    *Manager
+	metrics    *Metrics
+	archive    *Archiver
+	examplesFS fs.FS
+	semaphore  chan struct{}
 }
 
-func NewHandler(ipfsClient *Client, janitorManager *Manager, metrics *Metrics, archiver *Archiver) *Handler {
+func NewHandler(ipfsClient *Client, janitorManager *Manager, metrics *Metrics, archiver *Archiver, examplesFS fs.FS) *Handler {
 	return &Handler{
-		ipfs:      ipfsClient,
-		janitor:   janitorManager,
-		metrics:   metrics,
-		archive:   archiver,
-		semaphore: make(chan struct{}, MaxConcurrentOps),
+		ipfs:       ipfsClient,
+		janitor:    janitorManager,
+		metrics:    metrics,
+		archive:    archiver,
+		examplesFS: examplesFS,
+		semaphore:  make(chan struct{}, MaxConcurrentOps),
 	}
 }
 
@@ -329,6 +332,27 @@ func (h *Handler) ArchiveList(w http.ResponseWriter, r *http.Request) {
 		"limit":   limit,
 		"offset":  offset,
 		"npubs":   NostrNpubs,
+	})
+}
+
+func (h *Handler) ExamplesList(w http.ResponseWriter, r *http.Request) {
+	fsys := GetExamplesFS(h.examplesFS)
+	tools, err := ScanExamples(fsys)
+	if err != nil {
+		log.Printf("Scan examples error: %v", err)
+		writeJSON(w, http.StatusInternalServerError, map[string]any{
+			"error":   "Failed to scan examples",
+			"details": err.Error(),
+		})
+		return
+	}
+	if tools == nil {
+		tools = []ExampleTool{}
+	}
+	writeJSON(w, http.StatusOK, map[string]any{
+		"status": "success",
+		"tools":  tools,
+		"count":  len(tools),
 	})
 }
 

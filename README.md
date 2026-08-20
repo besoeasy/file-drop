@@ -87,10 +87,11 @@ Your `cid` is the file's cryptographic hash — anyone can verify the bytes matc
 
 ### Examples & Client Tools
 
-Client examples and decoupled tools are located in the [`examples/`](examples/) folder at the root of the repository. Open them directly in your browser or deploy them independently to interact with any running Originless node (`http://localhost:3232`):
+Client examples and decoupled tools are located in the [`examples/`](examples/) folder and served directly by Originless at `http://localhost:3232/examples/` (accessible via the **Client Tools** button in the dashboard navigation). You can also open them directly in your browser or deploy them independently:
 
 - **[Single File Uploader](examples/upload-file.html)**: Drag & drop images, video, audio, or binaries to upload and pin on IPFS with instant public gateway links, embed HTML codes, and SHA-256 verification.
 - **[Folder & DApp Uploader](examples/upload-folder.html)**: Upload full static websites and React/Vite `dist/` directories to IPFS with intact relative paths under a single root CID.
+- **[Share Snippets & Pastebin](examples/snippet.html)**: Upload and pin code snippets, logs, and text pastes to IPFS with syntax highlighting, SHA-256 hashes, and instant public gateway links.
 - **[Kind 20 Picture Post Generator](examples/picture.html)** (Instagram-style photo dump): Batch upload photos to IPFS, preview an interactive carousel feed, generate NIP-68 Kind 20 JSON with NIP-92 `imeta` tags (URL, MIME, SHA-256, dimensions, blurhash, alt), and publish directly or via NoStrudel.
 - **[Kind 1 Short Note & Image Post Generator](examples/post.html)**: Compose Nostr text notes with IPFS image attachments and NIP-92 `imeta` tags, preview live note rendering, and publish directly or via NoStrudel.
 

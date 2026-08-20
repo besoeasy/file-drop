@@ -21,8 +21,19 @@ import (
 //go:embed static
 var staticFS embed.FS
 
+//go:embed examples
+var examplesFS embed.FS
+
 func uiFS() fs.FS {
 	sub, err := fs.Sub(staticFS, "static")
+	if err != nil {
+		panic(err)
+	}
+	return sub
+}
+
+func exFS() fs.FS {
+	sub, err := fs.Sub(examplesFS, "examples")
 	if err != nil {
 		panic(err)
 	}
@@ -77,7 +88,7 @@ func main() {
 		log.Printf("[STARTUP] NOSTR_RELAYS configured count=%d relays=%v", len(modules.NostrRelays), modules.NostrRelays)
 	}
 
-	router := modules.NewRouter(ipfsClient, janitorMgr, archiver, uiFS())
+	router := modules.NewRouter(ipfsClient, janitorMgr, archiver, uiFS(), exFS())
 
 	server := &http.Server{
 		Addr:              fmt.Sprintf("%s:%d", modules.Host, modules.Port),

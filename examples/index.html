@@ -219,6 +219,9 @@
         <span>originless examples</span>
       </div>
       <div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap">
+        <a :href="nodeUrl" class="mono" style="font-size:.8rem;color:var(--muted)">
+          <i class="fas fa-gauge"></i> Main Dashboard
+        </a>
         <div class="node-status-bar">
           <span class="dot" :class="{ 'is-offline': !nodeOnline }"></span>
           <span>Node: <strong class="mono">{{ nodeUrl }}</strong></span>
@@ -237,72 +240,23 @@
       <p>Decoupled client applications that communicate with your Originless IPFS node (<span class="mono">{{ nodeUrl }}</span>). Open them directly in your browser or deploy them anywhere.</p>
     </div>
 
-    <!-- Storage & Upload Tools -->
-    <div class="section-title">Storage &amp; Publishing Tools</div>
-    <div class="grid grid-3 mb">
-      <!-- File Uploader -->
-      <a class="tile" href="upload-file.html">
-        <div>
-          <div class="card-head">
-            <span class="pill pill-post">POST /upload</span>
-            <span class="link-more">Open →</span>
+    <!-- Dynamic Categories -->
+    <div v-for="cat in categorizedTools" :key="cat.name" class="mb">
+      <div class="section-title">{{ cat.name }}</div>
+      <div class="grid" :class="cat.tools.length <= 2 ? 'grid-2' : 'grid-3'">
+        <a v-for="tool in cat.tools" :key="tool.file" class="tile" :href="tool.file">
+          <div>
+            <div class="card-head">
+              <span class="pill" :class="tool.badge || (tool.endpoint && tool.endpoint.startsWith('POST') ? 'pill-post' : 'pill-get')">
+                {{ tool.endpoint || 'TOOL' }}
+              </span>
+              <span class="link-more">Open →</span>
+            </div>
+            <h2>{{ tool.title }}</h2>
+            <p class="muted">{{ tool.description }}</p>
           </div>
-          <h2>Single File Uploader</h2>
-          <p class="muted">Upload and pin images, videos, audio, and documents to IPFS. Computes SHA-256 multihashes and generates ready-to-use HTML/Markdown embed codes.</p>
-        </div>
-      </a>
-
-      <!-- Folder / DApp Uploader -->
-      <a class="tile" href="upload-folder.html">
-        <div>
-          <div class="card-head">
-            <span class="pill pill-post">POST /uploadfolder</span>
-            <span class="link-more">Open →</span>
-          </div>
-          <h2>Folder &amp; DApp Uploader</h2>
-          <p class="muted">Upload full static websites or React/Vite <span class="mono">dist/</span> build directories with preserved relative paths under a single root CID.</p>
-        </div>
-      </a>
-
-      <!-- Snippets & Pastebin -->
-      <a class="tile" href="snippet.html">
-        <div>
-          <div class="card-head">
-            <span class="pill pill-post">POST /upload</span>
-            <span class="link-more">Open →</span>
-          </div>
-          <h2>Share Snippets &amp; Pastebin</h2>
-          <p class="muted">Upload and pin code snippets, logs, and text pastes to IPFS with syntax highlighting, SHA-256 hashes, and instant public gateway links.</p>
-        </div>
-      </a>
-    </div>
-
-    <!-- Nostr Generators -->
-    <div class="section-title">Nostr Event Generators</div>
-    <div class="grid grid-2">
-      <!-- Kind 20 Picture Post Generator -->
-      <a class="tile" href="picture.html">
-        <div>
-          <div class="card-head">
-            <span class="pill pill-post">NIP-68 · Kind 20</span>
-            <span class="link-more">Open →</span>
-          </div>
-          <h2>Kind 20 Picture Post Generator</h2>
-          <p class="muted">Create Instagram-like multi-image photo dumps with NIP-92 <span class="mono">imeta</span> tags. Batch upload to IPFS, preview carousel, copy JSON for NoStrudel, or publish directly.</p>
-        </div>
-      </a>
-
-      <!-- Kind 1 Note & Image Generator -->
-      <a class="tile" href="post.html">
-        <div>
-          <div class="card-head">
-            <span class="pill pill-get">NIP-01 · Kind 1</span>
-            <span class="link-more">Open →</span>
-          </div>
-          <h2>Kind 1 Note &amp; Image Generator</h2>
-          <p class="muted">Compose short Nostr text notes with IPFS image attachments and NIP-92 <span class="mono">imeta</span> tags. Preview live note rendering, copy JSON, or publish directly.</p>
-        </div>
-      </a>
+        </a>
+      </div>
     </div>
 
     <footer class="foot-clean">
@@ -319,6 +273,54 @@
 <script>
   const { createApp } = Vue;
 
+  const defaultTools = [
+    {
+      file: "upload-file.html",
+      title: "Single File Uploader",
+      description: "Upload and pin images, videos, audio, and documents to IPFS. Computes SHA-256 multihashes and generates ready-to-use HTML/Markdown embed codes.",
+      category: "Storage & Publishing Tools",
+      endpoint: "POST /upload",
+      badge: "pill-post",
+      order: 1
+    },
+    {
+      file: "upload-folder.html",
+      title: "Folder & DApp Uploader",
+      description: "Upload full static websites or React/Vite dist/ build directories with preserved relative paths under a single root CID.",
+      category: "Storage & Publishing Tools",
+      endpoint: "POST /uploadfolder",
+      badge: "pill-post",
+      order: 2
+    },
+    {
+      file: "snippet.html",
+      title: "Share Snippets & Pastebin",
+      description: "Upload and pin code snippets, logs, and text pastes to IPFS with syntax highlighting, SHA-256 hashes, and instant public gateway links.",
+      category: "Storage & Publishing Tools",
+      endpoint: "POST /upload",
+      badge: "pill-post",
+      order: 3
+    },
+    {
+      file: "picture.html",
+      title: "Kind 20 Picture Post Generator",
+      description: "Create Instagram-like multi-image photo dumps with NIP-92 imeta tags. Batch upload to IPFS, preview carousel, copy JSON for NoStrudel, or publish directly.",
+      category: "Nostr Event Generators",
+      endpoint: "NIP-68 · Kind 20",
+      badge: "pill-post",
+      order: 4
+    },
+    {
+      file: "post.html",
+      title: "Kind 1 Note & Image Generator",
+      description: "Compose short Nostr text notes with IPFS image attachments and NIP-92 imeta tags. Preview live note rendering, copy JSON, or publish directly.",
+      category: "Nostr Event Generators",
+      endpoint: "NIP-01 · Kind 1",
+      badge: "pill-get",
+      order: 5
+    }
+  ];
+
   createApp({
     data() {
       const initialNode = localStorage.getItem("originless_node_url") ||
@@ -330,7 +332,25 @@
         nodeUrl: initialNode,
         nodeOnline: false,
         peerCount: 0,
+        tools: defaultTools,
+        loadingTools: false,
       };
+    },
+    computed: {
+      categorizedTools() {
+        const groups = {};
+        for (const tool of this.tools) {
+          const cat = tool.category || "General Tools";
+          if (!groups[cat]) {
+            groups[cat] = [];
+          }
+          groups[cat].push(tool);
+        }
+        return Object.keys(groups).map(name => ({
+          name,
+          tools: groups[name],
+        }));
+      }
     },
     methods: {
       promptChangeNode() {
@@ -339,6 +359,7 @@
           this.nodeUrl = url.trim().replace(/\/+$/, "");
           localStorage.setItem("originless_node_url", this.nodeUrl);
           this.checkNodeStatus();
+          this.fetchTools();
         }
       },
       async checkNodeStatus() {
@@ -353,9 +374,27 @@
         } catch (_) {}
         this.nodeOnline = false;
       },
+      async fetchTools() {
+        try {
+          this.loadingTools = true;
+          const endpoint = (this.nodeUrl ? this.nodeUrl.replace(/\/+$/, "") : "") + "/api/examples";
+          const res = await fetch(endpoint);
+          if (res.ok) {
+            const data = await res.json();
+            if (data.status === "success" && Array.isArray(data.tools) && data.tools.length > 0) {
+              this.tools = data.tools;
+            }
+          }
+        } catch (_) {
+          // Keep default fallback tools on network/CORS error
+        } finally {
+          this.loadingTools = false;
+        }
+      }
     },
     mounted() {
       this.checkNodeStatus();
+      this.fetchTools();
     },
   }).mount("#app");
 </script>
