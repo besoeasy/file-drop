@@ -91,6 +91,57 @@
     return `${cid.slice(0, 8)}…${cid.slice(-8)}`;
   }
 
+  function truncateNpub(npub) {
+    if (!npub) return "";
+    if (npub.length <= 22) return npub;
+    return `${npub.slice(0, 12)}…${npub.slice(-8)}`;
+  }
+
+  function gatewayUrlFor(gateway, cid, filename) {
+    if (!cid) return "";
+    const base = `${gateway || ""}${cid}`;
+    if (!filename) return base;
+    return `${base}?filename=${encodeURIComponent(filename)}`;
+  }
+
+  function ipfsUrlFor(cid, filename) {
+    if (!cid) return "";
+    if (!filename) return `ipfs://${cid}`;
+    return `ipfs://${cid}?filename=${encodeURIComponent(filename)}`;
+  }
+
+  // Precompute fields so in-DOM templates never call helpers inside v-for.
+  // Vue's browser compiler + v-for can fail to resolve methods like shortCid.
+  function presentItem(item, gateway, brokenThumbs) {
+    if (!item) return item;
+    const category = itemCategory(item);
+    const cid = item.cid || "";
+    const thumbs = brokenThumbs || {};
+    return {
+      ...item,
+      category,
+      cidShort: shortCid(cid),
+      sizeLabel: formatBytes(item.size),
+      ageLabel: formatRelative(item.created_at),
+      dateLabel: formatDate(item.created_at),
+      gatewayUrl: gatewayUrlFor(gateway, cid, item.filename),
+      ipfsUrl: ipfsUrlFor(cid, item.filename),
+      thumbSrc: cid ? `${gateway || ""}${cid}` : "",
+      showThumb: category === "image" && !!cid && !thumbs[cid],
+      isVideo: category === "video",
+      isAudio: category === "audio",
+    };
+  }
+
+  function presentAccount(acc) {
+    if (!acc) return acc;
+    return {
+      ...acc,
+      npubShort: truncateNpub(acc.npub),
+      cursorLabel: acc.cursorAt ? formatUnix(acc.cursorAt) : "Pending scan",
+    };
+  }
+
   function isFolderFileList(files) {
     if (!files || files.length === 0) return false;
     if (files.length > 1) return true;
@@ -210,6 +261,18 @@
     const { createApp } = Vue;
 
     return createApp({
+      setup() {
+        return {
+          formatBytes,
+          formatDate,
+          formatUnix,
+          formatRelative,
+          shortCid,
+          getFileCategory,
+          truncateNpub,
+          fileKind: itemCategory,
+        };
+      },
       data() {
         const local = localGateway();
         const savedGateway = localStorage.getItem("ol_gateway_url");
@@ -321,7 +384,7 @@
             list.sort((a, b) => (a.size || 0) - (b.size || 0));
           }
 
-          return list.map((row) => ({ ...row, category: itemCategory(row) }));
+          return list.map((row) => presentItem(row, this.currentGateway, this.brokenThumbs));
         },
 
         filteredArchiveItems() {
@@ -333,7 +396,19 @@
               (item.cid || "").toLowerCase().includes(q)
             );
           }
-          return list.map((row) => ({ ...row, category: itemCategory(row) }));
+          return list.map((row) => presentItem(row, this.currentGateway, this.brokenThumbs));
+        },
+
+        archiveAccounts() {
+          return (this.archive.accounts || []).map(presentAccount);
+        },
+
+        archiveScanLabel() {
+          return formatUnix(this.archive.lastScan);
+        },
+
+        archiveRepinLabel() {
+          return formatUnix(this.archive.lastRepin);
         },
 
         lastPinKind() {
@@ -458,16 +533,6 @@ To confirm you have understood this skill, complete this check:
       },
 
       methods: {
-        formatBytes,
-        formatDate,
-        formatUnix,
-        formatRelative,
-        getFileCategory,
-        shortCid,
-        fileKind(item) {
-          return itemCategory(item);
-        },
-
         showToast(message, type = "success") {
           const id = Date.now() + Math.random();
           this.toasts.push({ id, message, type });
@@ -541,22 +606,12 @@ To confirm you have understood this skill, complete this check:
           return "/upload";
         },
 
-        truncateNpub(npub) {
-          if (!npub) return "";
-          if (npub.length <= 22) return npub;
-          return `${npub.slice(0, 12)}…${npub.slice(-8)}`;
-        },
-
         getGatewayUrl(cid, filename) {
-          if (!cid) return "";
-          if (!filename) return `${this.currentGateway}${cid}`;
-          return `${this.currentGateway}${cid}?filename=${encodeURIComponent(filename)}`;
+          return gatewayUrlFor(this.currentGateway, cid, filename);
         },
 
         getIpfsUrl(cid, filename) {
-          if (!cid) return "";
-          if (!filename) return `ipfs://${cid}`;
-          return `ipfs://${cid}?filename=${encodeURIComponent(filename)}`;
+          return ipfsUrlFor(cid, filename);
         },
 
         async fetchStatus() {
@@ -799,8 +854,8 @@ To confirm you have understood this skill, complete this check:
 
         // Inspection & QR Modal
         openInspect(item) {
-          this.inspectItem = item;
-          const url = this.getGatewayUrl(item.cid, item.filename);
+          this.inspectItem = presentItem(item, this.currentGateway, this.brokenThumbs);
+          const url = this.inspectItem.gatewayUrl;
           // Standard high-res QR code link for instant mobile sharing
           this.inspectQrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(url)}`;
           this.inspectModalOpen = true;
@@ -843,6 +898,7 @@ To confirm you have understood this skill, complete this check:
     getFileCategory,
     itemCategory,
     shortCid,
+    truncateNpub,
     createOriginlessApp,
   };
 })();

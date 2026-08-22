@@ -119,8 +119,8 @@
         <span>
           {{ archive.enabled ? (archive.accounts.length + ' account' + (archive.accounts.length === 1 ? '' : 's')) : 'NOSTR_NPUBS unset' }}
         </span>
-        <span>Scan every <strong>{{ archive.scanMinutes }}m</strong> · last {{ formatUnix(archive.lastScan) }}</span>
-        <span>Re-pin every <strong>{{ archive.repinHours }}h</strong> · last {{ formatUnix(archive.lastRepin) }}</span>
+        <span>Scan every <strong>{{ archive.scanMinutes }}m</strong> · last {{ archiveScanLabel }}</span>
+        <span>Re-pin every <strong>{{ archive.repinHours }}h</strong> · last {{ archiveRepinLabel }}</span>
       </div>
 
       <section class="table-panel-card">
@@ -137,13 +137,13 @@
         </div>
 
         <div v-else class="account-chip-grid">
-          <div v-for="acc in archive.accounts" :key="acc.npub" class="account-chip">
-            <div class="account-chip-npub" :title="acc.npub">{{ truncateNpub(acc.npub) }}</div>
+          <div v-for="acc in archiveAccounts" :key="acc.npub" class="account-chip">
+            <div class="account-chip-npub" :title="acc.npub">{{ acc.npubShort }}</div>
             <div class="account-chip-meta">
               <span>{{ acc.objects || 0 }} objects</span>
               <span>{{ acc.sizeStr || '0 B' }}</span>
               <span>{{ acc.events || 0 }} events</span>
-              <span>{{ acc.cursorAt ? formatUnix(acc.cursorAt) : 'Pending scan' }}</span>
+              <span>{{ acc.cursorLabel }}</span>
             </div>
             <div style="display: flex; gap: 0.35rem;">
               <button class="btn-core btn-core-secondary btn-core-sm" @click="copyText(acc.npub, 'npub copied!')">Copy</button>
@@ -217,7 +217,7 @@
         <div v-else-if="archiveView === 'grid'" class="media-grid">
           <article v-for="item in filteredArchiveItems" :key="item.cid" class="media-tile" @click="openInspect(item)">
             <div class="media-tile-thumb">
-              <img v-if="showThumb(item)" :src="thumbUrl(item)" :alt="item.filename" loading="lazy" @error="onThumbError(item.cid)" />
+              <img v-if="item.showThumb" :src="item.thumbSrc" :alt="item.filename" loading="lazy" @error="onThumbError(item.cid)" />
               <div v-else class="media-tile-fallback">
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
                   <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
@@ -229,7 +229,7 @@
             <div class="media-tile-body">
               <div class="media-tile-name" :title="item.filename">{{ item.filename || item.cid }}</div>
               <div class="media-tile-meta">
-                <span class="mono">{{ formatBytes(item.size) }}</span>
+                <span class="mono">{{ item.sizeLabel }}</span>
                 <span v-if="item.verified" class="pill-status-pinned" style="padding: 0.05rem 0.4rem;">Verified</span>
                 <span v-else class="pill-status-unpinned" style="padding: 0.05rem 0.4rem;">Unverified</span>
               </div>
@@ -240,7 +240,7 @@
                     <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
                   </svg>
                 </button>
-                <a class="btn-icon-cell" :href="getGatewayUrl(item.cid, item.filename)" target="_blank" rel="noopener" title="Open via Gateway">
+                <a class="btn-icon-cell" :href="item.gatewayUrl" target="_blank" rel="noopener" title="Open via Gateway">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
                     <polyline points="15 3 21 3 21 9"></polyline>
@@ -282,11 +282,11 @@
                   </div>
                 </td>
                 <td>
-                  <a class="cid-link-anchor" :href="getGatewayUrl(item.cid, item.filename)" target="_blank" rel="noopener">
-                    {{ shortCid(item.cid) }}
+                  <a class="cid-link-anchor" :href="item.gatewayUrl" target="_blank" rel="noopener">
+                    {{ item.cidShort }}
                   </a>
                 </td>
-                <td style="text-align: right;" class="mono">{{ formatBytes(item.size) }}</td>
+                <td style="text-align: right;" class="mono">{{ item.sizeLabel }}</td>
                 <td style="text-align: center;">
                   <span v-if="item.verified" class="pill-status-pinned">
                     <span class="pulse-dot-green" style="width: 5px; height: 5px;"></span>
@@ -294,7 +294,7 @@
                   </span>
                   <span v-else class="pill-status-unpinned">Unverified</span>
                 </td>
-                <td style="text-align: right; color: var(--text-dim);">{{ formatDate(item.created_at) }}</td>
+                <td style="text-align: right; color: var(--text-dim);">{{ item.dateLabel }}</td>
                 <td style="text-align: right;">
                   <div style="display: inline-flex; gap: 0.25rem;">
                     <button class="btn-icon-cell" @click="copyText(item.cid, 'CID copied!')" title="Copy CID">
@@ -303,7 +303,7 @@
                         <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
                       </svg>
                     </button>
-                    <a class="btn-icon-cell" :href="getGatewayUrl(item.cid, item.filename)" target="_blank" rel="noopener" title="Open via Gateway">
+                    <a class="btn-icon-cell" :href="item.gatewayUrl" target="_blank" rel="noopener" title="Open via Gateway">
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
                         <polyline points="15 3 21 3 21 9"></polyline>
@@ -396,15 +396,15 @@
         </button>
       </div>
       <div class="modal-box-body" v-if="inspectItem">
-        <div v-if="showThumb(inspectItem)" class="inspect-preview">
-          <img :src="thumbUrl(inspectItem)" :alt="inspectItem.filename" @error="onThumbError(inspectItem.cid)" />
+        <div v-if="inspectItem.showThumb" class="inspect-preview">
+          <img :src="inspectItem.thumbSrc" :alt="inspectItem.filename" @error="onThumbError(inspectItem.cid)" />
         </div>
         <div style="margin-bottom: 1.15rem;">
           <div style="font-size: 1rem; font-weight: 700; color: #ffffff;">{{ inspectItem.filename || inspectItem.cid }}</div>
           <div style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.3rem;">
-            <span class="mono" style="color: #ffffff;">{{ formatBytes(inspectItem.size) }}</span>
+            <span class="mono" style="color: #ffffff;">{{ inspectItem.sizeLabel }}</span>
             · {{ inspectItem.verified ? 'Verified' : 'Unverified' }}
-            · {{ formatDate(inspectItem.created_at) }}
+            · {{ inspectItem.dateLabel }}
           </div>
         </div>
         <div class="meta-record-grid">
@@ -415,13 +415,13 @@
           </div>
           <div class="meta-record-row">
             <span class="meta-record-key">Gateway</span>
-            <span class="meta-record-val">{{ getGatewayUrl(inspectItem.cid, inspectItem.filename) }}</span>
-            <button class="btn-core btn-core-secondary btn-core-sm" @click="copyText(getGatewayUrl(inspectItem.cid, inspectItem.filename), 'Gateway URL copied!')">Copy</button>
+            <span class="meta-record-val">{{ inspectItem.gatewayUrl }}</span>
+            <button class="btn-core btn-core-secondary btn-core-sm" @click="copyText(inspectItem.gatewayUrl, 'Gateway URL copied!')">Copy</button>
           </div>
         </div>
         <div style="margin-top: 1.25rem; display: flex; justify-content: flex-end; gap: 0.5rem;">
           <a class="btn-core btn-core-secondary" :href="'/archive/' + inspectItem.cid" target="_blank" rel="noopener">Raw file</a>
-          <a class="btn-core btn-core-primary" :href="getGatewayUrl(inspectItem.cid, inspectItem.filename)" target="_blank" rel="noopener">Open in Gateway</a>
+          <a class="btn-core btn-core-primary" :href="inspectItem.gatewayUrl" target="_blank" rel="noopener">Open in Gateway</a>
         </div>
       </div>
     </div>

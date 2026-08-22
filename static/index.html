@@ -168,7 +168,7 @@
         <div v-else-if="libraryView === 'grid'" class="media-grid">
           <article v-for="item in filteredHistory" :key="item.cid" class="media-tile" @click="openInspect(item)">
             <div class="media-tile-thumb">
-              <img v-if="showThumb(item)" :src="thumbUrl(item)" :alt="item.filename" loading="lazy" @error="onThumbError(item.cid)" />
+              <img v-if="item.showThumb" :src="item.thumbSrc" :alt="item.filename" loading="lazy" @error="onThumbError(item.cid)" />
               <div v-else class="media-tile-fallback">
                 <svg v-if="item.category === 'video'" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
                   <polygon points="23 7 16 12 23 17 23 7"></polygon>
@@ -197,8 +197,8 @@
             <div class="media-tile-body">
               <div class="media-tile-name" :title="item.filename">{{ item.filename || 'Unnamed' }}</div>
               <div class="media-tile-meta">
-                <span class="mono">{{ formatBytes(item.size) }}</span>
-                <span>{{ formatRelative(item.created_at) }}</span>
+                <span class="mono">{{ item.sizeLabel }}</span>
+                <span>{{ item.ageLabel }}</span>
               </div>
               <div class="media-tile-actions" @click.stop>
                 <button class="btn-icon-cell" @click="copyText(item.cid, 'CID copied!')" title="Copy CID">
@@ -207,7 +207,7 @@
                     <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
                   </svg>
                 </button>
-                <a class="btn-icon-cell" :href="getGatewayUrl(item.cid, item.filename)" target="_blank" rel="noopener" title="Open via Gateway">
+                <a class="btn-icon-cell" :href="item.gatewayUrl" target="_blank" rel="noopener" title="Open via Gateway">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
                     <polyline points="15 3 21 3 21 9"></polyline>
@@ -268,11 +268,11 @@
                   </div>
                 </td>
                 <td>
-                  <a class="cid-link-anchor" :href="getGatewayUrl(item.cid, item.filename)" target="_blank" rel="noopener" :title="item.cid">
-                    {{ shortCid(item.cid) }}
+                  <a class="cid-link-anchor" :href="item.gatewayUrl" target="_blank" rel="noopener" :title="item.cid">
+                    {{ item.cidShort }}
                   </a>
                 </td>
-                <td style="text-align: right;" class="mono">{{ formatBytes(item.size) }}</td>
+                <td style="text-align: right;" class="mono">{{ item.sizeLabel }}</td>
                 <td style="text-align: center;">
                   <span v-if="!item.unpinned" class="pill-status-pinned">
                     <span class="pulse-dot-green" style="width: 5px; height: 5px;"></span>
@@ -280,8 +280,8 @@
                   </span>
                   <span v-else class="pill-status-unpinned">Unpinned</span>
                 </td>
-                <td style="text-align: right; color: var(--text-dim);" :title="formatDate(item.created_at)">
-                  {{ formatRelative(item.created_at) }}
+                <td style="text-align: right; color: var(--text-dim);" :title="item.dateLabel">
+                  {{ item.ageLabel }}
                 </td>
                 <td style="text-align: right;">
                   <div style="display: inline-flex; align-items: center; gap: 0.25rem;">
@@ -291,7 +291,7 @@
                         <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
                       </svg>
                     </button>
-                    <a class="btn-icon-cell" :href="getGatewayUrl(item.cid, item.filename)" target="_blank" rel="noopener" title="Open via Gateway">
+                    <a class="btn-icon-cell" :href="item.gatewayUrl" target="_blank" rel="noopener" title="Open via Gateway">
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
                         <polyline points="15 3 21 3 21 9"></polyline>
@@ -399,9 +399,9 @@
       </div>
 
       <div class="modal-box-body" v-if="inspectItem">
-        <div v-if="showThumb(inspectItem) || isVideoItem(inspectItem)" class="inspect-preview">
-          <img v-if="showThumb(inspectItem)" :src="thumbUrl(inspectItem)" :alt="inspectItem.filename" @error="onThumbError(inspectItem.cid)" />
-          <video v-else-if="isVideoItem(inspectItem)" :src="thumbUrl(inspectItem)" controls></video>
+        <div v-if="inspectItem.showThumb || inspectItem.isVideo" class="inspect-preview">
+          <img v-if="inspectItem.showThumb" :src="inspectItem.thumbSrc" :alt="inspectItem.filename" @error="onThumbError(inspectItem.cid)" />
+          <video v-else-if="inspectItem.isVideo" :src="inspectItem.thumbSrc" controls></video>
         </div>
 
         <div style="display: flex; gap: 1.25rem; flex-wrap: wrap; margin-bottom: 1.25rem;">
@@ -412,11 +412,11 @@
           <div style="flex: 1; min-width: 240px; display: flex; flex-direction: column; justify-content: center; gap: 0.4rem;">
             <div style="font-size: 1rem; font-weight: 700; color: #ffffff;">{{ inspectItem.filename || 'Unnamed content' }}</div>
             <div style="font-size: 0.8rem; color: var(--text-secondary);">
-              Size: <span class="mono" style="color: #ffffff;">{{ formatBytes(inspectItem.size) }}</span> · 
+              Size: <span class="mono" style="color: #ffffff;">{{ inspectItem.sizeLabel }}</span> · 
               <span :style="{ color: inspectItem.unpinned ? 'var(--accent-rose)' : 'var(--accent-mint)', fontWeight: '600' }">{{ inspectItem.unpinned ? 'Unpinned' : 'Pinned' }}</span>
             </div>
             <div style="font-size: 0.75rem; color: var(--text-dim);">
-              Uploaded {{ formatDate(inspectItem.created_at) }}
+              Uploaded {{ inspectItem.dateLabel }}
             </div>
           </div>
         </div>
@@ -429,18 +429,18 @@
           </div>
           <div class="meta-record-row">
             <span class="meta-record-key">Gateway</span>
-            <span class="meta-record-val">{{ getGatewayUrl(inspectItem.cid, inspectItem.filename) }}</span>
-            <button class="btn-core btn-core-secondary btn-core-sm" @click="copyText(getGatewayUrl(inspectItem.cid, inspectItem.filename), 'Gateway URL copied!')">Copy</button>
+            <span class="meta-record-val">{{ inspectItem.gatewayUrl }}</span>
+            <button class="btn-core btn-core-secondary btn-core-sm" @click="copyText(inspectItem.gatewayUrl, 'Gateway URL copied!')">Copy</button>
           </div>
           <div class="meta-record-row">
             <span class="meta-record-key">IPFS URI</span>
-            <span class="meta-record-val">{{ getIpfsUrl(inspectItem.cid, inspectItem.filename) }}</span>
-            <button class="btn-core btn-core-secondary btn-core-sm" @click="copyText(getIpfsUrl(inspectItem.cid, inspectItem.filename), 'ipfs:// URI copied!')">Copy</button>
+            <span class="meta-record-val">{{ inspectItem.ipfsUrl }}</span>
+            <button class="btn-core btn-core-secondary btn-core-sm" @click="copyText(inspectItem.ipfsUrl, 'ipfs:// URI copied!')">Copy</button>
           </div>
         </div>
 
         <div style="margin-top: 1.25rem; display: flex; justify-content: flex-end; gap: 0.5rem;">
-          <a class="btn-core btn-core-primary" :href="getGatewayUrl(inspectItem.cid, inspectItem.filename)" target="_blank" rel="noopener">
+          <a class="btn-core btn-core-primary" :href="inspectItem.gatewayUrl" target="_blank" rel="noopener">
             Open in Gateway
           </a>
         </div>
