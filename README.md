@@ -32,7 +32,8 @@ docker run -d \
 
 > **Podman User?** Simply replace `docker` with `podman` in the command above!
 
-- Access **Originless Web UI & API** at **[http://localhost:3232](http://localhost:3232)**
+- Open the **node dashboard** at **[http://localhost:3232](http://localhost:3232)** (library, archive, status)
+- Pin files from **[Client Tools](http://localhost:3232/examples/)** (`/upload`, `/media`, `/uploadfolder`) or the HTTP API
 - Fetch pinned files from **this node** at `http://localhost:3232/ipfs/<cid>` (also on port `8080`)
 - Disable the HTTP gateway with `-e ENABLE_GATEWAY=false` if you do not want this node to serve bytes over HTTP
 
@@ -113,7 +114,7 @@ Your `cid` is the file's cryptographic hash — anyone can verify the bytes matc
 
 ### Examples & Client Tools
 
-Client examples and decoupled tools are located in the [`examples/`](examples/) folder and served directly by Originless at `http://localhost:3232/examples/` (accessible via the **Client Tools** button in the dashboard navigation). You can also open them directly in your browser or deploy them independently:
+The dashboard stays a library for this node. Uploads live in [`examples/`](examples/), served at `http://localhost:3232/examples/` (the **Tools** tab). You can also open those pages on their own or deploy them independently:
 
 - **[Single File Uploader](examples/upload-file.html)**: Drag & drop images, video, audio, or binaries to upload and pin on IPFS with instant public gateway links, embed HTML codes, and SHA-256 verification. Images can go through `POST /media` to strip EXIF/GPS.
 - **[Folder & DApp Uploader](examples/upload-folder.html)**: Upload full static websites and React/Vite `dist/` directories to IPFS with intact relative paths under a single root CID.

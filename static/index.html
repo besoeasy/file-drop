@@ -102,189 +102,6 @@
   <main class="page-body">
     <div class="canvas-wrap">
 
-      <section class="command-station">
-        <div class="command-station-header">
-          <div class="action-tab-list">
-            <button class="action-tab-button" :class="{ 'is-active': activeTab === 'pin' }" @click="activeTab = 'pin'">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                <polyline points="17 8 12 3 7 8"></polyline>
-                <line x1="12" y1="3" x2="12" y2="15"></line>
-              </svg>
-              Pin
-            </button>
-
-            <button class="action-tab-button" :class="{ 'is-active': activeTab === 'prompt' }" @click="activeTab = 'prompt'">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"></path>
-              </svg>
-              Agent Prompt
-            </button>
-          </div>
-
-          <div class="studio-hint">Drop a file, several files, or a folder · up to {{ status.fileLimit }}</div>
-        </div>
-
-        <div class="command-station-body">
-          
-          <div v-if="activeTab === 'pin'">
-            <input type="file" ref="fileInput" multiple @change="handleFileSelect" style="display: none;" />
-            <input type="file" ref="folderInput" webkitdirectory directory multiple @change="handleFolderSelect" style="display: none;" />
-            
-            <div 
-              class="minimal-dropzone"
-              :class="{ 'is-dragover': dragOver }"
-              @dragover.prevent="dragOver = true"
-              @dragleave.prevent="dragOver = false"
-              @drop.prevent="handleDrop"
-              @click="triggerFileInput"
-            >
-              <div class="dropzone-upload-icon">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                  <polyline points="17 8 12 3 7 8"></polyline>
-                  <line x1="12" y1="3" x2="12" y2="15"></line>
-                </svg>
-              </div>
-              <div class="dropzone-primary-text">Drop to pin on this node</div>
-              <div class="dropzone-secondary-text">
-                One file uses <span>{{ anonymizeMedia ? '/media or /upload' : '/upload' }}</span>. Several files or a folder use <span>/uploadfolder</span>.
-              </div>
-              <div class="dropzone-actions" @click.stop>
-                <button type="button" class="btn-core btn-core-primary btn-core-sm" @click="triggerFileInput">Choose files</button>
-                <button type="button" class="btn-core btn-core-secondary btn-core-sm" @click="triggerFolderInput">Choose folder</button>
-                <label class="studio-opt">
-                  <input type="checkbox" v-model="anonymizeMedia" @change="persistAnonymize" />
-                  Strip EXIF from images
-                </label>
-              </div>
-            </div>
-
-            <div v-if="isUploading || isUploadingFolder" class="upload-status-card">
-              <div class="upload-status-row">
-                <span style="font-weight: 600; color: #ffffff;">
-                  {{ isUploadingFolder ? ('Uploading ' + folderFilesCount + ' files…') : currentUploadFile?.name }}
-                </span>
-                <span class="mono" style="font-size: 0.78rem; color: var(--text-muted);">
-                  {{ isUploadingFolder ? formatBytes(folderTotalSize) : formatBytes(currentUploadFile?.size) }}
-                </span>
-              </div>
-              <div class="metric-meter-bar">
-                <div class="metric-meter-fill" :style="{ width: (isUploadingFolder ? 70 : uploadProgress) + '%' }"></div>
-              </div>
-            </div>
-
-            <div v-if="lastUploadResult" class="pin-preview">
-              <div class="pin-preview-media">
-                <img v-if="lastPinKind === 'image'" :src="thumbUrl(lastUploadResult)" :alt="lastUploadResult.filename" @error="onThumbError(lastUploadResult.cid)" />
-                <video v-else-if="lastPinKind === 'video'" :src="thumbUrl(lastUploadResult)" controls></video>
-                <audio v-else-if="lastPinKind === 'audio'" :src="thumbUrl(lastUploadResult)" controls></audio>
-                <div v-else class="media-tile-fallback">
-                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                    <polyline points="14 2 14 8 20 8"></polyline>
-                  </svg>
-                  <span>{{ lastPinKind }}</span>
-                </div>
-              </div>
-              <div class="pin-preview-body">
-                <div class="pin-result-header" style="margin-bottom: 0;">
-                  <div class="pin-result-title">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-                      <polyline points="22 4 12 14.01 9 11.01"></polyline>
-                    </svg>
-                    <span>Pinned {{ lastUploadResult.filename }}</span>
-                    <span v-if="lastUploadResult.anonymized" class="pill-status-pinned" style="margin-left: 0.35rem;">EXIF stripped</span>
-                  </div>
-                  <button class="btn-core btn-core-secondary btn-core-sm" @click="openInspect(lastUploadResult)">
-                    Inspect / QR
-                  </button>
-                </div>
-                <div class="meta-record-grid">
-                  <div class="meta-record-row">
-                    <span class="meta-record-key">CID</span>
-                    <span class="meta-record-val">{{ lastUploadResult.cid }}</span>
-                    <button class="btn-core btn-core-secondary btn-core-sm" @click="copyText(lastUploadResult.cid, 'CID copied!')">Copy</button>
-                  </div>
-                  <div class="meta-record-row">
-                    <span class="meta-record-key">Gateway</span>
-                    <span class="meta-record-val">
-                      <a :href="getGatewayUrl(lastUploadResult.cid, lastUploadResult.filename)" target="_blank" class="cid-link-anchor">
-                        {{ getGatewayUrl(lastUploadResult.cid, lastUploadResult.filename) }}
-                      </a>
-                    </span>
-                    <a class="btn-core btn-core-primary btn-core-sm" :href="getGatewayUrl(lastUploadResult.cid, lastUploadResult.filename)" target="_blank" rel="noopener">Open</a>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div v-if="lastFolderResult" class="pin-preview">
-              <div class="pin-preview-media">
-                <div class="media-tile-fallback">
-                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
-                    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
-                  </svg>
-                  <span>{{ lastFolderResult.files }} files</span>
-                </div>
-              </div>
-              <div class="pin-preview-body">
-                <div class="pin-result-header" style="margin-bottom: 0;">
-                  <div class="pin-result-title">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-                      <polyline points="22 4 12 14.01 9 11.01"></polyline>
-                    </svg>
-                    <span>Directory pinned</span>
-                  </div>
-                </div>
-                <div class="meta-record-grid">
-                  <div class="meta-record-row">
-                    <span class="meta-record-key">Root CID</span>
-                    <span class="meta-record-val">{{ lastFolderResult.cid }}</span>
-                    <button class="btn-core btn-core-secondary btn-core-sm" @click="copyText(lastFolderResult.cid, 'Root CID copied!')">Copy</button>
-                  </div>
-                  <div class="meta-record-row">
-                    <span class="meta-record-key">DApp</span>
-                    <span class="meta-record-val">
-                      <a :href="currentGateway + lastFolderResult.cid + '/'" target="_blank" class="cid-link-anchor">
-                        {{ currentGateway }}{{ lastFolderResult.cid }}/
-                      </a>
-                    </span>
-                    <a class="btn-core btn-core-primary btn-core-sm" :href="currentGateway + lastFolderResult.cid + '/'" target="_blank" rel="noopener">Launch</a>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div v-if="activeTab === 'prompt'">
-            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem; flex-wrap: wrap; gap: 0.5rem;">
-              <div style="display: flex; gap: 0.35rem;">
-                <button class="btn-core btn-core-sm" :class="promptFormat === 'plain' ? 'btn-core-primary' : 'btn-core-secondary'" @click="promptFormat = 'plain'">Prompt</button>
-                <button class="btn-core btn-core-sm" :class="promptFormat === 'markdown' ? 'btn-core-primary' : 'btn-core-secondary'" @click="promptFormat = 'markdown'">Markdown</button>
-                <button class="btn-core btn-core-sm" :class="promptFormat === 'curl' ? 'btn-core-primary' : 'btn-core-secondary'" @click="promptFormat = 'curl'">cURL</button>
-                <button class="btn-core btn-core-sm" :class="promptFormat === 'python' ? 'btn-core-primary' : 'btn-core-secondary'" @click="promptFormat = 'python'">Python</button>
-              </div>
-
-              <button class="btn-core btn-core-primary btn-core-sm" @click="copyText(generatedAgentPrompt, 'Agent prompt instructions copied!')">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                </svg>
-                Copy Prompt
-              </button>
-            </div>
-
-            <div class="terminal-block">
-              <pre class="terminal-code">{{ generatedAgentPrompt }}</pre>
-            </div>
-          </div>
-
-        </div>
-      </section>
-
       <section class="table-panel-card">
         <div class="table-panel-header">
           <div class="table-title-wrap">
@@ -316,6 +133,9 @@
               <option value="unpinned">Unpinned</option>
             </select>
 
+            <a class="btn-core btn-core-secondary btn-core-sm" href="/examples/upload-file.html">Pin file</a>
+            <a class="btn-core btn-core-secondary btn-core-sm" href="/examples/upload-folder.html">Pin folder</a>
+
             <div class="view-toggle" title="Library layout">
               <button type="button" :class="{ 'is-active': libraryView === 'grid' }" @click="setLibraryView('grid')" aria-label="Grid view">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -341,7 +161,7 @@
 
         <div v-if="filteredHistory.length === 0" class="empty-state">
           <strong>{{ searchQuery ? 'No pins match the query' : 'Nothing pinned yet' }}</strong>
-          <p>{{ searchQuery ? 'Try another search term' : 'Drop a file above. Pins from the HTTP API show up here too.' }}</p>
+          <p>{{ searchQuery ? 'Try another search term' : 'Pin from Tools, or POST /upload and /media. Pins show up here.' }}</p>
         </div>
 
         <div v-else-if="libraryView === 'grid'" class="media-grid">
