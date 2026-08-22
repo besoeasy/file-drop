@@ -989,6 +989,22 @@ button {
   justify-content: center;
   gap: 0.5rem;
   margin-top: 1.15rem;
+  flex-wrap: wrap;
+}
+
+.studio-opt {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  cursor: pointer;
+  user-select: none;
+  margin-left: 0.35rem;
+}
+
+.studio-opt input {
+  accent-color: #ffffff;
 }
 
 .pin-preview {

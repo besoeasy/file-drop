@@ -237,6 +237,7 @@
           archiveView: localStorage.getItem("ol_archive_view") || "grid",
           brokenThumbs: {},
           nodeSheetOpen: false,
+          anonymizeMedia: localStorage.getItem("ol_anonymize_media") !== "false",
           
           // Single File Upload
           dragOver: false,
@@ -364,6 +365,7 @@ ${localNote}
 
 #### API Endpoints
 - **Upload Single File**: \`POST ${origin}/upload\` (Multipart field: \`file\`)
+- **Anonymized Image**: \`POST ${origin}/media\` (strips EXIF/GPS/XMP, then pins)
 - **Upload Directory / DApp**: \`POST ${origin}/uploadfolder\` (Multipart field: \`file\`, relative paths)
 - **Node Health Probe**: \`GET ${origin}/health\`
 - **Node Telemetry**: \`GET ${origin}/status\`
@@ -387,6 +389,9 @@ To confirm you have understood this skill:
             return `# 1. Upload a single binary or file
 curl -X POST -F "file=@document.pdf" ${origin}/upload
 
+# 1b. Pin a photo with EXIF/GPS stripped
+curl -X POST -F "file=@photo.jpg" ${origin}/media
+
 # 2. Upload full Vite/React dist static build folder
 curl -X POST \\
   -F "file=@dist/index.html;filename=index.html" \\
@@ -405,7 +410,7 @@ GATEWAY = "${gw}"
 
 # 1. Upload a file
 with open("sample.png", "rb") as f:
-    r = requests.post(f"{ORIGIN}/upload", files={"file": f})
+    r = requests.post(f"{ORIGIN}/media", files={"file": f})
     data = r.json()
     cid = data["cid"]
     print(f"Pinned: {GATEWAY}{cid}")`;
@@ -428,7 +433,8 @@ ${serveHint}
 Use this node for all uploads. Do not invent another host or API key. There is no auth.
 
 Endpoints:
-- POST ${origin}/upload — one file. Multipart field "file".
+- POST ${origin}/upload — one file, exact bytes. Multipart field "file".
+- POST ${origin}/media — one image (JPEG/PNG/GIF/WebP). Strips EXIF, GPS, XMP, IPTC, and comments, applies orientation, then pins. Use this for photos.
 - POST ${origin}/uploadfolder — a folder (gallery, album, report, site). Multipart field name is "file" for each file; set filename to the relative path so links stay intact.
 - GET ${origin}/health — liveness check.
 - GET ${origin}/ipfs/{cid} — fetch pinned bytes from this node when the gateway is enabled.
@@ -516,6 +522,21 @@ To confirm you have understood this skill, complete this check:
         onThumbError(cid) {
           if (!cid || this.brokenThumbs[cid]) return;
           this.brokenThumbs = { ...this.brokenThumbs, [cid]: true };
+        },
+
+        persistAnonymize() {
+          localStorage.setItem("ol_anonymize_media", this.anonymizeMedia ? "true" : "false");
+        },
+
+        isImageFile(file) {
+          if (!file) return false;
+          if (file.type && file.type.startsWith("image/")) return true;
+          return /\.(jpe?g|png|gif|webp)$/i.test(file.name || "");
+        },
+
+        uploadEndpoint(file) {
+          if (this.anonymizeMedia && this.isImageFile(file)) return "/media";
+          return "/upload";
         },
 
         truncateNpub(npub) {
@@ -685,10 +706,11 @@ To confirm you have understood this skill, complete this check:
 
           const formData = new FormData();
           formData.append("file", file, file.name);
+          const endpoint = this.uploadEndpoint(file);
 
           try {
             this.uploadProgress = 50;
-            const res = await fetch("/upload", {
+            const res = await fetch(endpoint, {
               method: "POST",
               body: formData,
             });
@@ -699,7 +721,8 @@ To confirm you have understood this skill, complete this check:
             if (res.ok && data.status === "success") {
               this.uploadProgress = 100;
               this.lastUploadResult = data;
-              this.showToast(`Pinned "${data.filename}" to Swarm!`, "success");
+              const extra = data.anonymized ? " (EXIF stripped)" : "";
+              this.showToast(`Pinned "${data.filename}" to Swarm!${extra}`, "success");
               this.fetchHistory();
               this.fetchPinStats();
               this.fetchStatus();

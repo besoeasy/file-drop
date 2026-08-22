@@ -6,7 +6,7 @@
   <title>Single File Uploader — Originless Examples</title>
   <meta name="description" content="Upload and pin images, videos, audio, and documents to IPFS. Computes SHA-256 multihashes and generates ready-to-use HTML/Markdown embed codes." />
   <meta name="category" content="Storage & Publishing Tools" />
-  <meta name="endpoint" content="POST /upload" />
+  <meta name="endpoint" content="POST /upload · POST /media" />
   <meta name="order" content="1" />
   <meta name="theme-color" content="#211e1e" />
   <link rel="icon" type="image/svg+xml" href="/logo.svg" />
@@ -274,13 +274,17 @@
               <span :style="{ width: uploadProgress + '%' }"></span>
             </div>
 
-            <div style="display:flex;gap:.75rem;margin-top:1.25rem">
+            <div style="display:flex;gap:.75rem;margin-top:1.25rem;flex-wrap:wrap;align-items:center">
               <button class="btn btn-brand" style="flex:1" @click="uploadFile" :disabled="uploading">
                 <i :class="uploading ? 'fas fa-circle-notch fa-spin' : 'fas fa-upload'"></i>
                 {{ uploading ? 'Uploading to IPFS (' + Math.round(uploadProgress) + '%)…' : 'Upload & Pin to IPFS' }}
               </button>
               <button class="btn btn-ghost" @click="clearFile" :disabled="uploading">Clear</button>
             </div>
+            <label v-if="isImageFile" style="display:flex;align-items:center;gap:.45rem;margin-top:.85rem;font-size:.82rem;color:var(--muted);cursor:pointer">
+              <input type="checkbox" v-model="anonymizeImage" />
+              Strip EXIF / GPS before pin (POST /media)
+            </label>
           </div>
         </section>
 
@@ -430,6 +434,7 @@
         result: null,
         activeTab: "urls",
         copiedKey: "",
+        anonymizeImage: true,
       };
     },
     computed: {
@@ -443,7 +448,13 @@
       },
       curlSnippet() {
         const fn = this.file ? this.file.name : "photo.png";
-        return `curl -X POST -F "file=@${fn}" ${this.nodeUrl}/upload`;
+        const path = this.anonymizeImage && this.isImageFile ? "/media" : "/upload";
+        return `curl -X POST -F "file=@${fn}" ${this.nodeUrl}${path}`;
+      },
+      isImageFile() {
+        if (!this.file) return false;
+        if (this.file.type && this.file.type.startsWith("image/")) return true;
+        return /\.(jpe?g|png|gif|webp)$/i.test(this.file.name || "");
       },
       htmlEmbedCode() {
         if (!this.result) return "";
@@ -569,7 +580,7 @@
           form.append("file", this.file, this.file.name);
 
           const xhr = new XMLHttpRequest();
-          xhr.open("POST", `${this.nodeUrl}/upload`);
+          xhr.open("POST", `${this.nodeUrl}${this.anonymizeImage && this.isImageFile ? "/media" : "/upload"}`);
 
           xhr.upload.onprogress = (e) => {
             if (e.lengthComputable) {

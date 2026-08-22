@@ -80,6 +80,12 @@ Uploading to Originless is a single `POST /upload` request — **no API keys, no
 curl -X POST -F "file=@my-image.png" http://localhost:3232/upload
 ```
 
+For photos, `POST /media` strips EXIF/GPS/XMP before pinning so the CID is not the original camera file:
+
+```bash
+curl -X POST -F "file=@my-image.jpg" http://localhost:3232/media
+```
+
 _Response:_
 
 ```json
@@ -109,7 +115,7 @@ Your `cid` is the file's cryptographic hash — anyone can verify the bytes matc
 
 Client examples and decoupled tools are located in the [`examples/`](examples/) folder and served directly by Originless at `http://localhost:3232/examples/` (accessible via the **Client Tools** button in the dashboard navigation). You can also open them directly in your browser or deploy them independently:
 
-- **[Single File Uploader](examples/upload-file.html)**: Drag & drop images, video, audio, or binaries to upload and pin on IPFS with instant public gateway links, embed HTML codes, and SHA-256 verification.
+- **[Single File Uploader](examples/upload-file.html)**: Drag & drop images, video, audio, or binaries to upload and pin on IPFS with instant public gateway links, embed HTML codes, and SHA-256 verification. Images can go through `POST /media` to strip EXIF/GPS.
 - **[Folder & DApp Uploader](examples/upload-folder.html)**: Upload full static websites and React/Vite `dist/` directories to IPFS with intact relative paths under a single root CID.
 - **[Share Snippets & Pastebin](examples/snippet.html)**: Upload and pin code snippets, logs, and text pastes to IPFS with syntax highlighting, SHA-256 hashes, and instant public gateway links.
 - **[Kind 20 Picture Post Generator](examples/picture.html)** (Instagram-style photo dump): Batch upload photos to IPFS, preview an interactive carousel feed, generate NIP-68 Kind 20 JSON with NIP-92 `imeta` tags (URL, MIME, SHA-256, dimensions, blurhash, alt), and publish directly or via NoStrudel.
@@ -263,6 +269,31 @@ _Response:_
   "size": 1048576,
   "type": "image/png",
   "filename": "photo.png"
+}
+```
+
+### Upload Anonymized Image
+
+`POST /media` accepts JPEG, PNG, GIF, or WebP. It strips EXIF, GPS, XMP, IPTC, ICC, and text comments, applies EXIF orientation so the pixels are upright, then pins the cleaned bytes like `/upload`. WebP is transcoded to JPEG. Use `/upload` when you need the original file unchanged.
+
+```bash
+curl -X POST -F "file=@photo.jpg" http://localhost:3232/media
+```
+
+_Response:_
+
+```json
+{
+  "status": "success",
+  "cid": "QmX...",
+  "filename": "photo.jpg",
+  "type": "image/jpeg",
+  "size": 98012,
+  "originalSize": 1048576,
+  "anonymized": true,
+  "stripped": ["exif", "gps", "xmp"],
+  "orientation": 6,
+  "pinned": true
 }
 ```
 

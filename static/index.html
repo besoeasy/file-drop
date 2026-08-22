@@ -148,11 +148,15 @@
               </div>
               <div class="dropzone-primary-text">Drop to pin on this node</div>
               <div class="dropzone-secondary-text">
-                One file uses <span>/upload</span>. Several files or a folder use <span>/uploadfolder</span>.
+                One file uses <span>{{ anonymizeMedia ? '/media or /upload' : '/upload' }}</span>. Several files or a folder use <span>/uploadfolder</span>.
               </div>
               <div class="dropzone-actions" @click.stop>
                 <button type="button" class="btn-core btn-core-primary btn-core-sm" @click="triggerFileInput">Choose files</button>
                 <button type="button" class="btn-core btn-core-secondary btn-core-sm" @click="triggerFolderInput">Choose folder</button>
+                <label class="studio-opt">
+                  <input type="checkbox" v-model="anonymizeMedia" @change="persistAnonymize" />
+                  Strip EXIF from images
+                </label>
               </div>
             </div>
 
@@ -191,6 +195,7 @@
                       <polyline points="22 4 12 14.01 9 11.01"></polyline>
                     </svg>
                     <span>Pinned {{ lastUploadResult.filename }}</span>
+                    <span v-if="lastUploadResult.anonymized" class="pill-status-pinned" style="margin-left: 0.35rem;">EXIF stripped</span>
                   </div>
                   <button class="btn-core btn-core-secondary btn-core-sm" @click="openInspect(lastUploadResult)">
                     Inspect / QR
