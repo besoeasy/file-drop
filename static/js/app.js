@@ -76,6 +76,92 @@
     return "file";
   }
 
+  function itemMime(item) {
+    return (item && (item.type || item.mime)) || "";
+  }
+
+  function itemCategory(item) {
+    if (!item) return "file";
+    return getFileCategory(item.filename, itemMime(item));
+  }
+
+  function shortCid(cid) {
+    if (!cid) return "";
+    if (cid.length <= 18) return cid;
+    return `${cid.slice(0, 8)}…${cid.slice(-8)}`;
+  }
+
+  function isFolderFileList(files) {
+    if (!files || files.length === 0) return false;
+    if (files.length > 1) return true;
+    const f = files[0];
+    const rel = f.relativePath || f.webkitRelativePath || "";
+    return rel.includes("/");
+  }
+
+  function walkEntry(entry, prefix, out) {
+    return new Promise((resolve, reject) => {
+      if (!entry) {
+        resolve();
+        return;
+      }
+      if (entry.isFile) {
+        entry.file((file) => {
+          const rel = prefix ? `${prefix}${file.name}` : file.name;
+          try {
+            Object.defineProperty(file, "webkitRelativePath", { value: rel });
+          } catch (_) {}
+          file.relativePath = rel;
+          out.push(file);
+          resolve();
+        }, reject);
+        return;
+      }
+      if (entry.isDirectory) {
+        const reader = entry.createReader();
+        const dirPrefix = `${prefix}${entry.name}/`;
+        const next = () => {
+          reader.readEntries(async (ents) => {
+            if (!ents.length) {
+              resolve();
+              return;
+            }
+            try {
+              for (const child of ents) {
+                await walkEntry(child, dirPrefix, out);
+              }
+              next();
+            } catch (err) {
+              reject(err);
+            }
+          }, reject);
+        };
+        next();
+        return;
+      }
+      resolve();
+    });
+  }
+
+  async function filesFromDataTransfer(dt) {
+    const items = dt && dt.items;
+    if (items && items.length && typeof items[0].webkitGetAsEntry === "function") {
+      const entries = [];
+      for (let i = 0; i < items.length; i++) {
+        const entry = items[i].webkitGetAsEntry && items[i].webkitGetAsEntry();
+        if (entry) entries.push(entry);
+      }
+      if (entries.length) {
+        const files = [];
+        for (const entry of entries) {
+          await walkEntry(entry, "", files);
+        }
+        if (files.length) return files;
+      }
+    }
+    return Array.from((dt && dt.files) || []);
+  }
+
   function statusDefaults() {
     return {
       nodeId: "...",
@@ -146,7 +232,11 @@
           typeFilter: "all",
           sortBy: "date-desc",
           
-          activeTab: "upload", // upload, folder, prompt
+          activeTab: "pin", // pin, prompt
+          libraryView: localStorage.getItem("ol_library_view") || "grid",
+          archiveView: localStorage.getItem("ol_archive_view") || "grid",
+          brokenThumbs: {},
+          nodeSheetOpen: false,
           
           // Single File Upload
           dragOver: false,
@@ -243,6 +333,18 @@
             );
           }
           return list;
+        },
+
+        lastPinKind() {
+          if (!this.lastUploadResult) return "";
+          return itemCategory(this.lastUploadResult);
+        },
+
+        archiveStatusLabel() {
+          if (!this.archive.enabled) return "Idle";
+          if (this.archive.scanning) return "Scanning";
+          if (this.archive.repinning) return "Re-pinning";
+          return "Watching";
         },
 
         generatedAgentPrompt() {
@@ -355,6 +457,8 @@ To confirm you have understood this skill, complete this check:
         formatUnix,
         formatRelative,
         getFileCategory,
+        itemCategory,
+        shortCid,
 
         showToast(message, type = "success") {
           const id = Date.now() + Math.random();
@@ -378,6 +482,46 @@ To confirm you have understood this skill, complete this check:
           localStorage.setItem("ol_gateway_url", this.currentGateway);
           const gwName = new URL(this.currentGateway).hostname;
           this.showToast(`Active Gateway set to ${gwName}`, "success");
+        },
+
+        setLibraryView(view) {
+          this.libraryView = view;
+          localStorage.setItem("ol_library_view", view);
+        },
+
+        setArchiveView(view) {
+          this.archiveView = view;
+          localStorage.setItem("ol_archive_view", view);
+        },
+
+        showThumb(item) {
+          if (!item || !item.cid) return false;
+          if (this.brokenThumbs[item.cid]) return false;
+          return itemCategory(item) === "image";
+        },
+
+        isVideoItem(item) {
+          return itemCategory(item) === "video";
+        },
+
+        isAudioItem(item) {
+          return itemCategory(item) === "audio";
+        },
+
+        thumbUrl(item) {
+          if (!item || !item.cid) return "";
+          return `${this.currentGateway}${item.cid}`;
+        },
+
+        onThumbError(cid) {
+          if (!cid || this.brokenThumbs[cid]) return;
+          this.brokenThumbs = { ...this.brokenThumbs, [cid]: true };
+        },
+
+        truncateNpub(npub) {
+          if (!npub) return "";
+          if (npub.length <= 22) return npub;
+          return `${npub.slice(0, 12)}…${npub.slice(-8)}`;
         },
 
         getGatewayUrl(cid, filename) {
@@ -506,17 +650,29 @@ To confirm you have understood this skill, complete this check:
         },
 
         handleFileSelect(event) {
-          const files = event.target.files;
-          if (files && files.length > 0) {
+          const files = Array.from(event.target.files || []);
+          if (!files.length) return;
+          if (isFolderFileList(files)) {
+            this.uploadFolder(files);
+          } else {
             this.uploadSingleFile(files[0]);
           }
         },
 
-        handleDrop(event) {
+        async handleDrop(event) {
           this.dragOver = false;
-          const files = event.dataTransfer.files;
-          if (files && files.length > 0) {
-            this.uploadSingleFile(files[0]);
+          try {
+            const files = await filesFromDataTransfer(event.dataTransfer);
+            if (!files.length) return;
+            this.activeTab = "pin";
+            if (isFolderFileList(files)) {
+              await this.uploadFolder(files);
+            } else {
+              await this.uploadSingleFile(files[0]);
+            }
+          } catch (err) {
+            console.error("Drop error:", err);
+            this.showToast(err.message || "Drop failed", "error");
           }
         },
 
@@ -525,6 +681,7 @@ To confirm you have understood this skill, complete this check:
           this.isUploading = true;
           this.uploadProgress = 15;
           this.lastUploadResult = null;
+          this.lastFolderResult = null;
 
           const formData = new FormData();
           formData.append("file", file, file.name);
@@ -581,11 +738,12 @@ To confirm you have understood this skill, complete this check:
           for (let i = 0; i < files.length; i++) {
             const f = files[i];
             totalBytes += f.size;
-            const relativePath = f.webkitRelativePath || f.name;
+            const relativePath = f.relativePath || f.webkitRelativePath || f.name;
             formData.append("file", f, relativePath);
           }
           this.folderTotalSize = totalBytes;
           this.lastFolderResult = null;
+          this.lastUploadResult = null;
 
           try {
             const res = await fetch("/uploadfolder", {
@@ -658,6 +816,8 @@ To confirm you have understood this skill, complete this check:
     formatUnix,
     formatRelative,
     getFileCategory,
+    itemCategory,
+    shortCid,
     createOriginlessApp,
   };
 })();

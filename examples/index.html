@@ -5,268 +5,83 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Examples & Tools — Originless</title>
   <meta name="description" content="Standalone client tools and examples for Originless IPFS nodes." />
-  <meta name="theme-color" content="#211e1e" />
+  <meta name="theme-color" content="#09090b" />
   <link rel="icon" type="image/svg+xml" href="/logo.svg" />
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
-  <style>
-    @import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap");
-
-    :root {
-      --bg: hsl(0, 20%, 99%);
-      --bg-2: hsl(0, 8%, 97%);
-      --bg-hover: hsl(0, 8%, 94%);
-      --surface: hsl(0, 20%, 99%);
-      --ink: hsl(0, 5%, 12%);
-      --muted: hsl(0, 1%, 39%);
-      --faint: hsl(0, 1%, 60%);
-      --line: hsla(0, 100%, 3%, 0.12);
-      --line-strong: hsl(30, 2%, 81%);
-      --brand: hsl(0, 5%, 12%);
-      --accent: hsl(62, 84%, 88%);
-      --ok: #03b000;
-      --err: #c41222;
-      --ease: cubic-bezier(0.22, 1, 0.36, 1);
-      --font: "IBM Plex Sans", Helvetica, Arial, sans-serif;
-      --mono: "IBM Plex Mono", ui-monospace, monospace;
-      --radius: 4px;
-    }
-
-    * { box-sizing: border-box; }
-
-    html, body {
-      margin: 0;
-      min-height: 100%;
-      background: var(--bg);
-      color: var(--ink);
-      font-family: var(--font);
-      -webkit-font-smoothing: antialiased;
-    }
-
-    a { color: inherit; text-decoration: none; }
-    button { font: inherit; cursor: pointer; }
-    .mono { font-family: var(--mono); }
-    .shell { min-height: 100vh; display: flex; flex-direction: column; }
-    .wrap { width: min(1080px, calc(100% - 2.5rem)); margin-inline: auto; padding: 2.5rem 0 5rem; flex: 1; }
-
-    .page-header-clean {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 1.25rem 0 1rem;
-      border-bottom: 1px solid var(--line);
-      margin-bottom: 2.5rem;
-      gap: 1rem;
-      flex-wrap: wrap;
-    }
-    .page-brand {
-      display: flex;
-      align-items: center;
-      gap: .75rem;
-      font-family: var(--mono);
-      font-weight: 700;
-      font-size: 1.05rem;
-      color: var(--ink);
-    }
-    .brand-mark {
-      width: 1.35rem; height: 1.35rem;
-      background:
-        linear-gradient(var(--ink), var(--ink)) 0 0 / 55% 55% no-repeat,
-        linear-gradient(var(--line-strong), var(--line-strong)) 45% 45% / 55% 55% no-repeat;
-    }
-
-    .node-status-bar {
-      display: flex;
-      align-items: center;
-      gap: .5rem;
-      font-family: var(--mono);
-      font-size: .75rem;
-      background: var(--bg-2);
-      padding: .35rem .75rem;
-      border-radius: 999px;
-    }
-    .dot { width: .45rem; height: .45rem; border-radius: 50%; background: var(--ok); }
-    .dot.is-offline { background: var(--faint); }
-
-    .btn-ghost {
-      background: transparent;
-      border: 0;
-      color: var(--muted);
-      padding: .2rem .4rem;
-      border-radius: 4px;
-      transition: color .2s;
-    }
-    .btn-ghost:hover { color: var(--ink); }
-
-    .kicker {
-      display: block;
-      font-family: var(--mono);
-      font-size: .78rem;
-      color: var(--faint);
-      margin: 0 0 .7rem;
-    }
-    .hero h1 {
-      margin: 0;
-      font-size: clamp(2rem, 4vw, 2.75rem);
-      font-weight: 700;
-      letter-spacing: -.04em;
-      line-height: 1.1;
-    }
-    .hero p {
-      margin: .85rem 0 0;
-      color: var(--muted);
-      max-width: 44rem;
-      line-height: 1.55;
-      font-size: 1.02rem;
-    }
-    .mb { margin-bottom: 2.5rem; }
-
-    .grid { display: grid; gap: 1.5rem; }
-    .grid-2 { grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
-    .grid-3 { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
-
-    .section-title {
-      font-family: var(--mono);
-      font-size: .85rem;
-      font-weight: 600;
-      color: var(--faint);
-      text-transform: uppercase;
-      letter-spacing: .05em;
-      margin: 2rem 0 1rem;
-    }
-
-    .tile {
-      background: var(--bg-2);
-      border-radius: .5rem;
-      padding: 1.5rem;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      transition: background .2s var(--ease), transform .2s var(--ease);
-      border: 1px solid transparent;
-    }
-    .tile:hover {
-      background: var(--bg-hover);
-      transform: translateY(-2px);
-      border-color: var(--line);
-    }
-
-    .card-head {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: .75rem;
-      margin-bottom: 1.1rem;
-    }
-
-    .pill {
-      display: inline-flex;
-      align-items: center;
-      font-family: var(--mono);
-      padding: .2rem .55rem;
-      font-size: .72rem;
-      border-radius: 4px;
-      font-weight: 500;
-    }
-    .pill-get { background: var(--bg); color: var(--muted); border: 1px solid var(--line); }
-    .pill-post { background: var(--ink); color: #fff; }
-
-    .link-more {
-      font-family: var(--mono);
-      font-size: .8rem;
-      color: var(--faint);
-      transition: color .2s, transform .2s;
-    }
-    .tile:hover .link-more {
-      color: var(--ink);
-      transform: translateX(4px);
-    }
-
-    .tile h2 {
-      margin: 0 0 .5rem;
-      font-size: 1.15rem;
-      font-weight: 600;
-      letter-spacing: -.02em;
-    }
-    .muted {
-      color: var(--muted);
-      font-size: .88rem;
-      line-height: 1.55;
-      margin: 0;
-    }
-
-    .foot-clean {
-      margin-top: 4rem;
-      border-top: 1px solid var(--line);
-      padding: 1.5rem 0;
-      font-family: var(--mono);
-      font-size: .78rem;
-      color: var(--muted);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 1rem;
-    }
-    .foot-clean a:hover { color: var(--ink); }
-  </style>
+  <link rel="stylesheet" href="/css/app.css" />
 </head>
 <body>
-<div id="app" class="shell">
-  <main class="wrap">
-    <header class="page-header-clean">
-      <div class="page-brand">
-        <span class="brand-mark"></span>
-        <span>originless examples</span>
-      </div>
-      <div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap">
-        <a :href="nodeUrl" class="mono" style="font-size:.8rem;color:var(--muted)">
-          <i class="fas fa-gauge"></i> Main Dashboard
+<div id="app" class="app-container">
+  <header class="navbar">
+    <div class="canvas-wrap navbar-inner">
+      <div class="brand-unit">
+        <a class="brand-link" :href="nodeUrl">
+          <div class="brand-icon-box">
+            <img src="/logo.svg" alt="Originless" />
+          </div>
+          <span>Originless</span>
+          <span class="brand-tag">Tools</span>
         </a>
+        <nav class="nav-pill-group">
+          <a :href="nodeUrl" class="nav-pill">Overview</a>
+          <a href="/examples/" class="nav-pill is-active">Tools</a>
+        </nav>
+      </div>
+      <div class="navbar-actions">
         <div class="node-status-bar">
           <span class="dot" :class="{ 'is-offline': !nodeOnline }"></span>
-          <span>Node: <strong class="mono">{{ nodeUrl }}</strong></span>
-          <span v-if="nodeOnline" class="faint">({{ peerCount }} peers)</span>
-          <button class="btn-ghost" @click="promptChangeNode" title="Change Node URL"><i class="fas fa-gear"></i></button>
+          <span class="mono">{{ nodeUrl }}</span>
+          <span v-if="nodeOnline">{{ peerCount }} peers</span>
+          <button type="button" class="btn-icon-cell" @click="promptChangeNode" title="Change node URL">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="3"></circle>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+            </svg>
+          </button>
         </div>
-        <a href="https://github.com/besoeasy/Originless" target="_blank" rel="noopener" class="mono" style="font-size:.8rem;color:var(--muted)">
-          <i class="fab fa-github"></i> GitHub
+        <a class="btn-ghost-icon" href="https://github.com/besoeasy/Originless" target="_blank" rel="noopener" title="GitHub">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"></path>
+          </svg>
         </a>
       </div>
-    </header>
-
-    <div class="hero mb">
-      <p class="kicker">[*] Client examples &amp; tools</p>
-      <h1>Examples &amp; Tools</h1>
-      <p>Decoupled client applications that communicate with your Originless IPFS node (<span class="mono">{{ nodeUrl }}</span>). Open them directly in your browser or deploy them anywhere.</p>
     </div>
+  </header>
 
-    <!-- Dynamic Categories -->
-    <div v-for="cat in categorizedTools" :key="cat.name" class="mb">
-      <div class="section-title">{{ cat.name }}</div>
-      <div class="grid" :class="cat.tools.length <= 2 ? 'grid-2' : 'grid-3'">
-        <a v-for="tool in cat.tools" :key="tool.file" class="tile" :href="tool.file">
-          <div>
-            <div class="card-head">
-              <span class="pill" :class="tool.badge || (tool.endpoint && tool.endpoint.startsWith('POST') ? 'pill-post' : 'pill-get')">
+  <main class="page-body">
+    <div class="canvas-wrap">
+      <div class="catalog-hero">
+        <p class="catalog-kicker">Client examples</p>
+        <h1>Tools that talk to this node</h1>
+        <p>Standalone pages that call your Originless origin (<span class="mono">{{ nodeUrl }}</span>). Open them here or host them anywhere.</p>
+      </div>
+
+      <section v-for="cat in categorizedTools" :key="cat.name" class="catalog-section">
+        <div class="catalog-section-title">{{ cat.name }}</div>
+        <div class="tool-grid">
+          <a v-for="tool in cat.tools" :key="tool.file" class="tool-tile" :href="tool.file">
+            <div class="tool-tile-head">
+              <span class="tool-pill" :class="{ 'is-post': isPostTool(tool) }">
                 {{ tool.endpoint || 'TOOL' }}
               </span>
-              <span class="link-more">Open →</span>
+              <span class="tool-tile-open">Open</span>
             </div>
             <h2>{{ tool.title }}</h2>
-            <p class="muted">{{ tool.description }}</p>
-          </div>
-        </a>
+            <p>{{ tool.description }}</p>
+          </a>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <footer class="footer-wrap">
+    <div class="canvas-wrap footer-content">
+      <div>Originless client examples</div>
+      <div class="footer-links">
+        <a href="https://github.com/besoeasy/Originless" target="_blank" rel="noopener">GitHub</a>
+        <a :href="nodeUrl">Node dashboard</a>
       </div>
     </div>
-
-    <footer class="foot-clean">
-      <div>
-        <a href="https://github.com/besoeasy/Originless" target="_blank" rel="noopener">GitHub</a> ·
-        <a :href="nodeUrl" target="_blank" rel="noopener">Node Dashboard</a>
-      </div>
-      <div>Originless Decoupled Client Examples</div>
-    </footer>
-  </main>
+  </footer>
 </div>
 
 <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
@@ -362,6 +177,10 @@
       }
     },
     methods: {
+      isPostTool(tool) {
+        const endpoint = (tool.endpoint || "").toUpperCase();
+        return endpoint.startsWith("POST") || tool.badge === "pill-post";
+      },
       promptChangeNode() {
         const url = prompt("Enter Originless Node URL:", this.nodeUrl);
         if (url && url.trim()) {
