@@ -25,7 +25,6 @@ docker run -d \
   -p 3232:3232 \
   -p 8080:8080 \
   -e STORAGE_MAX=100GB \
-  -v originless-data:/data \
   -v originless-archive:/archive \
   ghcr.io/besoeasy/originless:latest
 ```
@@ -47,7 +46,6 @@ docker run -d \
   -p 8080:8080 \
   -e STORAGE_MAX=100GB \
   -e NOSTR_NPUBS=npub1...,npub1... \
-  -v originless-data:/data \
   -v originless-archive:/archive \
   ghcr.io/besoeasy/originless:latest
 ```
