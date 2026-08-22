@@ -88,6 +88,12 @@ func main() {
 		log.Printf("[STARTUP] NOSTR_RELAYS configured count=%d relays=%v", len(modules.NostrRelays), modules.NostrRelays)
 	}
 
+	if modules.GatewayEnabled {
+		log.Printf("[STARTUP] IPFS gateway enabled path=/ipfs/ backend=%s (set ENABLE_GATEWAY=false to disable)", modules.IPFSGateway)
+	} else {
+		log.Printf("[STARTUP] IPFS gateway disabled (ENABLE_GATEWAY=false)")
+	}
+
 	router := modules.NewRouter(ipfsClient, janitorMgr, archiver, uiFS(), exFS())
 
 	server := &http.Server{

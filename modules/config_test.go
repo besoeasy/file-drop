@@ -108,6 +108,43 @@ func TestIsValidNpub(t *testing.T) {
 	}
 }
 
+func TestEnvOrDefaultBool(t *testing.T) {
+	const key = "TEST_ENABLE_GATEWAY"
+	t.Cleanup(func() { os.Unsetenv(key) })
+
+	tests := []struct {
+		value    string
+		set      bool
+		fallback bool
+		want     bool
+	}{
+		{set: false, fallback: true, want: true},
+		{set: false, fallback: false, want: false},
+		{value: "true", set: true, fallback: false, want: true},
+		{value: "TRUE", set: true, fallback: false, want: true},
+		{value: "1", set: true, fallback: false, want: true},
+		{value: "yes", set: true, fallback: false, want: true},
+		{value: "on", set: true, fallback: false, want: true},
+		{value: "false", set: true, fallback: true, want: false},
+		{value: "0", set: true, fallback: true, want: false},
+		{value: "no", set: true, fallback: true, want: false},
+		{value: "off", set: true, fallback: true, want: false},
+		{value: "maybe", set: true, fallback: true, want: true},
+		{value: "  false  ", set: true, fallback: true, want: false},
+	}
+
+	for _, tt := range tests {
+		os.Unsetenv(key)
+		if tt.set {
+			os.Setenv(key, tt.value)
+		}
+		got := envOrDefaultBool(key, tt.fallback)
+		if got != tt.want {
+			t.Errorf("envOrDefaultBool(%q, fallback=%v) = %v, want %v", tt.value, tt.fallback, got, tt.want)
+		}
+	}
+}
+
 func TestEnvOrDefaultSlice(t *testing.T) {
 	os.Unsetenv("TEST_NOSTR_NPUBS")
 	os.Unsetenv("TEST_NPUBS_FALLBACK")

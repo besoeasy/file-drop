@@ -19,6 +19,14 @@ func NewRouter(ipfsClient *Client, janitorManager *Manager, archiver *Archiver, 
 	mux.HandleFunc("GET /archive", handler.ArchiveList)
 	mux.HandleFunc("GET /metrics", metrics.Handler(janitorManager, ipfsClient, archiver))
 
+	// Path-gateway: serve pinned files directly from this node. Disabled when
+	// ENABLE_GATEWAY=false so operators who do not want to be an HTTP origin
+	// can keep upload-and-pin-only behavior.
+	mux.HandleFunc("/ipfs/", handler.Gateway)
+	mux.HandleFunc("/ipfs", handler.Gateway)
+	mux.HandleFunc("/ipns/", handler.Gateway)
+	mux.HandleFunc("/ipns", handler.Gateway)
+
 	// Dynamic examples endpoint & routes
 	mux.HandleFunc("GET /api/examples", handler.ExamplesList)
 	mux.HandleFunc("GET /examples/manifest.json", handler.ExamplesList)

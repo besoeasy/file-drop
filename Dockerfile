@@ -17,6 +17,8 @@ ENV NOSTR_RELAYS=""
 ENV ARCHIVE_DIR=/archive
 ENV ARCHIVE_INTERVAL=15
 ENV ARCHIVE_REPIN_HOURS=6
+ENV ENABLE_GATEWAY=true
+ENV IPFS_GATEWAY=http://127.0.0.1:8080
 
 RUN apk add --no-cache ca-certificates gcompat kubo && \
   adduser -D -h /app originless
@@ -24,12 +26,15 @@ RUN apk add --no-cache ca-certificates gcompat kubo && \
 WORKDIR /app
 
 COPY --from=builder /originless /app/originless
+COPY docker-entrypoint.sh /app/docker-entrypoint.sh
 
-RUN mkdir -p /tmp/originless /data /archive && chown -R originless:originless /app /tmp/originless /data /archive
+RUN chmod +x /app/docker-entrypoint.sh && \
+  mkdir -p /tmp/originless /data /archive && \
+  chown -R originless:originless /app /tmp/originless /data /archive
 
 USER originless
 
-EXPOSE 3232 4001/tcp 4001/udp
+EXPOSE 3232 8080 4001/tcp 4001/udp
 
 VOLUME ["/data", "/archive"]
 
@@ -37,13 +42,4 @@ STOPSIGNAL SIGTERM
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 CMD wget -qO- http://127.0.0.1:3232/health || exit 1
 
-CMD ["sh", "-c", "\
-  export IPFS_PATH=/data && \
-  if [ ! -f \"$IPFS_PATH/config\" ]; then ipfs init --profile=lowpower; fi && \
-  ipfs config Datastore.StorageMax ${STORAGE_MAX} && \
-  ipfs config --json Routing.Type '\"dhtclient\"'; \
-  ipfs daemon --enable-gc --routing=dhtclient & \
-  IPFS_PID=$! && \
-  export IPFS_PID && \
-  sleep 10 && \
-  exec /app/originless"]
+ENTRYPOINT ["/app/docker-entrypoint.sh"]

@@ -16,7 +16,7 @@ const (
 	Port             = 3232
 	Host             = "0.0.0.0"
 	UploadTempDir    = "/tmp/originless"
-	AppVersion       = "0.6.0"
+	AppVersion       = "0.7.0"
 	MaxConcurrentOps = 3
 	PinThreshold     = 75
 	JanitorInterval  = 60 // minutes
@@ -32,6 +32,8 @@ var (
 	ArchiveDir        string
 	ArchiveInterval   int
 	ArchiveRepinHours int
+	GatewayEnabled    bool
+	IPFSGateway       string
 )
 
 var DefaultFamousRelays = []string{
@@ -68,6 +70,8 @@ func init() {
 	ArchiveDir = envOrDefault("ARCHIVE_DIR", "/archive")
 	ArchiveInterval = envOrDefaultInt("ARCHIVE_INTERVAL", 15)
 	ArchiveRepinHours = envOrDefaultInt("ARCHIVE_REPIN_HOURS", 6)
+	GatewayEnabled = envOrDefaultBool("ENABLE_GATEWAY", true)
+	IPFSGateway = strings.TrimRight(envOrDefault("IPFS_GATEWAY", "http://127.0.0.1:8080"), "/")
 
 	storageMaxBytes, err := ParseSize(StorageMax)
 	if err != nil {
@@ -92,6 +96,23 @@ func envOrDefaultInt(key string, fallback int) int {
 		}
 	}
 	return fallback
+}
+
+// envOrDefaultBool reads a truthy/falsey env var. Unset or unrecognized
+// values use fallback. Accepted truthy: 1, true, yes, on. Falsey: 0, false, no, off.
+func envOrDefaultBool(key string, fallback bool) bool {
+	value := strings.TrimSpace(os.Getenv(key))
+	if value == "" {
+		return fallback
+	}
+	switch strings.ToLower(value) {
+	case "1", "true", "yes", "on":
+		return true
+	case "0", "false", "no", "off":
+		return false
+	default:
+		return fallback
+	}
 }
 
 func envOrDefaultSlice(keys []string, fallback []string) []string {

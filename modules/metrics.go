@@ -43,7 +43,7 @@ func NewMetrics() *Metrics {
 // as errors. It is the outermost middleware so it sees all traffic.
 func (m *Metrics) Middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		m.IncRequest(r.URL.Path)
+		m.IncRequest(gatewayMetricPath(r.URL.Path))
 		rec := &statusRecorder{ResponseWriter: w, status: http.StatusOK}
 		next.ServeHTTP(rec, r)
 		if rec.status >= http.StatusBadRequest {
@@ -179,6 +179,14 @@ func (m *Metrics) Handler(janitor *Manager, ipfs *Client, archiver *Archiver) ht
 		sb.WriteString("# HELP originless_ipfs_peers Number of connected IPFS peers.\n")
 		sb.WriteString("# TYPE originless_ipfs_peers gauge\n")
 		fmt.Fprintf(&sb, "originless_ipfs_peers %d\n", m.peers.Load())
+
+		enabled := 0
+		if GatewayEnabled {
+			enabled = 1
+		}
+		sb.WriteString("# HELP originless_gateway_enabled Whether this node serves /ipfs and /ipns (1) or not (0).\n")
+		sb.WriteString("# TYPE originless_gateway_enabled gauge\n")
+		fmt.Fprintf(&sb, "originless_gateway_enabled %d\n", enabled)
 
 		sb.WriteString("# HELP originless_archive_count Number of permanently archived IPFS objects from Nostr.\n")
 		sb.WriteString("# TYPE originless_archive_count gauge\n")

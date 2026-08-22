@@ -23,6 +23,7 @@ docker run -d \
   --name originless \
   --restart unless-stopped \
   -p 3232:3232 \
+  -p 8080:8080 \
   -e STORAGE_MAX=100GB \
   -v originless-data:/data \
   -v originless-archive:/archive \
@@ -32,6 +33,8 @@ docker run -d \
 > **Podman User?** Simply replace `docker` with `podman` in the command above!
 
 - Access **Originless Web UI & API** at **[http://localhost:3232](http://localhost:3232)**
+- Fetch pinned files from **this node** at `http://localhost:3232/ipfs/<cid>` (also on port `8080`)
+- Disable the HTTP gateway with `-e ENABLE_GATEWAY=false` if you do not want this node to serve bytes over HTTP
 
 To also archive IPFS media from Nostr accounts onto `/archive`, pass `NOSTR_NPUBS`:
 
@@ -40,6 +43,7 @@ docker run -d \
   --name originless \
   --restart unless-stopped \
   -p 3232:3232 \
+  -p 8080:8080 \
   -e STORAGE_MAX=100GB \
   -e NOSTR_NPUBS=npub1...,npub1... \
   -v originless-data:/data \
@@ -50,7 +54,22 @@ docker run -d \
 ## Testing
 
 ```bash
-docker build -t originless:local . && docker run --name originless -p 3232:3232 originless:local
+docker build -t originless:local . && docker run --name originless -p 3232:3232 -p 8080:8080 originless:local
+```
+
+The local gateway is **on by default**. After an upload you can fetch the bytes from this node:
+
+```bash
+CID=$(curl -s -X POST -F "file=@README.md" http://localhost:3232/upload | jq -r .cid)
+curl -O http://localhost:3232/ipfs/$CID
+# Kubo-native path gateway (same content):
+curl -O http://localhost:8080/ipfs/$CID
+```
+
+To run upload-and-pin-only (no HTTP content serving):
+
+```bash
+docker run --name originless -p 3232:3232 -e ENABLE_GATEWAY=false originless:local
 ```
 
 ## ⚡ Quick Showcase — Upload in One Command
@@ -75,6 +94,7 @@ _Response:_
 
 The file is pinned to IPFS and instantly available anywhere on the swarm:
 
+- **This node:** `http://localhost:3232/ipfs/QmX...` (disable with `ENABLE_GATEWAY=false`)
 - **Native IPFS:** `ipfs://QmX...`
 - **Public gateway:** `https://ipfs.io/ipfs/QmX...`
 - **Alt gateway:** `https://dweb.link/ipfs/QmX...`
@@ -100,7 +120,7 @@ Client examples and decoupled tools are located in the [`examples/`](examples/) 
 ## 🔥 Key Features
 
 - **🌐 Origin-Independent Storage**: Files are pinned to IPFS. Once propagated to peers, content stays online even if your origin node goes offline.
-- **🛡️ Legal & Host Protection**: P2P multihash routing shields node operators—you participate in the decentralized IPFS swarm rather than acting as a direct HTTP web host responsible for serving content under a centralized domain origin.
+- **🛡️ Legal & Host Protection**: P2P multihash routing is the default sharing model—content lives as `ipfs://CID` on the swarm. An optional HTTP gateway (`/ipfs/<cid>`, on by default) lets this node serve files directly; set `ENABLE_GATEWAY=false` if you do not want to be an HTTP origin.
 - **🏠 Zero Domain, HTTPS, or Port Exposure Required**: Runs seamlessly behind NATs, firewalls, home servers, or local environments using IPFS `libp2p` hole-punching. No domain name, public IP, or SSL certificate setup needed!
 - **🔒 Zero-Friction & Accountless**: No API keys, passwords, or authentication overhead needed for uploads. Perfect for local dev, public APIs, or AI agent integration.
 - **📁 Full Folder & DApp Uploads**: Upload complete static websites, React/Vite build directories (`dist/`), or asset folders with intact relative paths (unlike single-file media servers).
@@ -116,7 +136,7 @@ Client examples and decoupled tools are located in the [`examples/`](examples/) 
 | Feature                           | Nostr Blossom / Centralized HTTP Servers                                                               | 🌐 **Originless**                                                                                                     |
 | :-------------------------------- | :----------------------------------------------------------------------------------------------------- | :-------------------------------------------------------------------------------------------------------------------- |
 | **Domain & Network Setup**        | ❌ **Requires** public domain, SSL certificates (HTTPS), and open public web ports.                    | ✅ **Zero Domain / NAT Ready**. Runs behind home routers, firewalls, or local Docker containers via `libp2p`.         |
-| **Hosting Liability & Risk**      | ❌ Server acts as direct HTTP web host (`https://server.com/<hash>`), making operator directly liable. | ✅ **Decentralized Swarm Buffer**. Content is content-addressed (`ipfs://CID`) and distributed over global P2P nodes. |
+| **Hosting Liability & Risk**      | ❌ Server acts as direct HTTP web host (`https://server.com/<hash>`), making operator directly liable. | ✅ **Decentralized Swarm Buffer**. Content is content-addressed (`ipfs://CID`) and distributed over global P2P nodes. Optional local `/ipfs` gateway (on by default; `ENABLE_GATEWAY=false` turns it off). |
 | **Link Resilience**               | ❌ Single point of failure. If server operator shuts down, all file links break instantly.             | ✅ **Origin-Independent**. Content propagates across global IPFS swarm and stays alive even if your node shuts down.  |
 | **Multi-File & DApp Support**     | ❌ Single flat files/blobs only (photos/videos).                                                       | ✅ **Full Directory & DApp Hosting**. Upload entire Vite/React `dist/` folders or static apps.                        |
 | **Trustless Client Verification** | ❌ Relies on server trust.                                                                             | ✅ **Content-Addressed Cryptography**. Verifiable via `@helia/verified-fetch` down to raw data blocks.                |
@@ -199,6 +219,20 @@ const fileBlob = await response.blob();
 // const data = await verifiedFetch(`ipfs://${cid}`).then(res => res.json());
 ```
 
+### 🌐 This Node's HTTP Gateway (default on)
+
+Originless reverse-proxies Kubo's path gateway so pinned files and folder sites are served from the same origin as the UI:
+
+```text
+http://localhost:3232/ipfs/QmX...?filename=document.pdf
+http://localhost:3232/ipfs/QmFolderCid/
+http://localhost:8080/ipfs/QmX...
+```
+
+`Gateway.NoFetch` is enabled in Docker, so the gateway only serves blocks already on this node (uploads, pins, archive). It will not pull arbitrary CIDs from the swarm on behalf of anonymous HTTP clients.
+
+Set `ENABLE_GATEWAY=false` to return `404` on `/ipfs` and `/ipns` and bind Kubo’s gateway to localhost only.
+
 ### 🌐 Standard Public Gateways
 
 For simple browser links or non-verified web views, standard IPFS gateway URLs can also be used:
@@ -239,6 +273,15 @@ curl -X POST \
   -F "file=@dist/style.css;filename=style.css" \
   http://localhost:3232/uploadfolder
 ```
+
+### Fetch a File From This Node
+
+```bash
+curl -O http://localhost:3232/ipfs/<cid>
+curl "http://localhost:3232/ipfs/<cid>?filename=photo.png"
+```
+
+Same bytes are also available on Kubo's path gateway at `http://localhost:8080/ipfs/<cid>` when `ENABLE_GATEWAY` is on.
 
 ### Check Storage & Pins
 
@@ -308,6 +351,7 @@ originless_pinned_count 12
 originless_pinned_bytes 52428800
 originless_ipfs_healthy 1
 originless_ipfs_peers 140
+originless_gateway_enabled 1
 originless_archive_count 8
 originless_archive_bytes 2097152
 ```
@@ -325,6 +369,8 @@ originless_archive_bytes 2097152
 | `ARCHIVE_DIR`         | `/archive`    | Directory (Docker volume) for permanent Nostr IPFS media. Never garbage-collected.                                                                                                                                                                |
 | `ARCHIVE_INTERVAL`    | `15`          | Minutes between Nostr archive scans. First scan runs at startup.                                                                                                                                                                                  |
 | `ARCHIVE_REPIN_HOURS` | `6`           | Hours between re-pinning every archived CID into Kubo (DHT provide + restore blocks from `/archive` if needed).                                                                                                                                   |
+| `ENABLE_GATEWAY`      | `true`        | Serve pinned content at `/ipfs/<cid>` and `/ipns/<name>` on port `3232`, and bind Kubo’s gateway on `8080`. Set `false` / `0` / `off` to disable HTTP content serving.                                                                              |
+| `IPFS_GATEWAY`        | `http://127.0.0.1:8080` | Backend URL of the Kubo HTTP gateway that Originless reverse-proxies.                                                                                                                                                                       |
 
 **Volumes**
 

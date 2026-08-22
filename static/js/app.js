@@ -1,9 +1,15 @@
 (() => {
-  // Built-in public & local IPFS gateways
+  // Built-in public IPFS gateways. The local Originless gateway is prepended
+  // at runtime when ENABLE_GATEWAY is on (the default).
   const GATEWAYS = [
     { label: "dweb.link (Protocol Labs)", url: "https://dweb.link/ipfs/" },
     { label: "ipfs.io (Official)", url: "https://ipfs.io/ipfs/" },
   ];
+
+  function localGateway() {
+    const origin = typeof window !== "undefined" && window.location ? window.location.origin : "http://localhost:3232";
+    return { label: "This node (Originless)", url: `${origin}/ipfs/`, local: true };
+  }
 
   function formatBytes(bytes) {
     if (!bytes || bytes === 0) return "0 B";
@@ -119,12 +125,14 @@
 
     return createApp({
       data() {
-        const savedGateway = localStorage.getItem("ol_gateway_url") || GATEWAYS[0].url;
+        const local = localGateway();
+        const savedGateway = localStorage.getItem("ol_gateway_url");
         return {
           activePage: options.page || "overview",
           
-          gateways: GATEWAYS,
-          currentGateway: savedGateway,
+          gateways: [local, ...GATEWAYS],
+          currentGateway: savedGateway || local.url,
+          gatewayEnabled: true,
 
           status: statusDefaults(),
           pinStats: pinDefaults(),
@@ -241,10 +249,15 @@
           const origin = this.currentOrigin;
           const gw = this.currentGateway;
 
+          const localNote = this.gatewayEnabled
+            ? `- **Local Gateway**: \`${origin}/ipfs/{cid}\` (this node; disable with \`ENABLE_GATEWAY=false\`)`
+            : `- **Local Gateway**: disabled on this node`;
+
           if (this.promptFormat === "markdown") {
             return `### 🌐 Originless Decentralized Node Integration
 - **Node Origin**: \`${origin}\`
-- **Public IPFS Gateway**: \`${gw}\`
+- **Active IPFS Gateway**: \`${gw}\`
+${localNote}
 - **Auth**: None (Public P2P multi-hash swarm)
 
 #### API Endpoints
@@ -297,13 +310,18 @@ with open("sample.png", "rb") as f:
           }
 
           // Plain text default
-          return `Publish files with Originless. Pin them to IPFS on this node, then share the CID through a public gateway.
+          const serveHint = this.gatewayEnabled
+            ? `This node also serves the bytes at ${origin}/ipfs/{cid} (and optionally :8080). Set ENABLE_GATEWAY=false to keep upload-and-pin-only.`
+            : `This node's HTTP origin does not serve the bytes (ENABLE_GATEWAY=false). Use a public gateway or ipfs://.`;
+
+          return `Publish files with Originless. Pin them to IPFS on this node, then share the CID through a gateway.
 
 This is not limited to websites. Use it for a music file, a generated index.html report, a photo, an image gallery, a video, a PDF, a folder of mixed assets, or a full dist/ site.
 
 Repo: https://github.com/besoeasy/Originless
 This Originless node: ${origin}
 IPFS gateway: ${gw}
+${serveHint}
 
 Use this node for all uploads. Do not invent another host or API key. There is no auth.
 
@@ -311,8 +329,9 @@ Endpoints:
 - POST ${origin}/upload — one file. Multipart field "file".
 - POST ${origin}/uploadfolder — a folder (gallery, album, report, site). Multipart field name is "file" for each file; set filename to the relative path so links stay intact.
 - GET ${origin}/health — liveness check.
+- GET ${origin}/ipfs/{cid} — fetch pinned bytes from this node when the gateway is enabled.
 
-The JSON response includes "cid". That CID is the content address. This node's HTTP origin does not serve the bytes.
+The JSON response includes "cid". That CID is the content address.
 
 After upload, return gateway URLs to the user:
 - ${gw}{cid}            (single file)
@@ -419,6 +438,20 @@ To confirm you have understood this skill, complete this check:
                 };
               }
               this.nostrRelays = data.nostrRelays || [];
+
+              const local = localGateway();
+              this.gatewayEnabled = !data.gateway || data.gateway.enabled !== false;
+              if (this.gatewayEnabled) {
+                if (!this.gateways.some((g) => g.url === local.url)) {
+                  this.gateways = [local, ...GATEWAYS];
+                }
+              } else {
+                this.gateways = GATEWAYS.slice();
+                if (this.currentGateway === local.url) {
+                  this.currentGateway = GATEWAYS[0].url;
+                  localStorage.setItem("ol_gateway_url", this.currentGateway);
+                }
+              }
             }
           } catch (err) {
             console.error("Fetch status error:", err);
@@ -619,6 +652,7 @@ To confirm you have understood this skill, complete this check:
 
   window.Originless = {
     GATEWAYS,
+    localGateway,
     formatBytes,
     formatDate,
     formatUnix,

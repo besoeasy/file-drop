@@ -6,6 +6,7 @@ import (
 	"io/fs"
 	"log"
 	"net/http"
+	"net/http/httputil"
 	"strconv"
 	"time"
 )
@@ -17,10 +18,11 @@ type Handler struct {
 	archive    *Archiver
 	examplesFS fs.FS
 	semaphore  chan struct{}
+	gateway    *httputil.ReverseProxy
 }
 
 func NewHandler(ipfsClient *Client, janitorManager *Manager, metrics *Metrics, archiver *Archiver, examplesFS fs.FS) *Handler {
-	return &Handler{
+	h := &Handler{
 		ipfs:       ipfsClient,
 		janitor:    janitorManager,
 		metrics:    metrics,
@@ -28,6 +30,10 @@ func NewHandler(ipfsClient *Client, janitorManager *Manager, metrics *Metrics, a
 		examplesFS: examplesFS,
 		semaphore:  make(chan struct{}, MaxConcurrentOps),
 	}
+	if GatewayEnabled {
+		h.gateway = NewGatewayProxy(IPFSGateway)
+	}
+	return h
 }
 
 func (h *Handler) Health(w http.ResponseWriter, r *http.Request) {
@@ -84,6 +90,10 @@ func (h *Handler) Status(w http.ResponseWriter, r *http.Request) {
 		"nostrNpubs":  NostrNpubs,
 		"nostrRelays": NostrRelays,
 		"appVersion":  AppVersion,
+		"gateway": map[string]any{
+			"enabled": GatewayEnabled,
+			"path":    "/ipfs/",
+		},
 	}
 	if h.archive != nil {
 		payload["archive"] = h.archive.StatusMap()
