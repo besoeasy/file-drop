@@ -142,7 +142,7 @@ func parseExampleMetadata(filename string, content string) ExampleTool {
 	lowerFile := strings.ToLower(filename)
 
 	if tool.Category == "" {
-		if strings.Contains(lowerFile, "picture") || strings.Contains(lowerFile, "post") || strings.Contains(lowerFile, "nostr") || strings.Contains(lowerContent, "nostr") {
+		if strings.Contains(lowerFile, "picture") || strings.Contains(lowerFile, "post") || strings.Contains(lowerFile, "article") || strings.Contains(lowerFile, "nostr") || strings.Contains(lowerContent, "nostr") {
 			tool.Category = "Nostr Event Generators"
 		} else {
 			tool.Category = "Storage & Publishing Tools"
@@ -152,6 +152,8 @@ func parseExampleMetadata(filename string, content string) ExampleTool {
 	if tool.Endpoint == "" {
 		if strings.Contains(lowerFile, "folder") || strings.Contains(lowerContent, "/uploadfolder") {
 			tool.Endpoint = "POST /uploadfolder"
+		} else if strings.Contains(lowerFile, "article") || strings.Contains(lowerContent, "kind 30023") {
+			tool.Endpoint = "NIP-23 · Kind 30023"
 		} else if strings.Contains(lowerFile, "picture") || strings.Contains(lowerContent, "kind 20") {
 			tool.Endpoint = "NIP-68 · Kind 20"
 		} else if strings.Contains(lowerFile, "post") || strings.Contains(lowerContent, "kind 1") {

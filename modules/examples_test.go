@@ -31,6 +31,12 @@ func TestScanExamples(t *testing.T) {
 				<meta name="description" content="Generate Nostr Kind 20 picture posts" />
 			</head><body></body></html>`),
 		},
+		"article.html": &fstest.MapFile{
+			Data: []byte(`<!DOCTYPE html><html><head>
+				<title>Kind 30023 Long-Form Article Writer — Originless</title>
+				<meta name="description" content="Write NIP-23 long-form articles" />
+			</head><body></body></html>`),
+		},
 		"other.txt": &fstest.MapFile{
 			Data: []byte(`not an html file`),
 		},
@@ -41,8 +47,8 @@ func TestScanExamples(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if len(tools) != 3 {
-		t.Fatalf("expected 3 tools, got %d", len(tools))
+	if len(tools) != 4 {
+		t.Fatalf("expected 4 tools, got %d", len(tools))
 	}
 
 	// First tool should be upload-file.html due to order 1
@@ -75,5 +81,22 @@ func TestScanExamples(t *testing.T) {
 	}
 	if pictureTool.Endpoint != "NIP-68 · Kind 20" {
 		t.Errorf("expected endpoint 'NIP-68 · Kind 20', got %q", pictureTool.Endpoint)
+	}
+
+	var articleTool *ExampleTool
+	for _, tool := range tools {
+		if tool.File == "article.html" {
+			articleTool = &tool
+			break
+		}
+	}
+	if articleTool == nil {
+		t.Fatal("article.html not found in tools")
+	}
+	if articleTool.Category != "Nostr Event Generators" {
+		t.Errorf("expected category 'Nostr Event Generators', got %q", articleTool.Category)
+	}
+	if articleTool.Endpoint != "NIP-23 · Kind 30023" {
+		t.Errorf("expected endpoint 'NIP-23 · Kind 30023', got %q", articleTool.Endpoint)
 	}
 }
