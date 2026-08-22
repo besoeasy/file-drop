@@ -321,7 +321,7 @@
             list.sort((a, b) => (a.size || 0) - (b.size || 0));
           }
 
-          return list;
+          return list.map((row) => ({ ...row, category: itemCategory(row) }));
         },
 
         filteredArchiveItems() {
@@ -333,7 +333,7 @@
               (item.cid || "").toLowerCase().includes(q)
             );
           }
-          return list;
+          return list.map((row) => ({ ...row, category: itemCategory(row) }));
         },
 
         lastPinKind() {
@@ -463,8 +463,10 @@ To confirm you have understood this skill, complete this check:
         formatUnix,
         formatRelative,
         getFileCategory,
-        itemCategory,
         shortCid,
+        fileKind(item) {
+          return itemCategory(item);
+        },
 
         showToast(message, type = "success") {
           const id = Date.now() + Math.random();
