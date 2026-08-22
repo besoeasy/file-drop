@@ -116,7 +116,8 @@ Your `cid` is the file's cryptographic hash — anyone can verify the bytes matc
 
 The dashboard stays a library for this node. Uploads live in [`examples/`](examples/), served at `http://localhost:3232/examples/` (the **Tools** tab). You can also open those pages on their own or deploy them independently:
 
-- **[Single File Uploader](examples/upload-file.html)**: Drag & drop images, video, audio, or binaries to upload and pin on IPFS with instant public gateway links, embed HTML codes, and SHA-256 verification. Images can go through `POST /media` to strip EXIF/GPS.
+- **[Single File Uploader](examples/upload-file.html)**: Drag & drop images, video, audio, or binaries to `POST /upload`. Pins the exact bytes with public gateway links, embed HTML, and SHA-256 verification.
+- **[Anonymized Image Uploader](examples/upload-media.html)**: JPEG, PNG, GIF, or WebP only via `POST /media`. Strips EXIF/GPS/XMP before pinning; the CID is the cleaned file, not the original camera bytes.
 - **[Folder & DApp Uploader](examples/upload-folder.html)**: Upload full static websites and React/Vite `dist/` directories to IPFS with intact relative paths under a single root CID.
 - **[Share Snippets & Pastebin](examples/snippet.html)**: Upload and pin code snippets, logs, and text pastes to IPFS with syntax highlighting, SHA-256 hashes, and instant public gateway links.
 - **[Kind 20 Picture Post Generator](examples/picture.html)** (Instagram-style photo dump): Batch upload photos to IPFS, preview an interactive carousel feed, generate NIP-68 Kind 20 JSON with NIP-92 `imeta` tags (URL, MIME, SHA-256, dimensions, blurhash, alt), and publish directly or via NoStrudel.

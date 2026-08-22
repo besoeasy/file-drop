@@ -19,6 +19,12 @@ func TestScanExamples(t *testing.T) {
 				<meta name="order" content="1" />
 			</head><body></body></html>`),
 		},
+		"upload-media.html": &fstest.MapFile{
+			Data: []byte(`<!DOCTYPE html><html><head>
+				<title>Anonymized Image Uploader — Originless Examples</title>
+				<meta name="description" content="Strip EXIF then pin" />
+			</head><body>curl -X POST /media</body></html>`),
+		},
 		"custom.html": &fstest.MapFile{
 			Data: []byte(`<!DOCTYPE html><html><head>
 				<title>Custom Tool</title>
@@ -47,8 +53,8 @@ func TestScanExamples(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if len(tools) != 4 {
-		t.Fatalf("expected 4 tools, got %d", len(tools))
+	if len(tools) != 5 {
+		t.Fatalf("expected 5 tools, got %d", len(tools))
 	}
 
 	// First tool should be upload-file.html due to order 1
@@ -63,6 +69,26 @@ func TestScanExamples(t *testing.T) {
 	}
 	if tools[0].Badge != "pill-post" {
 		t.Errorf("expected badge 'pill-post', got %q", tools[0].Badge)
+	}
+
+	var mediaTool *ExampleTool
+	for _, tool := range tools {
+		if tool.File == "upload-media.html" {
+			mediaTool = &tool
+			break
+		}
+	}
+	if mediaTool == nil {
+		t.Fatal("upload-media.html not found in tools")
+	}
+	if mediaTool.Title != "Anonymized Image Uploader" {
+		t.Errorf("expected title 'Anonymized Image Uploader', got %q", mediaTool.Title)
+	}
+	if mediaTool.Endpoint != "POST /media" {
+		t.Errorf("expected endpoint 'POST /media', got %q", mediaTool.Endpoint)
+	}
+	if mediaTool.Badge != "pill-post" {
+		t.Errorf("expected badge 'pill-post', got %q", mediaTool.Badge)
 	}
 
 	// Check picture.html category inference

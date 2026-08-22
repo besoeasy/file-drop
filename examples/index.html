@@ -92,11 +92,20 @@
     {
       file: "upload-file.html",
       title: "Single File Uploader",
-      description: "Upload and pin images, videos, audio, and documents to IPFS. Computes SHA-256 multihashes and generates ready-to-use HTML/Markdown embed codes.",
+      description: "Upload and pin images, videos, audio, and documents to IPFS as exact bytes. Computes SHA-256 multihashes and generates ready-to-use HTML/Markdown embed codes.",
       category: "Storage & Publishing Tools",
       endpoint: "POST /upload",
       badge: "pill-post",
       order: 1
+    },
+    {
+      file: "upload-media.html",
+      title: "Anonymized Image Uploader",
+      description: "Pin JPEG, PNG, GIF, or WebP after stripping EXIF, GPS, XMP, and other metadata. The CID is the cleaned file, not the original camera bytes.",
+      category: "Storage & Publishing Tools",
+      endpoint: "POST /media",
+      badge: "pill-post",
+      order: 2
     },
     {
       file: "upload-folder.html",
@@ -105,7 +114,7 @@
       category: "Storage & Publishing Tools",
       endpoint: "POST /uploadfolder",
       badge: "pill-post",
-      order: 2
+      order: 3
     },
     {
       file: "snippet.html",
@@ -114,7 +123,7 @@
       category: "Storage & Publishing Tools",
       endpoint: "POST /upload",
       badge: "pill-post",
-      order: 3
+      order: 4
     },
     {
       file: "picture.html",
@@ -123,7 +132,7 @@
       category: "Nostr Event Generators",
       endpoint: "NIP-68 · Kind 20",
       badge: "pill-post",
-      order: 4
+      order: 5
     },
     {
       file: "post.html",
@@ -132,7 +141,7 @@
       category: "Nostr Event Generators",
       endpoint: "NIP-01 · Kind 1",
       badge: "pill-get",
-      order: 5
+      order: 6
     },
     {
       file: "article.html",
@@ -141,7 +150,7 @@
       category: "Nostr Event Generators",
       endpoint: "NIP-23 · Kind 30023",
       badge: "pill-post",
-      order: 6
+      order: 7
     }
   ];
 

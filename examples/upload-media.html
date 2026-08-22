@@ -3,11 +3,11 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Single File Uploader — Originless Examples</title>
-  <meta name="description" content="Upload and pin images, videos, audio, and documents to IPFS as exact bytes. Computes SHA-256 multihashes and generates ready-to-use HTML/Markdown embed codes." />
+  <title>Anonymized Image Uploader — Originless Examples</title>
+  <meta name="description" content="Pin JPEG, PNG, GIF, or WebP after stripping EXIF, GPS, XMP, and other metadata. The CID is the cleaned file, not the original camera bytes." />
   <meta name="category" content="Storage & Publishing Tools" />
-  <meta name="endpoint" content="POST /upload" />
-  <meta name="order" content="1" />
+  <meta name="endpoint" content="POST /media" />
+  <meta name="order" content="2" />
   <meta name="theme-color" content="#211e1e" />
   <link rel="icon" type="image/svg+xml" href="/logo.svg" />
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
@@ -217,7 +217,7 @@
         <span>/</span>
         <span style="display:flex;align-items:center;gap:.5rem">
           <span class="brand-mark"></span>
-          <span>File Uploader</span>
+          <span>Media Uploader</span>
         </span>
       </div>
       <div class="node-status-bar">
@@ -229,9 +229,9 @@
     </header>
 
     <div class="hero">
-      <p class="kicker">[*] Single File Uploader · IPFS Content Addressing</p>
-      <h1>Upload File to IPFS</h1>
-      <p>Stream any image, video, audio, document, or binary to your Originless node. Pins the exact bytes — no EXIF stripping. For photos with GPS or camera metadata, use the media uploader instead.</p>
+      <p class="kicker">[*] Anonymized Image Uploader · POST /media</p>
+      <h1>Strip EXIF, then pin</h1>
+      <p>JPEG, PNG, GIF, and WebP only. The node strips EXIF, GPS, XMP, IPTC, ICC, and comments, applies orientation, then pins the cleaned bytes. The CID is not the original camera file — use the file uploader if you need exact bytes.</p>
     </div>
 
     <div class="grid-12">
@@ -239,7 +239,7 @@
       <div>
         <section class="card">
           <div class="card-head">
-            <h2>Select File</h2>
+            <h2>Select Image</h2>
             <span v-if="file" class="mono faint" style="font-size:.75rem">{{ formatBytes(file.size) }}</span>
           </div>
 
@@ -248,9 +248,9 @@
                  @dragleave.prevent="isDragOver = false"
                  @drop.prevent="handleDrop($event)">
             <span class="drop-ico"><i class="fas fa-cloud-arrow-up"></i></span>
-            <h2>Drop a file here</h2>
-            <p class="mono faint" style="font-size:.8rem;margin:0">or click to browse from disk, or paste from clipboard</p>
-            <input type="file" style="display:none" @change="onFilePicked" />
+            <h2>Drop a photo here</h2>
+            <p class="mono faint" style="font-size:.8rem;margin:0">JPEG, PNG, GIF, or WebP — or click to browse, or paste</p>
+            <input type="file" accept="image/jpeg,image/png,image/gif,image/webp,.jpg,.jpeg,.png,.gif,.webp" style="display:none" @change="onFilePicked" />
           </label>
 
           <div v-else>
@@ -277,7 +277,7 @@
             <div style="display:flex;gap:.75rem;margin-top:1.25rem">
               <button class="btn btn-brand" style="flex:1" @click="uploadFile" :disabled="uploading">
                 <i :class="uploading ? 'fas fa-circle-notch fa-spin' : 'fas fa-upload'"></i>
-                {{ uploading ? 'Uploading to IPFS (' + Math.round(uploadProgress) + '%)…' : 'Upload & Pin to IPFS' }}
+                {{ uploading ? 'Anonymizing & pinning (' + Math.round(uploadProgress) + '%)…' : 'Anonymize & Pin' }}
               </button>
               <button class="btn btn-ghost" @click="clearFile" :disabled="uploading">Clear</button>
             </div>
@@ -287,7 +287,7 @@
         <!-- Quick Reference cURL -->
         <section class="card">
           <div class="card-head">
-            <h2>cURL Upload Reference</h2>
+            <h2>cURL Media Reference</h2>
             <button class="btn btn-soft btn-sm" @click="copyText(curlSnippet, 'curl')">
               <i :class="copiedKey === 'curl' ? 'fas fa-check' : 'fas fa-copy'"></i>
               {{ copiedKey === 'curl' ? 'Copied' : 'Copy cURL' }}
@@ -301,8 +301,8 @@
       <div>
         <section v-if="result" class="card">
           <div class="card-head">
-            <h2>Upload Receipt</h2>
-            <span class="pill pill-ok"><i class="fas fa-check"></i> Pinned on Node</span>
+            <h2>Anonymized Receipt</h2>
+            <span class="pill pill-ok"><i class="fas fa-check"></i> EXIF stripped · Pinned</span>
           </div>
 
           <div class="mini-tabs">
@@ -344,9 +344,19 @@
               </div>
             </div>
 
-            <div v-if="result.sha256" class="form-group">
-              <label class="kicker">SHA-256 Multihash</label>
-              <div class="code" style="font-size:.72rem">{{ result.sha256 }}</div>
+            <div v-if="result.anonymized" class="form-group">
+              <label class="kicker">Pinned bytes</label>
+              <p class="mono faint" style="font-size:.78rem;line-height:1.5;margin:.35rem 0 0">
+                CID is the cleaned image, not the original camera file.
+                <span v-if="result.originalSize">Original {{ formatBytes(result.originalSize) }} → pinned {{ formatBytes(result.size) }}.</span>
+                <span v-if="result.orientation && result.orientation !== 1"> Orientation {{ result.orientation }} applied.</span>
+                <span v-if="result.transcoded"> Transcoded to JPEG.</span>
+              </p>
+            </div>
+
+            <div v-if="result.stripped && result.stripped.length" class="form-group">
+              <label class="kicker">Stripped metadata</label>
+              <div class="mono" style="font-size:.75rem;margin-top:.35rem">{{ result.stripped.join(", ") }}</div>
             </div>
           </div>
 
@@ -390,7 +400,7 @@
         <section v-else class="card">
           <div class="card-head"><h2>Upload Details</h2></div>
           <p class="mono faint" style="font-size:.85rem;line-height:1.55;margin:0">
-            Select or drop a file to see its cryptographic IPFS multihash receipt, gateway URLs, embed codes, and Nostr metadata.
+            Drop a JPEG, PNG, GIF, or WebP. The node strips location and camera metadata, then returns a CID for the cleaned file.
           </p>
         </section>
       </div>
@@ -399,7 +409,7 @@
     <footer class="foot-clean">
       <div>
         <a href="index.html">← All Examples</a> ·
-        <a href="upload-media.html">Anonymized images →</a> ·
+        <a href="upload-file.html">Exact-byte file uploader →</a> ·
         <a href="upload-folder.html">Folder Uploader →</a> ·
         <a href="https://github.com/besoeasy/Originless" target="_blank" rel="noopener">GitHub</a>
       </div>
@@ -443,8 +453,8 @@
         return `ipfs://${this.result.cid}?filename=${encodeURIComponent(this.result.filename)}`;
       },
       curlSnippet() {
-        const fn = this.file ? this.file.name : "photo.png";
-        return `curl -X POST -F "file=@${fn}" ${this.nodeUrl}/upload`;
+        const fn = this.file ? this.file.name : "photo.jpg";
+        return `curl -X POST -F "file=@${fn}" ${this.nodeUrl}/media`;
       },
       htmlEmbedCode() {
         if (!this.result) return "";
@@ -473,7 +483,6 @@
           `m ${this.result.mime || 'application/octet-stream'}`,
           `size ${this.result.size}`,
         ];
-        if (this.result.sha256) tag.push(`x ${this.result.sha256}`);
         return tag;
       },
     },
@@ -510,15 +519,24 @@
         } catch (_) {}
         this.nodeOnline = false;
       },
+      isAllowedImage(file) {
+        if (!file) return false;
+        const type = (file.type || "").toLowerCase();
+        if (["image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp"].includes(type)) {
+          return true;
+        }
+        return /\.(jpe?g|png|gif|webp)$/i.test(file.name || "");
+      },
       setFile(file) {
         if (!file) return;
+        if (!this.isAllowedImage(file)) {
+          alert("POST /media only accepts JPEG, PNG, GIF, or WebP. Use the file uploader for other types.");
+          return;
+        }
         this.file = file;
         this.result = null;
-        if (file.type.startsWith("image/")) {
-          this.previewUrl = URL.createObjectURL(file);
-        } else {
-          this.previewUrl = "";
-        }
+        if (this.previewUrl) URL.revokeObjectURL(this.previewUrl);
+        this.previewUrl = URL.createObjectURL(file);
       },
       clearFile() {
         if (this.previewUrl) URL.revokeObjectURL(this.previewUrl);
@@ -548,29 +566,22 @@
           }
         }
       },
-      async calculateFileSha256(file) {
-        try {
-          const buf = await file.arrayBuffer();
-          const hashBuf = await crypto.subtle.digest("SHA-256", buf);
-          const hashArray = Array.from(new Uint8Array(hashBuf));
-          return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
-        } catch (_) {
-          return "";
-        }
-      },
       async uploadFile() {
         if (!this.file) return;
+        if (!this.isAllowedImage(this.file)) {
+          alert("POST /media only accepts JPEG, PNG, GIF, or WebP.");
+          return;
+        }
         this.uploading = true;
         this.uploadProgress = 10;
         this.result = null;
 
         try {
-          const sha256 = await this.calculateFileSha256(this.file);
           const form = new FormData();
           form.append("file", this.file, this.file.name);
 
           const xhr = new XMLHttpRequest();
-          xhr.open("POST", `${this.nodeUrl}/upload`);
+          xhr.open("POST", `${this.nodeUrl}/media`);
 
           xhr.upload.onprogress = (e) => {
             if (e.lengthComputable) {
@@ -601,12 +612,16 @@
             cid: data.cid,
             filename: data.filename || this.file.name,
             size: data.size || this.file.size,
+            originalSize: data.originalSize || this.file.size,
             mime: data.type || this.file.type,
-            sha256: sha256,
+            anonymized: data.anonymized === true,
+            stripped: Array.isArray(data.stripped) ? data.stripped : [],
+            orientation: data.orientation || 0,
+            transcoded: data.transcoded === true,
           };
           this.checkNodeStatus();
         } catch (err) {
-          alert("Upload failed: " + (err.message || err));
+          alert("Media upload failed: " + (err.message || err));
         } finally {
           this.uploading = false;
         }
