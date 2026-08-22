@@ -57,8 +57,19 @@ func NewRouter(ipfsClient *Client, janitorManager *Manager, archiver *Archiver, 
 
 	mux.Handle("/", http.FileServer(http.FS(uiFS)))
 
+	// Kubo redirects path-style /ipfs/{cid} to {cid}.ipfs.{host}/ for HTML and
+	// directory CIDs. That host must be proxied to Kubo; otherwise GET / is
+	// the Originless dashboard.
+	gatewayAware := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if isSubdomainGatewayHost(r.Host) {
+			handler.Gateway(w, r)
+			return
+		}
+		mux.ServeHTTP(w, r)
+	})
+
 	return Chain(
-		metrics.Middleware(mux),
+		metrics.Middleware(gatewayAware),
 		CORS,
 		Gzip,
 	)

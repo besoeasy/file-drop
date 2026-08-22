@@ -43,7 +43,7 @@ func NewMetrics() *Metrics {
 // as errors. It is the outermost middleware so it sees all traffic.
 func (m *Metrics) Middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		m.IncRequest(gatewayMetricPath(r.URL.Path))
+		m.IncRequest(gatewayRequestLabel(r))
 		rec := &statusRecorder{ResponseWriter: w, status: http.StatusOK}
 		next.ServeHTTP(rec, r)
 		if rec.status >= http.StatusBadRequest {

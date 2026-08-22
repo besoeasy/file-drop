@@ -240,6 +240,8 @@ http://localhost:3232/ipfs/QmFolderCid/
 http://localhost:8080/ipfs/QmX...
 ```
 
+Kubo may redirect directory and HTML CIDs to `{cid}.ipfs.localhost:3232` (origin isolation). Originless proxies that host to Kubo so you get the pinned site, not the dashboard. `*.localhost` resolves to loopback in the browser; no extra DNS is required.
+
 `Gateway.NoFetch` is enabled in Docker, so this gateway only serves blocks already on this node (uploads, pins, archive). It will not fetch arbitrary CIDs from the swarm for anonymous HTTP clients — it is a host for what you published, not a stand-in recursive proxy for all of IPFS.
 
 Set `ENABLE_GATEWAY=false` to return `404` on `/ipfs` and `/ipns` and bind Kubo’s gateway to localhost only.

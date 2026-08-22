@@ -130,3 +130,76 @@ func TestIsGatewayPath(t *testing.T) {
 		t.Fatal("did not expect API paths to be treated as gateway paths")
 	}
 }
+
+func TestIsSubdomainGatewayHost(t *testing.T) {
+	yes := []string{
+		"bafybeichqkffkyfqetlaucpshgkel2wtwm57twvyvp6sp6ok45cnggxu24.ipfs.localhost:3232",
+		"bafybeiabc.ipfs.localhost",
+		"k51qzi.ipns.localhost:3232",
+		"QmY7Yh4UquoXHLPFo2XbhXkhBvFoPwmQUSa92pxnxjQuPU.ipfs.127.0.0.1:8080",
+	}
+	for _, host := range yes {
+		if !isSubdomainGatewayHost(host) {
+			t.Errorf("expected subdomain gateway host %q", host)
+		}
+	}
+	no := []string{
+		"",
+		"localhost:3232",
+		"localhost",
+		"127.0.0.1:3232",
+		"ipfs.localhost:3232",
+		"example.com",
+	}
+	for _, host := range no {
+		if isSubdomainGatewayHost(host) {
+			t.Errorf("did not expect subdomain gateway host %q", host)
+		}
+	}
+}
+
+func TestSubdomainGatewayDoesNotServeDashboard(t *testing.T) {
+	var sawHost string
+	backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		sawHost = r.Host
+		w.Header().Set("Content-Type", "text/html")
+		io.WriteString(w, "pinned-site")
+	}))
+	t.Cleanup(backend.Close)
+
+	withGatewayState(t, true, backend.URL)
+	router := testRouter(true, backend.URL)
+
+	req := httptest.NewRequest(http.MethodGet, "http://bafybeichqkffkyfqetlaucpshgkel2wtwm57twvyvp6sp6ok45cnggxu24.ipfs.localhost:3232/?filename=QmT9o78zKwGNR97T33LhsdhtS2a3c6cDbguEbnbGwKAZBC", nil)
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d body=%s", rec.Code, rec.Body.String())
+	}
+	if rec.Body.String() == "ui" {
+		t.Fatal("subdomain host served the dashboard instead of Kubo")
+	}
+	if rec.Body.String() != "pinned-site" {
+		t.Errorf("unexpected body %q", rec.Body.String())
+	}
+	if !strings.Contains(sawHost, ".ipfs.localhost") {
+		t.Errorf("Kubo should see the subdomain Host, got %q", sawHost)
+	}
+}
+
+func TestSubdomainGatewayDisabledReturns404(t *testing.T) {
+	withGatewayState(t, false, "http://127.0.0.1:9")
+	router := testRouter(false, "http://127.0.0.1:9")
+
+	req := httptest.NewRequest(http.MethodGet, "http://bafybeiabc.ipfs.localhost:3232/", nil)
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("expected 404 when gateway is disabled, got %d body=%s", rec.Code, rec.Body.String())
+	}
+	if rec.Body.String() == "ui" {
+		t.Fatal("disabled gateway must not fall through to the dashboard")
+	}
+}

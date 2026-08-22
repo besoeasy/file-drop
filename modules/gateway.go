@@ -2,6 +2,7 @@ package modules
 
 import (
 	"log"
+	"net"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
@@ -53,7 +54,45 @@ func gatewayMetricPath(path string) string {
 	}
 }
 
+func gatewayRequestLabel(r *http.Request) string {
+	if isSubdomainGatewayHost(r.Host) {
+		if strings.Contains(hostnameOnly(r.Host), ".ipns.") {
+			return "/ipns"
+		}
+		return "/ipfs"
+	}
+	return gatewayMetricPath(r.URL.Path)
+}
+
 func isGatewayPath(path string) bool {
 	return path == "/ipfs" || strings.HasPrefix(path, "/ipfs/") ||
 		path == "/ipns" || strings.HasPrefix(path, "/ipns/")
+}
+
+func isGatewayRequest(r *http.Request) bool {
+	return isGatewayPath(r.URL.Path) || isSubdomainGatewayHost(r.Host)
+}
+
+// isSubdomainGatewayHost reports Kubo origin-isolation hosts such as
+// {cid}.ipfs.localhost:3232. Browsers resolve *.localhost to loopback, so
+// those requests hit this process — they must go to Kubo, not the dashboard.
+func isSubdomainGatewayHost(host string) bool {
+	name := hostnameOnly(host)
+	return strings.Contains(name, ".ipfs.") || strings.Contains(name, ".ipns.")
+}
+
+func hostnameOnly(host string) string {
+	host = strings.TrimSpace(host)
+	if host == "" {
+		return ""
+	}
+	if strings.HasPrefix(host, "[") {
+		if end := strings.Index(host, "]"); end > 1 {
+			return strings.ToLower(host[1:end])
+		}
+	}
+	if h, _, err := net.SplitHostPort(host); err == nil {
+		return strings.ToLower(h)
+	}
+	return strings.ToLower(host)
 }
