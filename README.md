@@ -99,12 +99,11 @@ _Response:_
 }
 ```
 
-The file is pinned to IPFS and instantly available anywhere on the swarm:
+The file is pinned to IPFS and instantly available on the swarm. Fetch it from **this node** (path-style, the [self-hosted gateway swap](https://docs.ipfs.tech/how-to/replace-public-gateways-with-self-hosted-ipfs/#pick-your-path)):
 
 - **This node:** `http://localhost:3232/ipfs/QmX...` (disable with `ENABLE_GATEWAY=false`)
 - **Native IPFS:** `ipfs://QmX...`
-- **Public gateway:** `https://ipfs.io/ipfs/QmX...`
-- **Alt gateway:** `https://dweb.link/ipfs/QmX...`
+- **Temporary public fallback:** `https://ipfs.io/ipfs/QmX...` — shared, best-effort, no SLA. Do not build production on it.
 
 Your `cid` is the file's cryptographic hash — anyone can verify the bytes match the address with zero trust in this server. Upload an entire folder (static site, `dist/`, asset bundle) as one root CID with [`/uploadfolder`](#upload-folder--dapp). Or run the ready-made script at the repo root to upload the whole [`examples/`](examples/) folder in one go:
 
@@ -116,10 +115,10 @@ Your `cid` is the file's cryptographic hash — anyone can verify the bytes matc
 
 The dashboard stays a library for this node. Uploads live in [`examples/`](examples/), served at `http://localhost:3232/examples/` (the **Tools** tab). You can also open those pages on their own or deploy them independently:
 
-- **[Single File Uploader](examples/upload-file.html)**: Drag & drop images, video, audio, or binaries to `POST /upload`. Pins the exact bytes with public gateway links, embed HTML, and SHA-256 verification.
+- **[Single File Uploader](examples/upload-file.html)**: Drag & drop images, video, audio, or binaries to `POST /upload`. Pins the exact bytes, then share `ipfs://` or this node's `/ipfs/{cid}` (public gateways are a fallback).
 - **[Anonymized Image Uploader](examples/upload-media.html)**: JPEG, PNG, GIF, or WebP only via `POST /media`. Strips EXIF/GPS/XMP before pinning; the CID is the cleaned file, not the original camera bytes.
 - **[Folder & DApp Uploader](examples/upload-folder.html)**: Upload full static websites and React/Vite `dist/` directories to IPFS with intact relative paths under a single root CID.
-- **[Share Snippets & Pastebin](examples/snippet.html)**: Upload and pin code snippets, logs, and text pastes to IPFS with syntax highlighting, SHA-256 hashes, and instant public gateway links.
+- **[Share Snippets & Pastebin](examples/snippet.html)**: Upload and pin code snippets, logs, and text pastes to IPFS with syntax highlighting, SHA-256 hashes, and this-node `/ipfs` links.
 - **[Kind 20 Picture Post Generator](examples/picture.html)** (Instagram-style photo dump): Batch upload photos to IPFS, preview an interactive carousel feed, generate NIP-68 Kind 20 JSON with NIP-92 `imeta` tags (URL, MIME, SHA-256, dimensions, blurhash, alt), and publish directly or via NoStrudel.
 - **[Kind 1 Short Note & Image Post Generator](examples/post.html)**: Compose Nostr text notes with IPFS image attachments and NIP-92 `imeta` tags, preview live note rendering, and publish directly or via NoStrudel.
 - **[Kind 30023 Long-Form Article Writer](examples/article.html)**: Write NIP-23 Markdown articles with a cover image and inline IPFS media, preview the rendered post, copy Kind `30023` / draft `30024` JSON, and publish via NIP-07 or NoStrudel.
@@ -129,6 +128,7 @@ The dashboard stays a library for this node. Uploads live in [`examples/`](examp
 ## 🔥 Key Features
 
 - **🌐 Origin-Independent Storage**: Files are pinned to IPFS. Once propagated to peers, content stays online even if your origin node goes offline.
+- **🔄 Self-Hosted Gateway**: This node is the [Kubo “retrieve and publish” path](https://docs.ipfs.tech/how-to/replace-public-gateways-with-self-hosted-ipfs/#pick-your-path). Swap `https://ipfs.io/ipfs/{CID}` for `http://localhost:3232/ipfs/{CID}` (or `ipfs://`). Public gateways are a temporary fallback, not production infrastructure.
 - **🛡️ Legal & Host Protection**: P2P multihash routing is the default sharing model—content lives as `ipfs://CID` on the swarm. An optional HTTP gateway (`/ipfs/<cid>`, on by default) lets this node serve files directly; set `ENABLE_GATEWAY=false` if you do not want to be an HTTP origin.
 - **🏠 Zero Domain, HTTPS, or Port Exposure Required**: Runs seamlessly behind NATs, firewalls, home servers, or local environments using IPFS `libp2p` hole-punching. No domain name, public IP, or SSL certificate setup needed!
 - **🔒 Zero-Friction & Accountless**: No API keys, passwords, or authentication overhead needed for uploads. Perfect for local dev, public APIs, or AI agent integration.
@@ -200,33 +200,37 @@ The dashboard stays a library for this node. Uploads live in [`examples/`](examp
 
 ---
 
-## 📡 Fetching Files & Content Verification
+## 📡 Replace Public Gateways With This Node
 
-### 🛡️ Recommended for Automated Fetching: [`@helia/verified-fetch`](https://github.com/ipfs/helia-verified-fetch)
+Public gateways at `ipfs.io` and `dweb.link` are a shared public good: best-effort, no SLA, shared rate limits that can throttle without notice. [IPFS recommends](https://docs.ipfs.tech/how-to/replace-public-gateways-with-self-hosted-ipfs/#pick-your-path) fetching by CID from infrastructure you control, and moving off those hosts incrementally.
 
-We strongly recommend using [**`@helia/verified-fetch`**](https://github.com/ipfs/helia-verified-fetch) for programmatic and automated retrieval of files pinned via Originless.
+**Originless is the Kubo row of that guide** — retrieve *and* publish. You add content with `POST /upload` / `/media` / `/uploadfolder`, keep it pinned, and serve it from a path-style gateway on this node.
 
-Unlike traditional HTTP requests to central gateways, `helia-verified-fetch` provides **trustless, content-addressed verification**. It downloads raw blocks directly over IPFS / libp2p, verifies the cryptographic hash against the CID in real-time, and protects your applications from tampered or stale data.
+| Where you use IPFS | What you do | Official path | Originless |
+| :----------------- | :---------- | :------------ | :--------- |
+| Browser (web page) | Retrieve by CID (`fetch`, Service Worker, `<img>` / `<video>`) | [`@helia/verified-fetch`](https://github.com/ipfs/helia-verified-fetch) | Same. Pass `ipfs://{CID}`; optionally set `gateways` to this node |
+| Backend (server, script, CLI, mobile) | Retrieve only | [Rainbow](https://github.com/ipfs/rainbow) | Not this product. Use Rainbow if you only fetch and never pin |
+| Backend (server, script, CLI, mobile) | Retrieve **and** publish | [Kubo](https://docs.ipfs.tech/install/command-line/) | **This node.** Pin here, then `GET /ipfs/{CID}` |
 
-#### Installation
+Every non-browser path ends with the same drop-in change: swap the public URL for a **path-style** URL on a gateway you run. Subdomain URLs (`{CID}.ipfs.dweb.link`) cost an extra redirect for origin isolation that `curl` and servers do not use.
+
+```text
+https://ipfs.io/ipfs/{CID}/path
+https://{CID}.ipfs.dweb.link/path
+        ↓
+http://localhost:3232/ipfs/{CID}/path
+http://127.0.0.1:8080/ipfs/{CID}/path
+```
 
 ```bash
-npm install @helia/verified-fetch
+CID=$(curl -s -X POST -F "file=@README.md" http://localhost:3232/upload | jq -r .cid)
+
+# Same bytes, from this node instead of ipfs.io
+curl -sO "http://localhost:3232/ipfs/$CID"
+curl -s "http://localhost:3232/ipfs/$CID" | sha256sum
 ```
 
-#### Example Usage
-
-```javascript
-import { verifiedFetch } from "@helia/verified-fetch";
-
-// Fetch and verify content directly by CID
-const cid = "QmX...";
-const response = await verifiedFetch(`ipfs://${cid}`);
-const fileBlob = await response.blob();
-
-// Or parse JSON automatically
-// const data = await verifiedFetch(`ipfs://${cid}`).then(res => res.json());
-```
+Keep a public gateway as a **temporary fallback** while you cut over one call site at a time. Production traffic should hit this node (or `ipfs://`), not `ipfs.io` / `dweb.link`.
 
 ### 🌐 This Node's HTTP Gateway (default on)
 
@@ -238,17 +242,51 @@ http://localhost:3232/ipfs/QmFolderCid/
 http://localhost:8080/ipfs/QmX...
 ```
 
-`Gateway.NoFetch` is enabled in Docker, so the gateway only serves blocks already on this node (uploads, pins, archive). It will not pull arbitrary CIDs from the swarm on behalf of anonymous HTTP clients.
+`Gateway.NoFetch` is enabled in Docker, so this gateway only serves blocks already on this node (uploads, pins, archive). It will not fetch arbitrary CIDs from the swarm for anonymous HTTP clients — it is a host for what you published, not a stand-in recursive proxy for all of IPFS.
 
 Set `ENABLE_GATEWAY=false` to return `404` on `/ipfs` and `/ipns` and bind Kubo’s gateway to localhost only.
 
-### 🌐 Standard Public Gateways
+Internal backends should treat this like Redis, not a CDN: call `http://127.0.0.1:3232/ipfs/{CID}` (or `:8080`) over localhost. Putting the gateway on a public hostname is a different threat model (deserialized responses, abuse, rate limits) — see [serve only verifiable responses](https://docs.ipfs.tech/how-to/replace-public-gateways-with-self-hosted-ipfs/#serve-only-verifiable-responses-on-a-public-domain) if you expose it.
 
-For simple browser links or non-verified web views, standard IPFS gateway URLs can also be used:
+### 🛡️ Browser apps: [`@helia/verified-fetch`](https://github.com/ipfs/helia-verified-fetch)
+
+If JavaScript in a web page fetches IPFS content, do not `fetch('https://ipfs.io/ipfs/...')`. Use [**`@helia/verified-fetch`**](https://github.com/ipfs/helia-verified-fetch): it is a drop-in for `fetch` that retrieves over libp2p (and optional HTTP trustless gateways) and **verifies every byte against the CID**.
+
+```bash
+npm install @helia/verified-fetch
+```
+
+```javascript
+import { verifiedFetch, createVerifiedFetch } from "@helia/verified-fetch";
+
+// Public gateway URL → content address
+//   https://ipfs.io/ipfs/{CID}/path  →  ipfs://{CID}/path
+const cid = "QmX...";
+const response = await verifiedFetch(`ipfs://${cid}`);
+const fileBlob = await response.blob();
+
+// Production: point the HTTP fallback at this Originless node
+// (browsers on HTTPS pages need an HTTPS gateway origin).
+const verified = await createVerifiedFetch({
+  gateways: ["http://127.0.0.1:3232"],
+});
+const local = await verified(`ipfs://${cid}`);
+```
+
+`verifiedFetch` accepts `ipfs://`, `ipns://`, `/ipfs/`, `/ipns/`, and `dnslink://` — not `http(s)` gateway URLs. For HTML/JS/CSS/SVG subresources, pass `?filename=` so the response gets a usable `Content-Type`.
+
+Out of the box, verified-fetch still uses public **delegated routing** (`delegated-ipfs.dev`) and a public **trustless gateway** (`trustless-gateway.link`). A URL swap alone is not enough for the browser path. For production, point `gateways` at this node (or Rainbow) and `routers` at your own [`/routing/v1`](https://docs.ipfs.tech/how-to/replace-public-gateways-with-self-hosted-ipfs/#run-someguy-your-routing-endpoint) host (Someguy, or Kubo's gateway `/routing/v1`). Confirm in the network panel that nothing still hits `ipfs.io`, `dweb.link`, `delegated-ipfs.dev`, or `trustless-gateway.link`.
+
+### 🌐 Temporary public fallback
+
+While you migrate, public path URLs still resolve the same CID:
 
 ```text
+https://ipfs.io/ipfs/QmX...?filename=document.pdf
 https://dweb.link/ipfs/QmX...?filename=document.pdf
 ```
+
+Treat these as borrowed time, not the default share link. Originless already prepends **This node** in the dashboard gateway picker.
 
 ---
 
@@ -310,12 +348,14 @@ curl -X POST \
 
 ### Fetch a File From This Node
 
+Path-style URL on **this** gateway — the drop-in replacement for `https://ipfs.io/ipfs/<cid>`:
+
 ```bash
 curl -O http://localhost:3232/ipfs/<cid>
 curl "http://localhost:3232/ipfs/<cid>?filename=photo.png"
 ```
 
-Same bytes are also available on Kubo's path gateway at `http://localhost:8080/ipfs/<cid>` when `ENABLE_GATEWAY` is on.
+Same bytes are also available on Kubo's path gateway at `http://localhost:8080/ipfs/<cid>` when `ENABLE_GATEWAY` is on. See [Replace public gateways with this node](#-replace-public-gateways-with-this-node).
 
 ### Check Storage & Pins
 
