@@ -57,20 +57,15 @@ func NewRouter(ipfsClient *Client, janitorManager *Manager, archiver *Archiver, 
 
 	mux.Handle("/", http.FileServer(http.FS(uiFS)))
 
-	// Kubo redirects path-style /ipfs/{cid} to {cid}.ipfs.{host}/ for HTML and
-	// directory CIDs. That host must be proxied to Kubo; otherwise GET / is
-	// the Originless dashboard.
-	gatewayAware := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if isSubdomainGatewayHost(r.Host) {
+	// CORS and Gzip Set headers before the handler runs. ReverseProxy then
+	// Add's Kubo's copies, so those middlewares must not wrap /ipfs, /ipns,
+	// or {cid}.ipfs.* hosts. Metrics still wraps everything (no response headers).
+	api := Chain(mux, CORS, Gzip)
+	return metrics.Middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if isGatewayRequest(r) {
 			handler.Gateway(w, r)
 			return
 		}
-		mux.ServeHTTP(w, r)
-	})
-
-	return Chain(
-		metrics.Middleware(gatewayAware),
-		CORS,
-		Gzip,
-	)
+		api.ServeHTTP(w, r)
+	}))
 }

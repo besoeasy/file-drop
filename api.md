@@ -2,7 +2,11 @@
 
 Base URL: **`http://localhost:3232`**
 
-No API keys, accounts, or authentication. CORS allows `GET`, `HEAD`, `POST`, and `OPTIONS` from any origin (`Access-Control-Allow-Origin: *`). JSON responses use `Content-Type: application/json`. JSON and HTML responses are gzip-compressed when the client sends `Accept-Encoding: gzip`; `/ipfs` and `/ipns` streams are not.
+No API keys, accounts, or authentication.
+
+**CORS** — JSON API and dashboard pages send Originless headers: `Access-Control-Allow-Origin: *`, methods `GET, HEAD, POST, OPTIONS`, headers `Content-Type`. **`/ipfs` and `/ipns` (including `{cid}.ipfs.*` hosts) do not.** Those responses are reverse-proxied from Kubo and already include CORS (`GET`/`HEAD`/`OPTIONS`, `Range`, `X-Ipfs-Path`, …). Originless must not add its own `Access-Control-*` on that path: browsers treat a second `Access-Control-Allow-Origin` as invalid and `fetch()` throws `TypeError: Failed to fetch` even on HTTP 200.
+
+**Bodies** — JSON uses `Content-Type: application/json`. JSON and HTML are gzip-compressed when the client sends `Accept-Encoding: gzip` (`HEAD` is not wrapped). `/ipfs` and `/ipns` streams are passed through; Kubo may compress them itself.
 
 Uploads (`POST /upload`, `/media`, `/uploadfolder`) are limited to **3 concurrent requests**. Extra uploads return `503`. Per-file size cap is `STORAGE_MAX / 100` (1 GB when `STORAGE_MAX=100GB`).
 
@@ -321,7 +325,9 @@ Same bytes on Kubo’s native port: `http://localhost:8080/ipfs/{cid}` when `ENA
 
 Kubo may redirect HTML/directory CIDs to `{cid}.ipfs.localhost:3232` (origin isolation). Originless proxies that host to Kubo so you get the pinned site, not the dashboard.
 
-**404 JSON** when `ENABLE_GATEWAY=false`:
+**Headers** come from Kubo, not Originless. Expect a single `Access-Control-Allow-Origin: *`, `Access-Control-Allow-Methods: GET, HEAD, OPTIONS`, `Allow-Headers` including `Range`, and `Access-Control-Expose-Headers` for `Content-Range`, `X-Ipfs-Path`, `X-Ipfs-Roots`, and stream flags. `OPTIONS` preflight is answered by Kubo.
+
+**404 JSON** when `ENABLE_GATEWAY=false` (Originless CORS, not Kubo’s):
 
 ```json
 {
@@ -331,7 +337,7 @@ Kubo may redirect HTML/directory CIDs to `{cid}.ipfs.localhost:3232` (origin iso
 }
 ```
 
-**502** if the Kubo gateway process is unreachable. Subresource `Content-Type` is more reliable with `?filename=`.
+**502** if the Kubo gateway process is unreachable (Originless JSON + CORS). Subresource `Content-Type` is more reliable with `?filename=`.
 
 ---
 

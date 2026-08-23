@@ -2,7 +2,6 @@ package modules
 
 import (
 	"compress/gzip"
-	"io"
 	"net/http"
 	"strings"
 )
@@ -42,18 +41,42 @@ func CORS(next http.Handler) http.Handler {
 
 type gzipResponseWriter struct {
 	http.ResponseWriter
-	writer io.Writer
+	writer      *gzip.Writer
+	wroteHeader bool
+}
+
+func (w *gzipResponseWriter) WriteHeader(code int) {
+	w.Header().Del("Content-Length")
+	w.Header().Del("Accept-Ranges")
+	w.wroteHeader = true
+	w.ResponseWriter.WriteHeader(code)
 }
 
 func (w *gzipResponseWriter) Write(b []byte) (int, error) {
+	if !w.wroteHeader {
+		w.WriteHeader(http.StatusOK)
+	}
 	return w.writer.Write(b)
+}
+
+func (w *gzipResponseWriter) Flush() {
+	_ = w.writer.Flush()
+	if f, ok := w.ResponseWriter.(http.Flusher); ok {
+		f.Flush()
+	}
+}
+
+func (w *gzipResponseWriter) Unwrap() http.ResponseWriter {
+	return w.ResponseWriter
 }
 
 func Gzip(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Let Kubo handle compression for gateway streams so we do not
-		// double-gzip or buffer large CID payloads.
-		if isGatewayRequest(r) || !strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
+		// double-gzip or buffer large CID payloads. HEAD has no body;
+		// wrapping it writes an empty gzip trailer and a bogus Content-Length.
+		if isGatewayRequest(r) || r.Method == http.MethodHead ||
+			!strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
 			next.ServeHTTP(w, r)
 			return
 		}
@@ -66,7 +89,9 @@ func Gzip(next http.Handler) http.Handler {
 		defer gz.Close()
 
 		w.Header().Set("Content-Encoding", "gzip")
+		w.Header().Add("Vary", "Accept-Encoding")
 		w.Header().Del("Content-Length")
+		w.Header().Del("Accept-Ranges")
 
 		gzw := &gzipResponseWriter{ResponseWriter: w, writer: gz}
 		next.ServeHTTP(gzw, r)

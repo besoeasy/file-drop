@@ -139,6 +139,11 @@ func TestGatewayDoesNotDuplicateKuboCORS(t *testing.T) {
 	if got := rec.Header().Values("Access-Control-Allow-Headers"); len(got) < 2 {
 		t.Fatalf("expected Kubo's Allow-Headers to pass through, got %#v", got)
 	}
+	for _, m := range rec.Header().Values("Access-Control-Allow-Methods") {
+		if strings.Contains(m, "POST") {
+			t.Fatalf("Originless CORS leaked onto the gateway: %#v", rec.Header().Values("Access-Control-Allow-Methods"))
+		}
+	}
 }
 
 func TestAPIHasSingleOriginlessCORS(t *testing.T) {

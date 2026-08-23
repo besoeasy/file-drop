@@ -62,6 +62,16 @@ func (r *statusRecorder) WriteHeader(code int) {
 	r.ResponseWriter.WriteHeader(code)
 }
 
+func (r *statusRecorder) Flush() {
+	if f, ok := r.ResponseWriter.(http.Flusher); ok {
+		f.Flush()
+	}
+}
+
+func (r *statusRecorder) Unwrap() http.ResponseWriter {
+	return r.ResponseWriter
+}
+
 func (m *Metrics) IncRequest(path string) {
 	m.mu.Lock()
 	c, ok := m.requests[path]
