@@ -16,10 +16,13 @@ const (
 	Port             = 3232
 	Host             = "0.0.0.0"
 	UploadTempDir    = "/tmp/originless"
-	AppVersion       = "0.9.0"
-	MaxConcurrentOps = 3
-	PinThreshold     = 75
-	JanitorInterval  = 60 // minutes
+	AppVersion       = "1.0.0"
+	MaxConcurrentOps  = 3
+	PinThreshold      = 75
+	JanitorInterval   = 60 // minutes
+	ArchiveDir        = "/archive"
+	ArchiveInterval   = 15 // minutes
+	ArchiveRepinHours = 6
 )
 
 var (
@@ -27,12 +30,9 @@ var (
 	StorageMaxBytes   int64
 	FileLimit         int64
 	PinExpiryDays     = 30
-	NostrNpubs        []string
-	NostrRelays       []string
-	ArchiveDir        string
-	ArchiveInterval   int
-	ArchiveRepinHours int
-	GatewayEnabled    bool
+	NostrNpubs     []string
+	NostrRelays    []string
+	GatewayEnabled bool
 	IPFSGateway       string
 )
 
@@ -67,9 +67,6 @@ func init() {
 	PinExpiryDays = envOrDefaultInt("PIN_EXPIRY_DAYS", 30)
 	NostrNpubs = envOrDefaultSlice([]string{"NOSTR_NPUBS", "NPUBS", "NPUB", "NOSTR_ALLOWED_NPUBS"}, []string{})
 	NostrRelays = envOrDefaultSlice([]string{"NOSTR_RELAYS", "RELAYS"}, DefaultFamousRelays)
-	ArchiveDir = envOrDefault("ARCHIVE_DIR", "/archive")
-	ArchiveInterval = envOrDefaultInt("ARCHIVE_INTERVAL", 15)
-	ArchiveRepinHours = envOrDefaultInt("ARCHIVE_REPIN_HOURS", 6)
 	GatewayEnabled = envOrDefaultBool("ENABLE_GATEWAY", true)
 	IPFSGateway = strings.TrimRight(envOrDefault("IPFS_GATEWAY", "http://127.0.0.1:8080"), "/")
 

@@ -90,10 +90,7 @@ func (h *Handler) Status(w http.ResponseWriter, r *http.Request) {
 		"nostrNpubs":  NostrNpubs,
 		"nostrRelays": NostrRelays,
 		"appVersion":  AppVersion,
-		"gateway": map[string]any{
-			"enabled": GatewayEnabled,
-			"path":    "/ipfs/",
-		},
+		"gateway":     gatewayStatus(r),
 	}
 	if h.archive != nil {
 		payload["archive"] = h.archive.StatusMap()

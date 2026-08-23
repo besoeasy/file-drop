@@ -188,6 +188,33 @@ func TestSubdomainGatewayDoesNotServeDashboard(t *testing.T) {
 	}
 }
 
+func TestGatewayStatusReportsServing(t *testing.T) {
+	withGatewayState(t, true, "http://127.0.0.1:8080")
+	req := httptest.NewRequest(http.MethodGet, "http://localhost:3232/status", nil)
+	got := gatewayStatus(req)
+	if got["enabled"] != true || got["serving"] != true {
+		t.Fatalf("expected enabled/serving true, got %#v", got)
+	}
+	if got["url"] != "http://localhost:3232/ipfs/{cid}" {
+		t.Errorf("url = %#v", got["url"])
+	}
+	if got["ipnsUrl"] != "http://localhost:3232/ipns/{name}" {
+		t.Errorf("ipnsUrl = %#v", got["ipnsUrl"])
+	}
+	if got["kubo"] != "http://127.0.0.1:8080/ipfs/{cid}" {
+		t.Errorf("kubo = %#v", got["kubo"])
+	}
+
+	withGatewayState(t, false, "http://127.0.0.1:8080")
+	off := gatewayStatus(req)
+	if off["enabled"] != false || off["serving"] != false {
+		t.Fatalf("expected enabled/serving false, got %#v", off)
+	}
+	if _, ok := off["url"]; ok {
+		t.Errorf("disabled status should omit url, got %#v", off)
+	}
+}
+
 func TestSubdomainGatewayDisabledReturns404(t *testing.T) {
 	withGatewayState(t, false, "http://127.0.0.1:9")
 	router := testRouter(false, "http://127.0.0.1:9")

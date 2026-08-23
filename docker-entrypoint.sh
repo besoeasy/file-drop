@@ -14,7 +14,7 @@ ipfs config --json Routing.Type '"dhtclient"'
 # fetch proxy for arbitrary CIDs from the swarm.
 ipfs config --json Gateway.NoFetch true
 
-# Re-applied on every boot so ENABLE_GATEWAY can be toggled without wiping /data.
+# Re-applied on every boot so ENABLE_GATEWAY can be toggled without re-init.
 enabled=$(printf '%s' "${ENABLE_GATEWAY:-true}" | tr '[:upper:]' '[:lower:]')
 case "$enabled" in
   0|false|no|off)

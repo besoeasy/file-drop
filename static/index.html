@@ -247,6 +247,11 @@
           <div class="metric-s">{{ pinStats.count }} pins · evict at {{ pinStats.threshold }}%</div>
         </div>
         <div class="metric">
+          <div class="metric-k">Gateway</div>
+          <div class="metric-v">{{ gatewayEnabled ? 'On' : 'Off' }}</div>
+          <div class="metric-s">{{ gatewayEnabled ? '/ipfs/{cid} on this node' : 'HTTP gateway disabled' }}</div>
+        </div>
+        <div class="metric">
           <div class="metric-k">Daemon v{{ status.appver }}</div>
           <div class="metric-v mono" style="font-size:16px" :title="status.fullNodeId">{{ status.nodeId }}</div>
           <div class="metric-s">{{ status.version }} · {{ status.timestamp }} · {{ status.repoObjects }} objects</div>

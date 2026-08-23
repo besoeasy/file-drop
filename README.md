@@ -6,9 +6,12 @@
 
 [![Docker](https://img.shields.io/badge/docker-%230db7ed.svg?style=for-the-badge&logo=docker&logoColor=white)](https://ghcr.io/besoeasy/originless)
 [![IPFS](https://img.shields.io/badge/IPFS-65C2CB?style=for-the-badge&logo=ipfs&logoColor=white)](https://ipfs.tech)
+[![API](https://img.shields.io/badge/HTTP%20API-api.md-1f6feb?style=for-the-badge)](api.md)
 [![License: ISC](https://img.shields.io/badge/License-ISC-blue.svg?style=for-the-badge)](https://opensource.org/licenses/ISC)
 
 **The frictionless storage backend for the modern web** — Drop into DApps, Nostr clients, AI agents, screenshot tools, and pastebins. Durable, cryptographic file hosting with zero API keys or user accounts required.
+
+**[HTTP API →](api.md)** — every route, request, and response (`/upload`, `/media`, `/ipfs/{cid}`, `/status`, `/archive`, `/metrics`, …). No auth.
 
 </div>
 
@@ -32,7 +35,7 @@ docker run -d \
 > **Podman User?** Simply replace `docker` with `podman` in the command above!
 
 - Open the **node dashboard** at **[http://localhost:3232](http://localhost:3232)** (library, archive, status)
-- Pin files from **[Client Tools](http://localhost:3232/examples/)** (`/upload`, `/media`, `/uploadfolder`) or the HTTP API
+- Pin files from **[Client Tools](http://localhost:3232/examples/)** (`/upload`, `/media`, `/uploadfolder`) or the **[HTTP API](api.md)**
 - Fetch pinned files from **this node** at `http://localhost:3232/ipfs/<cid>` (also on port `8080`)
 - Disable the HTTP gateway with `-e ENABLE_GATEWAY=false` if you do not want this node to serve bytes over HTTP
 
@@ -103,7 +106,7 @@ The file is pinned to IPFS and instantly available on the swarm. Fetch it from *
 - **Native IPFS:** `ipfs://QmX...`
 - **Temporary public fallback:** `https://ipfs.io/ipfs/QmX...` — shared, best-effort, no SLA. Do not build production on it.
 
-Your `cid` is the file's cryptographic hash — anyone can verify the bytes match the address with zero trust in this server. Upload an entire folder (static site, `dist/`, asset bundle) as one root CID with [`/uploadfolder`](#upload-folder--dapp). Or run the ready-made script at the repo root to upload the whole [`examples/`](examples/) folder in one go:
+Your `cid` is the file's cryptographic hash — anyone can verify the bytes match the address with zero trust in this server. Upload an entire folder (static site, `dist/`, asset bundle) as one root CID with [`POST /uploadfolder`](api.md#post-uploadfolder). Or run the ready-made script at the repo root to upload the whole [`examples/`](examples/) folder in one go:
 
 ```bash
 ./upload-examples.sh
@@ -194,7 +197,7 @@ The dashboard stays a library for this node. Uploads live in [`examples/`](examp
 1. **Upload**: Send single files or directory trees via the Web UI or simple HTTP POST endpoint.
 2. **Pin & Distribute**: Originless pins the content locally on IPFS and broadcasts it to global P2P peers.
 3. **Automated Lifecycle**: Uploads stay pinned for `PIN_EXPIRY_DAYS` (default 30). An automated janitor reconciles storage and evicts oldest pins at 75% of `STORAGE_MAX`.
-4. **Nostr Archive** (optional): When `NOSTR_NPUBS` is set, Originless scans those accounts, downloads discovered IPFS objects through Kubo (gateway fallback + `x` sha256 when needed), and writes them to `/archive`. It pins each CID immediately and re-pins the whole archive every `ARCHIVE_REPIN_HOURS` (default 6). The janitor skips archive CIDs (SQLite skip list — no Kubo config changes).
+4. **Nostr Archive** (optional): When `NOSTR_NPUBS` is set, Originless scans those accounts, downloads discovered IPFS objects through Kubo (gateway fallback + `x` sha256 when needed), and writes them to `/archive`. It pins each CID immediately and re-pins the whole archive every 6 hours. The janitor skips archive CIDs (SQLite skip list — no Kubo config changes).
 
 ---
 
@@ -303,84 +306,35 @@ Treat these as borrowed time, not the default share link. Originless already pre
 
 ---
 
-## 🛠️ API Quick Reference
+## 📡 HTTP API
 
-Base URL: `http://localhost:3232`
+**Full reference: [api.md](api.md)** — methods, query params, JSON shapes, and error codes for every route.
 
-### Upload Single File
+Base URL: `http://localhost:3232` · no API keys · CORS `*`.
+
+| Method | Path | What it does |
+| :----- | :--- | :----------- |
+| `POST` | `/upload` | Pin a file as-is |
+| `POST` | `/media` | Strip EXIF/GPS/XMP, then pin (JPEG/PNG/GIF/WebP) |
+| `POST` | `/uploadfolder` | Pin a directory as one root CID |
+| `GET` | `/ipfs/{cid}` | Fetch pinned bytes from this node |
+| `GET` | `/health` | Liveness + peer count |
+| `GET` | `/status` | Node, storage, gateway, archive |
+| `GET` | `/pins` | Pin count and janitor threshold |
+| `GET` | `/history` | Paginated upload log |
+| `GET` | `/archive` | List Nostr-archived CIDs (fetch bytes via `/ipfs/{cid}`) |
+| `GET` | `/metrics` | Prometheus text metrics |
+| `GET` | `/api/examples` | JSON catalog of client tools |
 
 ```bash
 curl -X POST -F "file=@photo.png" http://localhost:3232/upload
-```
-
-_Response:_
-
-```json
-{
-  "status": "success",
-  "cid": "QmX...",
-  "size": 1048576,
-  "type": "image/png",
-  "filename": "photo.png"
-}
-```
-
-### Upload Anonymized Image
-
-`POST /media` accepts JPEG, PNG, GIF, or WebP. It strips EXIF, GPS, XMP, IPTC, ICC, and text comments, applies EXIF orientation so the pixels are upright, then pins the cleaned bytes like `/upload`. WebP is transcoded to JPEG. Use `/upload` when you need the original file unchanged.
-
-```bash
-curl -X POST -F "file=@photo.jpg" http://localhost:3232/media
-```
-
-_Response:_
-
-```json
-{
-  "status": "success",
-  "cid": "QmX...",
-  "filename": "photo.jpg",
-  "type": "image/jpeg",
-  "size": 98012,
-  "originalSize": 1048576,
-  "anonymized": true,
-  "stripped": ["exif", "gps", "xmp"],
-  "orientation": 6,
-  "pinned": true
-}
-```
-
-### Upload Folder / DApp
-
-```bash
-curl -X POST \
-  -F "file=@dist/index.html;filename=index.html" \
-  -F "file=@dist/style.css;filename=style.css" \
-  http://localhost:3232/uploadfolder
-```
-
-### Fetch a File From This Node
-
-Path-style URL on **this** gateway — the drop-in replacement for `https://ipfs.io/ipfs/<cid>`:
-
-```bash
-curl -O http://localhost:3232/ipfs/<cid>
-curl "http://localhost:3232/ipfs/<cid>?filename=photo.png"
-```
-
-Same bytes are also available on Kubo's path gateway at `http://localhost:8080/ipfs/<cid>` when `ENABLE_GATEWAY` is on. See [Replace public gateways with this node](#-replace-public-gateways-with-this-node).
-
-### Check Storage & Pins
-
-```bash
-curl http://localhost:3232/pins
-curl http://localhost:3232/history
-curl http://localhost:3232/status
+curl -O "http://localhost:3232/ipfs/$CID"
+curl http://localhost:3232/health
 ```
 
 ### Nostr IPFS Archive
 
-When `NOSTR_NPUBS` is set, Originless walks those accounts every `ARCHIVE_INTERVAL` minutes (first scan at startup), extracts IPFS CIDs, and copies the bytes to `/archive`.
+When `NOSTR_NPUBS` is set, Originless walks those accounts every 15 minutes (first scan at startup), extracts IPFS CIDs, and copies the bytes to `/archive`. List them with `GET /archive`; serve them with `GET /ipfs/{cid}`. See [api.md](api.md#get-archive).
 
 **Sources scanned**
 
@@ -395,53 +349,7 @@ When `NOSTR_NPUBS` is set, Originless walks those accounts every `ARCHIVE_INTERV
 
 Kubo `cat`/`get` is preferred (CID-verified). If the swarm miss, HTTP gateways are tried and hashed against the NIP-94 `x` tag when present. Failed CIDs are retried up to 5 times.
 
-After each save, Originless pins the CID via the Kubo HTTP API (and re-adds from `/archive` if GC already dropped the blocks). Every `ARCHIVE_REPIN_HOURS` it walks the archive table and pins again so DHT provider records stay fresh. The janitor never unpins these CIDs: they are excluded in SQLite (`cid NOT IN archive`), not by changing Kubo config.
-
-```bash
-# List archived objects
-curl http://localhost:3232/archive
-
-# Fetch a stored file (or directory tree)
-curl -O http://localhost:3232/archive/<cid>
-```
-
-### Health Check
-
-```bash
-curl http://localhost:3232/health
-```
-
-_Response:_
-
-```json
-{
-  "status": "healthy",
-  "peers": 140
-}
-```
-
-### Prometheus Metrics
-
-Exposes Prometheus text-format metrics (request counts, uploads, pinned storage, IPFS health, Nostr archive size) for scraping by Prometheus, Grafana, or any metrics collector:
-
-```bash
-curl http://localhost:3232/metrics
-```
-
-_Sample output:_
-
-```
-originless_http_requests_total{path="/upload"} 42
-originless_uploads_total 42
-originless_upload_bytes_total 1048576
-originless_pinned_count 12
-originless_pinned_bytes 52428800
-originless_ipfs_healthy 1
-originless_ipfs_peers 140
-originless_gateway_enabled 1
-originless_archive_count 8
-originless_archive_bytes 2097152
-```
+After each save, Originless pins the CID via the Kubo HTTP API (and re-adds from `/archive` if GC already dropped the blocks). Every 6 hours it walks the archive table and pins again so DHT provider records stay fresh. The janitor never unpins these CIDs: they are excluded in SQLite (`cid NOT IN archive`), not by changing Kubo config.
 
 ---
 
@@ -453,9 +361,6 @@ originless_archive_bytes 2097152
 | `PIN_EXPIRY_DAYS`     | `30`          | Days a file stays pinned before the janitor may evict it.                                                                                                                                                                                         |
 | `NOSTR_NPUBS`         | `""`          | Comma-separated list or JSON array of Nostr `npub` public keys. Enables the IPFS media archiver.                                                                                                                                                  |
 | `NOSTR_RELAYS`        | famous relays | WebSocket relay URLs (comma-separated or JSON). Defaults: `wss://relay.damus.io`, `wss://nos.lol`, `wss://relay.nostr.band`, `wss://relay.primal.net`, `wss://nostr.mom`, `wss://purplerelay.com`, `wss://offchain.pub`, `wss://eden.nostr.land`. |
-| `ARCHIVE_DIR`         | `/archive`    | Directory (Docker volume) for permanent Nostr IPFS media. Never garbage-collected.                                                                                                                                                                |
-| `ARCHIVE_INTERVAL`    | `15`          | Minutes between Nostr archive scans. First scan runs at startup.                                                                                                                                                                                  |
-| `ARCHIVE_REPIN_HOURS` | `6`           | Hours between re-pinning every archived CID into Kubo (DHT provide + restore blocks from `/archive` if needed).                                                                                                                                   |
 | `ENABLE_GATEWAY`      | `true`        | Serve pinned content at `/ipfs/<cid>` and `/ipns/<name>` on port `3232`, and bind Kubo’s gateway on `8080`. Set `false` / `0` / `off` to disable HTTP content serving.                                                                              |
 | `IPFS_GATEWAY`        | `http://127.0.0.1:8080` | Backend URL of the Kubo HTTP gateway that Originless reverse-proxies.                                                                                                                                                                       |
 
@@ -463,8 +368,9 @@ originless_archive_bytes 2097152
 
 | Path       | Role                                                                                |
 | :--------- | :---------------------------------------------------------------------------------- |
-| `/data`    | SQLite database and Kubo IPFS repository. Janitor may unpin content here.           |
 | `/archive` | Permanent copies of IPFS media discovered on configured Nostr accounts. Never GC'd. |
+
+`/data` is the Kubo IPFS repository (and a small SQLite pin log). It is **not** a volume — recreate the container and it is gone. Durable media lives on `/archive` and is re-pinned on startup.
 
 ---
 

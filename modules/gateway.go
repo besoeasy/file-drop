@@ -1,6 +1,7 @@
 package modules
 
 import (
+	"fmt"
 	"log"
 	"net"
 	"net/http"
@@ -29,6 +30,40 @@ func NewGatewayProxy(target string) *httputil.ReverseProxy {
 		})
 	}
 	return proxy
+}
+
+func requestBaseURL(r *http.Request) string {
+	scheme := "http"
+	if r.TLS != nil {
+		scheme = "https"
+	}
+	if proto := strings.TrimSpace(r.Header.Get("X-Forwarded-Proto")); proto != "" {
+		scheme = strings.ToLower(strings.TrimSpace(strings.Split(proto, ",")[0]))
+	}
+	host := r.Host
+	if fwd := strings.TrimSpace(r.Header.Get("X-Forwarded-Host")); fwd != "" {
+		host = strings.TrimSpace(strings.Split(fwd, ",")[0])
+	}
+	if host == "" {
+		host = fmt.Sprintf("127.0.0.1:%d", Port)
+	}
+	return scheme + "://" + host
+}
+
+func gatewayStatus(r *http.Request) map[string]any {
+	status := map[string]any{
+		"enabled": GatewayEnabled,
+		"serving": GatewayEnabled,
+		"path":    "/ipfs/",
+		"ipns":    "/ipns/",
+	}
+	if GatewayEnabled {
+		base := requestBaseURL(r)
+		status["url"] = base + "/ipfs/{cid}"
+		status["ipnsUrl"] = base + "/ipns/{name}"
+		status["kubo"] = strings.TrimRight(IPFSGateway, "/") + "/ipfs/{cid}"
+	}
+	return status
 }
 
 func (h *Handler) Gateway(w http.ResponseWriter, r *http.Request) {
