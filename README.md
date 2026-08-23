@@ -277,6 +277,19 @@ const local = await verified(`ipfs://${cid}`);
 
 Out of the box, verified-fetch still uses public **delegated routing** (`delegated-ipfs.dev`) and a public **trustless gateway** (`trustless-gateway.link`). A URL swap alone is not enough for the browser path. For production, point `gateways` at this node (or Rainbow) and `routers` at your own [`/routing/v1`](https://docs.ipfs.tech/how-to/replace-public-gateways-with-self-hosted-ipfs/#run-someguy-your-routing-endpoint) host (Someguy, or Kubo's gateway `/routing/v1`). Confirm in the network panel that nothing still hits `ipfs.io`, `dweb.link`, `delegated-ipfs.dev`, or `trustless-gateway.link`.
 
+If a CID inspector or Service Worker says **“None of these providers can be reached from a web browser”**, that is expected. Originless is Kubo: it announces the pin over libp2p **TCP/QUIC** (swarm port `4001`). A web page cannot open raw TCP or UDP. Browser IPFS clients (Helia, inbrowser.link, Service Workers) only dial **Secure WebSockets, WebTransport, WebRTC, or an HTTPS trustless gateway**. They find this node as a provider, cannot Bitswap to it, and fall back to HTTP.
+
+That fallback is Originless. Open the file on **this node’s HTTP gateway**, not via Helia’s default public peers:
+
+```text
+http://localhost:3232/ipfs/{CID}
+http://localhost:3232/ipfs/{CID}?filename=hello.txt
+```
+
+`ipfs.io` / `dweb.link` top-level clicks often redirect into [inbrowser.link](https://inbrowser.link), which is a Helia Service Worker — that page will print the provider warning even when the CID is pinned here. Use **This node** in the dashboard gateway picker, or `createVerifiedFetch({ gateways: [window.location.origin] })` so the HTTP path is Originless.
+
+Originless does not currently expose `/wss` or WebRTC-Direct. Native IPFS peers (other Kubo nodes, IPFS Desktop) still retrieve over `4001`. Browsers use HTTP `/ipfs`.
+
 ### 🌐 Temporary public fallback
 
 While you migrate, public path URLs still resolve the same CID:
