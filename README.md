@@ -106,11 +106,7 @@ The file is pinned to IPFS and instantly available on the swarm. Fetch it from *
 - **Native IPFS:** `ipfs://QmX...`
 - **Temporary public fallback:** `https://ipfs.io/ipfs/QmX...` — shared, best-effort, no SLA. Do not build production on it.
 
-Your `cid` is the file's cryptographic hash — anyone can verify the bytes match the address with zero trust in this server. Upload an entire folder (static site, `dist/`, asset bundle) as one root CID with [`POST /uploadfolder`](api.md#post-uploadfolder). Or run the ready-made script at the repo root to upload the whole [`examples/`](examples/) folder in one go:
-
-```bash
-./upload-examples.sh
-```
+Your `cid` is the file's cryptographic hash — anyone can verify the bytes match the address with zero trust in this server. Upload an entire folder (static site, `dist/`, asset bundle) as one root CID with [`POST /uploadfolder`](api.md#post-uploadfolder).
 
 ### Examples & Client Tools
 
