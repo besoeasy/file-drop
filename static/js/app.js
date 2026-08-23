@@ -91,6 +91,12 @@
     return `${cid.slice(0, 8)}…${cid.slice(-8)}`;
   }
 
+  function shortName(name, cid) {
+    const value = name || cid || "Untitled";
+    if (value.length <= 12) return value;
+    return `${value.slice(0, 4)}....${value.slice(-4)}`;
+  }
+
   function truncateNpub(npub) {
     if (!npub) return "";
     if (npub.length <= 22) return npub;
@@ -121,6 +127,7 @@
       ...item,
       category,
       cidShort: shortCid(cid),
+      nameShort: shortName(item.filename, cid),
       sizeLabel: formatBytes(item.size),
       ageLabel: formatRelative(item.created_at),
       dateLabel: formatDate(item.created_at),

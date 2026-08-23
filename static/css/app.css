@@ -206,6 +206,25 @@ button { cursor: pointer; }
 
 .icon-btn:hover { color: #fff; border-color: var(--line-strong); background: var(--bg-hover); }
 
+.github-btn {
+  width: 38px;
+  height: 38px;
+  color: #fff;
+  background: var(--bg-raised);
+  border-color: var(--line-strong);
+}
+
+.github-btn svg {
+  width: 20px;
+  height: 20px;
+}
+
+.github-btn:hover {
+  color: #0b0b0c;
+  background: #fff;
+  border-color: #fff;
+}
+
 /* —— Workspace —— */
 .app-body {
   flex: 1;
@@ -214,10 +233,107 @@ button { cursor: pointer; }
 }
 
 .workspace {
+  position: relative;
   flex: 1;
   min-width: 0;
   display: flex;
   flex-direction: column;
+}
+
+.library-progress {
+  position: relative;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 28px;
+  padding: 0 14px;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  background: #0e0e10;
+  color: var(--ink-2);
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.library-progress:hover {
+  color: var(--ink);
+  background: #121214;
+}
+
+.library-progress-track {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  height: 8px;
+  border-radius: 99px;
+  background: #1b1b1e;
+  overflow: hidden;
+}
+
+.library-progress-track::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.08) 50%, transparent 100%);
+  background-size: 220% 100%;
+  animation: library-progress-sheen 2.4s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.library-progress-fill {
+  position: relative;
+  display: block;
+  height: 100%;
+  min-width: 0;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #2bb673, #6ff0b0 55%, #fff);
+  box-shadow: 0 0 12px rgba(61, 214, 140, 0.35);
+  transform-origin: left center;
+  animation: library-progress-in 1.1s var(--ease) both;
+  transition: width 0.9s var(--ease), background 0.3s ease;
+}
+
+.library-progress-fill.is-warn {
+  background: linear-gradient(90deg, #c4921f, var(--warn));
+  box-shadow: 0 0 12px rgba(245, 185, 66, 0.35);
+}
+
+.library-progress-fill.is-danger {
+  background: linear-gradient(90deg, #b84a50, var(--bad));
+  box-shadow: 0 0 12px rgba(240, 113, 120, 0.35);
+}
+
+.library-progress-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  font-size: 12px;
+  font-weight: 500;
+  z-index: 1;
+}
+
+.library-progress-meta .mono {
+  color: #fff;
+  font-size: 12px;
+}
+
+@keyframes library-progress-in {
+  from { transform: scaleX(0); opacity: 0.35; }
+  to { transform: scaleX(1); opacity: 1; }
+}
+
+@keyframes library-progress-sheen {
+  0% { background-position: 120% 0; }
+  100% { background-position: -120% 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .library-progress-fill,
+  .library-progress-track::after {
+    animation: none;
+  }
 }
 
 .workspace-bar {
@@ -319,6 +435,78 @@ button { cursor: pointer; }
 }
 
 .btn-solid:hover { background: #e8e8ea; }
+
+.seg {
+  display: flex;
+  height: 30px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--bg-raised);
+}
+
+.seg button {
+  padding: 0 10px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink-3);
+}
+
+.seg button + button { border-left: 1px solid var(--line); }
+
+.seg button:hover { color: var(--ink); background: var(--bg-hover); }
+
+.seg button.is-on {
+  color: #fff;
+  background: var(--bg-active);
+}
+
+.agent-prompt {
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--line);
+  background: var(--bg);
+}
+
+.agent-prompt-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 14px 0;
+  flex-wrap: wrap;
+}
+
+.agent-prompt-bar h2 {
+  font-size: 13.5px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: #fff;
+}
+
+.agent-prompt-hint {
+  padding: 6px 14px 8px;
+  font-size: 12px;
+  color: var(--ink-3);
+}
+
+.agent-prompt-body {
+  margin: 0 14px 12px;
+  max-height: 220px;
+  overflow: auto;
+  padding: 12px 14px;
+  background: var(--bg-raised);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--ink-2);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.agent-prompt-body::-webkit-scrollbar { width: 10px; height: 10px; }
+.agent-prompt-body::-webkit-scrollbar-thumb { background: #2a2a2e; border-radius: 99px; }
 
 .workspace-scroll {
   flex: 1;
