@@ -296,7 +296,7 @@
           sortBy: "date-desc",
           
           activeTab: "pin", // pin, prompt
-          archiveView: localStorage.getItem("ol_archive_view") || "grid",
+          archiveView: "table",
           brokenThumbs: {},
           nodeSheetOpen: false,
           anonymizeMedia: localStorage.getItem("ol_anonymize_media") !== "false",
@@ -381,6 +381,10 @@
             list.sort((a, b) => (b.size || 0) - (a.size || 0));
           } else if (this.sortBy === "size-asc") {
             list.sort((a, b) => (a.size || 0) - (b.size || 0));
+          } else if (this.sortBy === "name-asc") {
+            list.sort((a, b) => (a.filename || "").localeCompare(b.filename || ""));
+          } else if (this.sortBy === "name-desc") {
+            list.sort((a, b) => (b.filename || "").localeCompare(a.filename || ""));
           }
 
           return list.map((row) => presentItem(row, this.currentGateway, this.brokenThumbs));
@@ -557,8 +561,13 @@ To confirm you have understood this skill, complete this check:
         },
 
         setArchiveView(view) {
-          this.archiveView = view;
-          localStorage.setItem("ol_archive_view", view);
+          this.archiveView = "table";
+        },
+
+        setSort(field) {
+          const desc = field + "-desc";
+          const asc = field + "-asc";
+          this.sortBy = this.sortBy === desc ? asc : desc;
         },
 
         showThumb(item) {

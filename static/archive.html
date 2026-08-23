@@ -3,460 +3,263 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Nostr IPFS Archive — Originless</title>
-  <meta name="description" content="Nostr IPFS media backup & permanent pin mirror on Originless." />
-  <meta name="theme-color" content="#09090b" />
+  <title>Archive — Originless</title>
+  <meta name="theme-color" content="#0b0b0c" />
   <link rel="icon" type="image/svg+xml" href="/logo.svg" />
-  <link rel="apple-touch-icon" href="/logo.svg" />
-  
-  <meta property="og:type" content="website" />
-  <meta property="og:title" content="Nostr IPFS Archive — Originless" />
-  <meta property="og:description" content="Decentralized Nostr media backup & mirror daemon." />
-  <meta property="og:image" content="/logo.svg" />
-
   <link rel="stylesheet" href="/css/app.css" />
 </head>
 <body>
-<div id="app" class="app-container">
+<div id="app" class="app-shell">
 
-  <header class="navbar">
-    <div class="canvas-wrap navbar-inner">
-      <div class="brand-unit">
-        <a class="brand-link" href="/">
-          <div class="brand-icon-box">
-            <img src="/logo.svg" alt="Originless" />
-          </div>
-          <span>Originless</span>
-          <span class="brand-tag">Archive</span>
-        </a>
-
-        <nav class="nav-pill-group">
-          <a href="/" class="nav-pill">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <rect x="3" y="3" width="7" height="7"></rect>
-              <rect x="14" y="3" width="7" height="7"></rect>
-              <rect x="14" y="14" width="7" height="7"></rect>
-              <rect x="3" y="14" width="7" height="7"></rect>
-            </svg>
-            Overview
-          </a>
-          <a href="/archive.html" class="nav-pill is-active">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polyline points="21 8 21 21 3 21 3 8"></polyline>
-              <rect x="1" y="3" width="22" height="5"></rect>
-              <line x1="10" y1="12" x2="14" y2="12"></line>
-            </svg>
-            Archive
-          </a>
-          <a href="/examples/" class="nav-pill">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
-              <polyline points="15 3 21 3 21 9"></polyline>
-              <line x1="10" y1="14" x2="21" y2="3"></line>
-            </svg>
-            Tools
-          </a>
-        </nav>
-      </div>
-
-      <div class="navbar-actions">
-        <button type="button" class="storage-chip" @click="nodeSheetOpen = true" :title="'Storage ' + status.repoSize">
-          <span>{{ storagePercentage }}%</span>
-          <span class="storage-chip-track">
-            <span class="storage-chip-fill" :class="storageGaugeClass" :style="{ width: storagePercentage + '%' }"></span>
-          </span>
-        </button>
-
-        <button type="button" class="swarm-health-pill" :title="status.peerscount + ' DHT peers — open node details'" @click="nodeSheetOpen = true">
-          <span class="pulse-dot-green"></span>
-          <span>{{ status.peerscount }} Peers</span>
-        </button>
-
-        <div class="gateway-pill" title="Active Gateway for resolving links and live previews">
-          <span>Gateway</span>
-          <select v-model="currentGateway" @change="onGatewayChange" class="gateway-select-control">
-            <option v-for="gw in gateways" :key="gw.url" :value="gw.url">
-              {{ gw.label }}
-            </option>
-          </select>
-        </div>
-
-        <a class="btn-ghost-icon" href="https://github.com/besoeasy/Originless" target="_blank" rel="noopener" title="GitHub Repository">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-            <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"></path>
-          </svg>
-        </a>
-      </div>
+  <header class="app-topbar">
+    <div class="topbar-start">
+      <a class="brand" href="/">
+        <img src="/logo.svg" alt="" />
+        Originless
+        <span class="brand-mark">Archive</span>
+      </a>
+      <nav class="app-nav">
+        <a href="/">Library</a>
+        <a href="/archive.html" class="is-current">Archive</a>
+        <a href="/examples/">Tools</a>
+      </nav>
+    </div>
+    <div class="topbar-end">
+      <button type="button" class="status-btn" @click="nodeSheetOpen = true" :title="status.repoSize">
+        <span class="mono">{{ storagePercentage }}%</span>
+        <span class="meter"><span :class="storageGaugeClass" :style="{ width: storagePercentage + '%' }"></span></span>
+      </button>
+      <button type="button" class="peer-btn" @click="nodeSheetOpen = true">
+        <span class="dot"></span>
+        {{ status.peerscount }} peers
+      </button>
+      <label class="select-plain">
+        <span>Gateway</span>
+        <select v-model="currentGateway" @change="onGatewayChange">
+          <option v-for="gw in gateways" :key="gw.url" :value="gw.url">{{ gw.label }}</option>
+        </select>
+      </label>
+      <a class="icon-btn" href="https://github.com/besoeasy/Originless" target="_blank" rel="noopener" title="GitHub">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/></svg>
+      </a>
     </div>
   </header>
 
-  <main class="page-body">
-    <div class="canvas-wrap">
-
-      <section class="archive-hero-box">
-        <div>
-          <h1 class="archive-hero-title">Nostr media archive</h1>
-          <p class="archive-hero-desc">
-            This node watches connected relays for monitored <span class="mono">npub</span> accounts, then pins discovered <span class="mono">ipfs://</span> links, NIP-92 <span class="mono">imeta</span>, and NIP-94 files to <span class="mono">{{ archive.dir }}</span>.
-          </p>
+  <div class="app-body">
+    <section class="workspace">
+      <div class="workspace-bar">
+        <div class="bar-title">
+          <h1>Archive</h1>
+          <span class="count">{{ filteredArchiveItems.length }}</span>
         </div>
-        <div class="archive-stat-row">
-          <div class="archive-stat">
-            <div class="archive-stat-label">Objects</div>
-            <div class="archive-stat-value">{{ archive.count }}</div>
-          </div>
-          <div class="archive-stat">
-            <div class="archive-stat-label">Volume</div>
-            <div class="archive-stat-value">{{ archive.sizeStr }}</div>
-          </div>
+        <div class="bar-tools">
+          <label class="search-box">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+            <input v-model="searchQuery" type="search" placeholder="Filter archive" />
+          </label>
+          <a class="btn" href="/archive" target="_blank">Raw JSON</a>
         </div>
-      </section>
-
-      <div class="archive-status-line">
-        <span>
-          Worker <strong>{{ archiveStatusLabel }}</strong>
-        </span>
-        <span>
-          {{ archive.enabled ? (archive.accounts.length + ' account' + (archive.accounts.length === 1 ? '' : 's')) : 'NOSTR_NPUBS unset' }}
-        </span>
-        <span>Scan every <strong>{{ archive.scanMinutes }}m</strong> · last {{ archiveScanLabel }}</span>
-        <span>Re-pin every <strong>{{ archive.repinHours }}h</strong> · last {{ archiveRepinLabel }}</span>
       </div>
 
-      <section class="table-panel-card">
-        <div class="table-panel-header">
-          <div class="table-title-wrap">
-            <h2 class="table-title-text">Accounts</h2>
-            <span class="table-badge-count">{{ archive.accounts.length }}</span>
+      <div class="stat-inline">
+        <span>Worker <b>{{ archiveStatusLabel }}</b></span>
+        <span><b>{{ archive.count }}</b> objects · <b>{{ archive.sizeStr }}</b></span>
+        <span>{{ archive.enabled ? (archive.accounts.length + ' account' + (archive.accounts.length === 1 ? '' : 's')) : 'NOSTR_NPUBS unset' }}</span>
+        <span>Scan {{ archive.scanMinutes }}m · {{ archiveScanLabel }}</span>
+        <span>Re-pin {{ archive.repinHours }}h · {{ archiveRepinLabel }}</span>
+        <span class="mono">{{ archive.dir }}</span>
+      </div>
+
+      <div class="workspace-scroll">
+        <div class="section-block">
+          <div class="section-label">Accounts {{ archive.accounts.length }}</div>
+          <div v-if="!archive.enabled" class="empty" style="padding:32px 14px">
+            <strong>Nostr mirroring is off</strong>
+            <p>Start the node with <span class="mono">-e NOSTR_NPUBS=npub1...</span></p>
           </div>
-        </div>
-
-        <div v-if="!archive.enabled" class="empty-state">
-          <strong>Nostr mirroring is off</strong>
-          <p>Pass <code class="mono" style="background: #18181b; padding: 0.2rem 0.4rem; border-radius: 4px;">-e NOSTR_NPUBS=npub1...,npub1...</code> when running the container.</p>
-        </div>
-
-        <div v-else class="account-chip-grid">
-          <div v-for="acc in archiveAccounts" :key="acc.npub" class="account-chip">
-            <div class="account-chip-npub" :title="acc.npub">{{ acc.npubShort }}</div>
-            <div class="account-chip-meta">
-              <span>{{ acc.objects || 0 }} objects</span>
-              <span>{{ acc.sizeStr || '0 B' }}</span>
-              <span>{{ acc.events || 0 }} events</span>
-              <span>{{ acc.cursorLabel }}</span>
-            </div>
-            <div style="display: flex; gap: 0.35rem;">
-              <button class="btn-core btn-core-secondary btn-core-sm" @click="copyText(acc.npub, 'npub copied!')">Copy</button>
-              <a class="btn-core btn-core-secondary btn-core-sm" :href="'https://njump.me/' + acc.npub" target="_blank" rel="noopener">njump</a>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section v-if="nostrRelays && nostrRelays.length > 0" class="table-panel-card">
-        <div class="table-panel-header">
-          <div class="table-title-wrap">
-            <h2 class="table-title-text">Relays</h2>
-            <span class="table-badge-count">{{ nostrRelays.length }}</span>
-          </div>
-        </div>
-        <div class="relay-chip-row">
-          <div v-for="relay in nostrRelays" :key="relay" class="relay-chip">
-            <span class="pulse-dot-green" style="width: 5px; height: 5px;"></span>
-            <span>{{ relay }}</span>
-          </div>
-        </div>
-      </section>
-
-      <section class="table-panel-card">
-        <div class="table-panel-header">
-          <div class="table-title-wrap">
-            <h2 class="table-title-text">Gallery</h2>
-            <span class="table-badge-count">{{ filteredArchiveItems.length }}</span>
-          </div>
-
-          <div class="table-actions-strip">
-            <div class="search-field-wrapper">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--text-dim);">
-                <circle cx="11" cy="11" r="8"></circle>
-                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-              </svg>
-              <input v-model="searchQuery" class="search-field-input" type="text" placeholder="Search archive…" />
-            </div>
-
-            <div class="view-toggle" title="Gallery layout">
-              <button type="button" :class="{ 'is-active': archiveView === 'grid' }" @click="setArchiveView('grid')" aria-label="Grid view">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <rect x="3" y="3" width="7" height="7"></rect>
-                  <rect x="14" y="3" width="7" height="7"></rect>
-                  <rect x="14" y="14" width="7" height="7"></rect>
-                  <rect x="3" y="14" width="7" height="7"></rect>
-                </svg>
-              </button>
-              <button type="button" :class="{ 'is-active': archiveView === 'table' }" @click="setArchiveView('table')" aria-label="Table view">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <line x1="8" y1="6" x2="21" y2="6"></line>
-                  <line x1="8" y1="12" x2="21" y2="12"></line>
-                  <line x1="8" y1="18" x2="21" y2="18"></line>
-                  <line x1="3" y1="6" x2="3.01" y2="6"></line>
-                  <line x1="3" y1="12" x2="3.01" y2="12"></line>
-                  <line x1="3" y1="18" x2="3.01" y2="18"></line>
-                </svg>
-              </button>
-            </div>
-
-            <a class="btn-core btn-core-secondary btn-core-sm" href="/archive" target="_blank">Raw JSON</a>
-          </div>
-        </div>
-
-        <div v-if="filteredArchiveItems.length === 0" class="empty-state">
-          <strong>{{ searchQuery ? 'No items match your search' : 'No media archived yet' }}</strong>
-          <p>{{ searchQuery ? 'Try adjusting your search query' : 'Monitored Nostr media will appear here.' }}</p>
-        </div>
-
-        <div v-else-if="archiveView === 'grid'" class="media-grid">
-          <article v-for="item in filteredArchiveItems" :key="item.cid" class="media-tile" @click="openInspect(item)">
-            <div class="media-tile-thumb">
-              <img v-if="item.showThumb" :src="item.thumbSrc" :alt="item.filename" loading="lazy" @error="onThumbError(item.cid)" />
-              <div v-else class="media-tile-fallback">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
-                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                  <polyline points="14 2 14 8 20 8"></polyline>
-                </svg>
-                <span>{{ item.category }}</span>
-              </div>
-            </div>
-            <div class="media-tile-body">
-              <div class="media-tile-name" :title="item.filename">{{ item.filename || item.cid }}</div>
-              <div class="media-tile-meta">
-                <span class="mono">{{ item.sizeLabel }}</span>
-                <span v-if="item.verified" class="pill-status-pinned" style="padding: 0.05rem 0.4rem;">Verified</span>
-                <span v-else class="pill-status-unpinned" style="padding: 0.05rem 0.4rem;">Unverified</span>
-              </div>
-              <div class="media-tile-actions" @click.stop>
-                <button class="btn-icon-cell" @click="copyText(item.cid, 'CID copied!')" title="Copy CID">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                  </svg>
-                </button>
-                <a class="btn-icon-cell" :href="item.gatewayUrl" target="_blank" rel="noopener" title="Open via Gateway">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
-                    <polyline points="15 3 21 3 21 9"></polyline>
-                    <line x1="10" y1="14" x2="21" y2="3"></line>
-                  </svg>
-                </a>
-              </div>
-            </div>
-          </article>
-        </div>
-
-        <div v-else class="table-responsive-box">
-          <table class="clean-table">
+          <table v-else class="data-table">
             <thead>
               <tr>
-                <th>File / Object</th>
-                <th>Content CID</th>
-                <th style="text-align: right;">Size</th>
-                <th style="text-align: center;">Verified</th>
-                <th style="text-align: right;">Date</th>
-                <th style="text-align: right;">Actions</th>
+                <th>Account</th>
+                <th class="col-num" style="width:90px">Objects</th>
+                <th class="col-num" style="width:90px">Size</th>
+                <th class="col-num" style="width:90px">Events</th>
+                <th>Cursor</th>
+                <th class="col-actions"></th>
               </tr>
             </thead>
             <tbody>
-              <tr v-for="item in filteredArchiveItems" :key="item.cid">
-                <td>
-                  <div class="file-identity-block">
-                    <div class="file-type-glyph">
-                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                        <polyline points="14 2 14 8 20 8"></polyline>
-                      </svg>
-                    </div>
-                    <div class="file-main-name">
-                      <a :href="'/archive/' + item.cid" target="_blank" style="color: #ffffff;">
-                        {{ item.filename || item.cid }}
-                      </a>
-                    </div>
-                  </div>
-                </td>
-                <td>
-                  <a class="cid-link-anchor" :href="item.gatewayUrl" target="_blank" rel="noopener">
-                    {{ item.cidShort }}
-                  </a>
-                </td>
-                <td style="text-align: right;" class="mono">{{ item.sizeLabel }}</td>
-                <td style="text-align: center;">
-                  <span v-if="item.verified" class="pill-status-pinned">
-                    <span class="pulse-dot-green" style="width: 5px; height: 5px;"></span>
-                    Verified
-                  </span>
-                  <span v-else class="pill-status-unpinned">Unverified</span>
-                </td>
-                <td style="text-align: right; color: var(--text-dim);">{{ item.dateLabel }}</td>
-                <td style="text-align: right;">
-                  <div style="display: inline-flex; gap: 0.25rem;">
-                    <button class="btn-icon-cell" @click="copyText(item.cid, 'CID copied!')" title="Copy CID">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                      </svg>
+              <tr v-for="acc in archiveAccounts" :key="acc.npub" style="cursor:default">
+                <td data-col="Account"><span class="mono" :title="acc.npub">{{ acc.npubShort }}</span></td>
+                <td data-col="Objects" class="col-num">{{ acc.objects || 0 }}</td>
+                <td data-col="Size" class="col-num">{{ acc.sizeStr || '0 B' }}</td>
+                <td data-col="Events" class="col-num">{{ acc.events || 0 }}</td>
+                <td data-col="Cursor">{{ acc.cursorLabel }}</td>
+                <td data-col=" " @click.stop>
+                  <div class="row-actions">
+                    <button class="icon-btn" type="button" title="Copy npub" @click="copyText(acc.npub, 'npub copied')">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
                     </button>
-                    <a class="btn-icon-cell" :href="item.gatewayUrl" target="_blank" rel="noopener" title="Open via Gateway">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
-                        <polyline points="15 3 21 3 21 9"></polyline>
-                        <line x1="10" y1="14" x2="21" y2="3"></line>
-                      </svg>
+                    <a class="icon-btn" :href="'https://njump.me/' + acc.npub" target="_blank" rel="noopener" title="njump">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><path d="M15 3h6v6"/><path d="M10 14L21 3"/></svg>
                     </a>
-                    <button class="btn-icon-cell" @click="openInspect(item)" title="Inspect">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <circle cx="12" cy="12" r="1"></circle>
-                        <circle cx="19" cy="12" r="1"></circle>
-                        <circle cx="5" cy="12" r="1"></circle>
-                      </svg>
-                    </button>
                   </div>
                 </td>
               </tr>
             </tbody>
           </table>
         </div>
-      </section>
 
-    </div>
-  </main>
+        <div v-if="nostrRelays && nostrRelays.length" class="section-block">
+          <div class="section-label">Relays {{ nostrRelays.length }}</div>
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Relay</th>
+                <th style="width:90px">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="relay in nostrRelays" :key="relay" style="cursor:default">
+                <td data-col="Relay"><span class="mono">{{ relay }}</span></td>
+                <td data-col="Status"><span class="pill pill-ok"><span class="dot" style="width:5px;height:5px;box-shadow:none"></span>Live</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
 
-  <div v-if="nodeSheetOpen" class="modal-layer" @click.self="nodeSheetOpen = false">
-    <div class="modal-box" style="max-width: 860px;">
-      <div class="modal-box-head">
-        <div style="font-weight: 700; font-size: 1rem; color: #ffffff;">Node</div>
-        <button class="btn-icon-cell" @click="nodeSheetOpen = false">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <line x1="18" y1="6" x2="6" y2="18"></line>
-            <line x1="6" y1="6" x2="18" y2="18"></line>
-          </svg>
+        <div class="section-block">
+          <div class="section-label">Objects {{ filteredArchiveItems.length }}</div>
+          <div v-if="filteredArchiveItems.length === 0" class="empty" style="padding:48px 14px">
+            <strong>{{ searchQuery ? "No matching objects" : "Nothing archived yet" }}</strong>
+            <p>{{ searchQuery ? "Try another query." : "Watched Nostr media lands here after a scan." }}</p>
+          </div>
+          <table v-else class="data-table">
+            <thead>
+              <tr>
+                <th class="col-name">Name</th>
+                <th class="col-type">Type</th>
+                <th class="col-cid">CID</th>
+                <th class="col-size">Size</th>
+                <th class="col-status">Verified</th>
+                <th class="col-age">Date</th>
+                <th class="col-actions"></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="item in filteredArchiveItems"
+                :key="item.cid"
+                :class="{ 'is-open': inspectItem && inspectItem.cid === item.cid }"
+                @click="openInspect(item)"
+              >
+                <td data-col="File">
+                  <div class="file-cell">
+                    <img v-if="item.showThumb" class="file-thumb" :src="item.thumbSrc" alt="" loading="lazy" @error="onThumbError(item.cid)" />
+                    <div v-else class="file-mark">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+                    </div>
+                    <span class="file-name" :title="item.filename">{{ item.filename || item.cid }}</span>
+                  </div>
+                </td>
+                <td data-col="Type"><span class="type-tag">{{ item.category }}</span></td>
+                <td data-col="CID">
+                  <a class="cid" :href="item.gatewayUrl" target="_blank" rel="noopener" :title="item.cid" @click.stop>{{ item.cidShort }}</a>
+                </td>
+                <td data-col="Size" class="col-num">{{ item.sizeLabel }}</td>
+                <td data-col="Verified">
+                  <span v-if="item.verified" class="pill pill-ok">Verified</span>
+                  <span v-else class="pill pill-mute">Unverified</span>
+                </td>
+                <td data-col="Date" class="col-num">{{ item.dateLabel }}</td>
+                <td data-col=" " @click.stop>
+                  <div class="row-actions">
+                    <button class="icon-btn" type="button" title="Copy CID" @click="copyText(item.cid, 'CID copied')">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                    </button>
+                    <a class="icon-btn" :href="item.gatewayUrl" target="_blank" rel="noopener" title="Open">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><path d="M15 3h6v6"/><path d="M10 14L21 3"/></svg>
+                    </a>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <aside v-if="inspectModalOpen && inspectItem" class="inspector">
+      <div class="inspector-head">
+        Object
+        <button class="icon-btn" type="button" @click="closeInspect">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
         </button>
       </div>
-      <div class="modal-box-body" style="padding: 0;">
-        <section class="metric-ribbon" style="margin: 0; border: none; border-radius: 0; box-shadow: none;">
-          <div class="metric-cell">
-            <div class="metric-cell-head">
-              <span class="metric-cell-title">Swarm</span>
-              <span class="pulse-dot-green"></span>
-            </div>
-            <div>
-              <div class="metric-cell-val">{{ status.peerscount }}</div>
-              <div class="metric-cell-sub">DHT peers</div>
-            </div>
-          </div>
-          <div class="metric-cell">
-            <div class="metric-cell-head">
-              <span class="metric-cell-title">Storage</span>
-            </div>
-            <div>
-              <div class="metric-cell-val">{{ storagePercentage }}%</div>
-              <div class="metric-cell-sub">{{ status.repoSize }}</div>
-            </div>
-          </div>
-          <div class="metric-cell">
-            <div class="metric-cell-head">
-              <span class="metric-cell-title">Archive</span>
-            </div>
-            <div>
-              <div class="metric-cell-val">{{ archive.count }}</div>
-              <div class="metric-cell-sub">{{ archive.sizeStr }} · {{ archive.dir }}</div>
-            </div>
-          </div>
-          <div class="metric-cell">
-            <div class="metric-cell-head">
-              <span class="metric-cell-title">Daemon</span>
-              <span class="mono" style="font-size: 0.75rem; color: var(--text-muted);">v{{ status.appver }}</span>
-            </div>
-            <div>
-              <div class="metric-cell-val mono" style="font-size: 1.15rem;">{{ status.nodeId }}</div>
-              <div class="metric-cell-sub">{{ status.version }}</div>
-            </div>
-          </div>
-        </section>
-      </div>
-    </div>
-  </div>
-
-  <div v-if="inspectModalOpen" class="modal-layer" @click.self="closeInspect">
-    <div class="modal-box">
-      <div class="modal-box-head">
-        <div style="font-weight: 700; font-size: 1rem; color: #ffffff;">Archived object</div>
-        <button class="btn-icon-cell" @click="closeInspect">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <line x1="18" y1="6" x2="6" y2="18"></line>
-            <line x1="6" y1="6" x2="18" y2="18"></line>
-          </svg>
-        </button>
-      </div>
-      <div class="modal-box-body" v-if="inspectItem">
-        <div v-if="inspectItem.showThumb" class="inspect-preview">
+      <div class="inspector-body">
+        <div v-if="inspectItem.showThumb" class="preview">
           <img :src="inspectItem.thumbSrc" :alt="inspectItem.filename" @error="onThumbError(inspectItem.cid)" />
         </div>
-        <div style="margin-bottom: 1.15rem;">
-          <div style="font-size: 1rem; font-weight: 700; color: #ffffff;">{{ inspectItem.filename || inspectItem.cid }}</div>
-          <div style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.3rem;">
-            <span class="mono" style="color: #ffffff;">{{ inspectItem.sizeLabel }}</span>
-            · {{ inspectItem.verified ? 'Verified' : 'Unverified' }}
-            · {{ inspectItem.dateLabel }}
+        <div class="inspect-name">{{ inspectItem.filename || inspectItem.cid }}</div>
+        <div class="inspect-meta">
+          {{ inspectItem.sizeLabel }} · {{ inspectItem.verified ? 'Verified' : 'Unverified' }} · {{ inspectItem.dateLabel }}
+        </div>
+        <div class="kv">
+          <div class="kv-row">
+            <span class="kv-k">CID</span>
+            <span class="kv-v">{{ inspectItem.cid }}</span>
+            <button class="btn" type="button" @click="copyText(inspectItem.cid, 'CID copied')">Copy</button>
+          </div>
+          <div class="kv-row">
+            <span class="kv-k">Gateway</span>
+            <span class="kv-v">{{ inspectItem.gatewayUrl }}</span>
+            <button class="btn" type="button" @click="copyText(inspectItem.gatewayUrl, 'Gateway URL copied')">Copy</button>
           </div>
         </div>
-        <div class="meta-record-grid">
-          <div class="meta-record-row">
-            <span class="meta-record-key">CID</span>
-            <span class="meta-record-val">{{ inspectItem.cid }}</span>
-            <button class="btn-core btn-core-secondary btn-core-sm" @click="copyText(inspectItem.cid, 'CID copied!')">Copy</button>
-          </div>
-          <div class="meta-record-row">
-            <span class="meta-record-key">Gateway</span>
-            <span class="meta-record-val">{{ inspectItem.gatewayUrl }}</span>
-            <button class="btn-core btn-core-secondary btn-core-sm" @click="copyText(inspectItem.gatewayUrl, 'Gateway URL copied!')">Copy</button>
-          </div>
+      </div>
+      <div class="inspector-foot">
+        <a class="btn" :href="'/archive/' + inspectItem.cid" target="_blank" rel="noopener">Raw file</a>
+        <a class="btn btn-solid" :href="inspectItem.gatewayUrl" target="_blank" rel="noopener">Open</a>
+      </div>
+    </aside>
+  </div>
+
+  <div v-if="nodeSheetOpen" class="overlay" @click.self="nodeSheetOpen = false">
+    <div class="drawer">
+      <div class="inspector-head">
+        Node
+        <button class="icon-btn" type="button" @click="nodeSheetOpen = false">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <div class="metrics">
+        <div class="metric">
+          <div class="metric-k">Swarm</div>
+          <div class="metric-v">{{ status.peerscount }}</div>
+          <div class="metric-s">DHT peers</div>
         </div>
-        <div style="margin-top: 1.25rem; display: flex; justify-content: flex-end; gap: 0.5rem;">
-          <a class="btn-core btn-core-secondary" :href="'/archive/' + inspectItem.cid" target="_blank" rel="noopener">Raw file</a>
-          <a class="btn-core btn-core-primary" :href="inspectItem.gatewayUrl" target="_blank" rel="noopener">Open in Gateway</a>
+        <div class="metric">
+          <div class="metric-k">Storage</div>
+          <div class="metric-v">{{ storagePercentage }}%</div>
+          <div class="metric-s">{{ status.repoSize }}</div>
+        </div>
+        <div class="metric">
+          <div class="metric-k">Archive</div>
+          <div class="metric-v">{{ archive.count }}</div>
+          <div class="metric-s">{{ archive.sizeStr }} · {{ archive.dir }}</div>
+        </div>
+        <div class="metric">
+          <div class="metric-k">Daemon v{{ status.appver }}</div>
+          <div class="metric-v mono" style="font-size:16px">{{ status.nodeId }}</div>
+          <div class="metric-s">{{ status.version }}</div>
         </div>
       </div>
     </div>
   </div>
 
-  <div class="toast-dock">
-    <div v-for="toast in toasts" :key="toast.id" class="toast-message" :class="toast.type === 'error' ? 'is-error' : 'is-success'">
-      <svg v-if="toast.type === 'error'" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--accent-rose);">
-        <circle cx="12" cy="12" r="10"></circle>
-        <line x1="12" y1="8" x2="12" y2="12"></line>
-        <line x1="12" y1="16" x2="12.01" y2="16"></line>
-      </svg>
-      <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--accent-mint);">
-        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-        <polyline points="22 4 12 14.01 9 11.01"></polyline>
-      </svg>
-      <span>{{ toast.message }}</span>
-    </div>
+  <div class="toast-stack">
+    <div v-for="toast in toasts" :key="toast.id" class="toast" :class="{ 'is-error': toast.type === 'error' }">{{ toast.message }}</div>
   </div>
-
-  <footer class="footer-wrap">
-    <div class="canvas-wrap footer-content">
-      <div style="display: flex; align-items: center; gap: 0.65rem;">
-        <span style="font-weight: 700; color: #ffffff;">Originless</span>
-        <span>— IPFS Storage Daemon</span>
-      </div>
-      <div class="footer-links">
-        <a href="https://github.com/besoeasy/Originless" target="_blank" rel="noopener">GitHub</a>
-        <a href="https://github.com/besoeasy/Originless#%EF%B8%8F-api-quick-reference" target="_blank" rel="noopener">API Reference</a>
-        <a href="https://github.com/besoeasy/Originless/tree/main/examples" target="_blank" rel="noopener">Examples</a>
-        <span class="mono">v{{ status.appver }}</span>
-      </div>
-    </div>
-  </footer>
-
 </div>
 
 <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>

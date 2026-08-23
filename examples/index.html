@@ -3,85 +3,81 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Examples & Tools — Originless</title>
-  <meta name="description" content="Standalone client tools and examples for Originless IPFS nodes." />
-  <meta name="theme-color" content="#09090b" />
+  <title>Tools — Originless</title>
+  <meta name="description" content="Standalone client tools for Originless IPFS nodes." />
+  <meta name="theme-color" content="#0b0b0c" />
   <link rel="icon" type="image/svg+xml" href="/logo.svg" />
   <link rel="stylesheet" href="/css/app.css" />
 </head>
 <body>
-<div id="app" class="app-container">
-  <header class="navbar">
-    <div class="canvas-wrap navbar-inner">
-      <div class="brand-unit">
-        <a class="brand-link" :href="nodeUrl">
-          <div class="brand-icon-box">
-            <img src="/logo.svg" alt="Originless" />
-          </div>
-          <span>Originless</span>
-          <span class="brand-tag">Tools</span>
-        </a>
-        <nav class="nav-pill-group">
-          <a :href="nodeUrl" class="nav-pill">Overview</a>
-          <a href="/examples/" class="nav-pill is-active">Tools</a>
-        </nav>
-      </div>
-      <div class="navbar-actions">
-        <div class="node-status-bar">
-          <span class="dot" :class="{ 'is-offline': !nodeOnline }"></span>
-          <span class="mono">{{ nodeUrl }}</span>
-          <span v-if="nodeOnline">{{ peerCount }} peers</span>
-          <button type="button" class="btn-icon-cell" @click="promptChangeNode" title="Change node URL">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="3"></circle>
-              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
-            </svg>
-          </button>
-        </div>
-        <a class="btn-ghost-icon" href="https://github.com/besoeasy/Originless" target="_blank" rel="noopener" title="GitHub">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-            <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"></path>
-          </svg>
-        </a>
-      </div>
+<div id="app" class="app-shell">
+
+  <header class="app-topbar">
+    <div class="topbar-start">
+      <a class="brand" :href="nodeUrl">
+        <img src="/logo.svg" alt="" />
+        Originless
+        <span class="brand-mark">Tools</span>
+      </a>
+      <nav class="app-nav">
+        <a :href="nodeUrl">Library</a>
+        <a href="/archive.html">Archive</a>
+        <a href="/examples/" class="is-current">Tools</a>
+      </nav>
+    </div>
+    <div class="topbar-end">
+      <button type="button" class="peer-btn" @click="promptChangeNode" :title="nodeUrl">
+        <span class="dot" :class="{ 'is-off': !nodeOnline }"></span>
+        <span class="mono">{{ nodeUrl }}</span>
+        <span v-if="nodeOnline">{{ peerCount }} peers</span>
+      </button>
+      <a class="icon-btn" href="https://github.com/besoeasy/Originless" target="_blank" rel="noopener" title="GitHub">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/></svg>
+      </a>
     </div>
   </header>
 
-  <main class="page-body">
-    <div class="canvas-wrap">
-      <div class="catalog-hero">
-        <p class="catalog-kicker">Client examples</p>
-        <h1>Tools that talk to this node</h1>
-        <p>This is where uploads live — pin a file or folder, then the dashboard library shows the CID. Pages call your Originless origin (<span class="mono">{{ nodeUrl }}</span>) and can be hosted anywhere.</p>
-      </div>
-
-      <section v-for="cat in categorizedTools" :key="cat.name" class="catalog-section">
-        <div class="catalog-section-title">{{ cat.name }}</div>
-        <div class="tool-grid">
-          <a v-for="tool in cat.tools" :key="tool.file" class="tool-tile" :href="tool.file">
-            <div class="tool-tile-head">
-              <span class="tool-pill" :class="{ 'is-post': isPostTool(tool) }">
-                {{ tool.endpoint || 'TOOL' }}
-              </span>
-              <span class="tool-tile-open">Open</span>
-            </div>
-            <h2>{{ tool.title }}</h2>
-            <p>{{ tool.description }}</p>
-          </a>
+  <div class="app-body">
+    <section class="workspace">
+      <div class="workspace-bar">
+        <div class="bar-title">
+          <h1>Tools</h1>
+          <span class="count">{{ tools.length }}</span>
         </div>
-      </section>
-    </div>
-  </main>
-
-  <footer class="footer-wrap">
-    <div class="canvas-wrap footer-content">
-      <div>Originless client examples</div>
-      <div class="footer-links">
-        <a href="https://github.com/besoeasy/Originless" target="_blank" rel="noopener">GitHub</a>
-        <a :href="nodeUrl">Node dashboard</a>
+        <div class="bar-tools">
+          <span class="mono" style="font-size:12px;color:var(--ink-3)">Uploads land in Library after pin</span>
+        </div>
       </div>
-    </div>
-  </footer>
+
+      <div class="workspace-scroll">
+        <div v-for="cat in categorizedTools" :key="cat.name" class="section-block">
+          <div class="section-label">{{ cat.name }}</div>
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th style="width:28%">Tool</th>
+                <th style="width:18%">Endpoint</th>
+                <th>What it does</th>
+                <th class="col-actions"></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="tool in cat.tools" :key="tool.file" @click="openTool(tool.file)">
+                <td data-col="Tool"><span class="file-name">{{ tool.title }}</span></td>
+                <td data-col="Endpoint"><span class="endpoint" :class="{ 'is-post': isPostTool(tool) }">{{ tool.endpoint || 'TOOL' }}</span></td>
+                <td data-col="What it does" class="cell-desc">{{ tool.description }}</td>
+                <td data-col=" " @click.stop>
+                  <div class="row-actions">
+                    <a class="btn" :href="tool.file">Open</a>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </div>
 </div>
 
 <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
@@ -92,8 +88,8 @@
     {
       file: "upload-file.html",
       title: "Single File Uploader",
-      description: "Upload and pin images, videos, audio, and documents to IPFS as exact bytes. Computes SHA-256 multihashes and generates ready-to-use HTML/Markdown embed codes.",
-      category: "Storage & Publishing Tools",
+      description: "Pin images, video, audio, and documents as exact bytes. SHA-256 multihash plus HTML/Markdown embed codes.",
+      category: "Storage & Publishing",
       endpoint: "POST /upload",
       badge: "pill-post",
       order: 1
@@ -101,8 +97,8 @@
     {
       file: "upload-media.html",
       title: "Anonymized Image Uploader",
-      description: "Pin JPEG, PNG, GIF, or WebP after stripping EXIF, GPS, XMP, and other metadata. The CID is the cleaned file, not the original camera bytes.",
-      category: "Storage & Publishing Tools",
+      description: "Strip EXIF, GPS, and XMP from JPEG/PNG/GIF/WebP, then pin the cleaned bytes.",
+      category: "Storage & Publishing",
       endpoint: "POST /media",
       badge: "pill-post",
       order: 2
@@ -110,44 +106,44 @@
     {
       file: "upload-folder.html",
       title: "Folder & DApp Uploader",
-      description: "Upload full static websites or React/Vite dist/ build directories with preserved relative paths under a single root CID.",
-      category: "Storage & Publishing Tools",
+      description: "Pin a static site or dist/ folder with relative paths under one root CID.",
+      category: "Storage & Publishing",
       endpoint: "POST /uploadfolder",
       badge: "pill-post",
       order: 3
     },
     {
       file: "snippet.html",
-      title: "Share Snippets & Pastebin",
-      description: "Upload and pin code snippets, logs, and text pastes to IPFS with syntax highlighting, SHA-256 hashes, and instant public gateway links.",
-      category: "Storage & Publishing Tools",
+      title: "Snippets & Pastebin",
+      description: "Pin code, logs, and text with syntax highlighting and a public gateway link.",
+      category: "Storage & Publishing",
       endpoint: "POST /upload",
       badge: "pill-post",
       order: 4
     },
     {
       file: "picture.html",
-      title: "Kind 20 Picture Post Generator",
-      description: "Create Instagram-like multi-image photo dumps with NIP-92 imeta tags. Batch upload to IPFS, preview carousel, copy JSON for NoStrudel, or publish directly.",
-      category: "Nostr Event Generators",
+      title: "Kind 20 Picture Post",
+      description: "Multi-image dumps with NIP-92 imeta. Upload, preview, copy JSON, or publish.",
+      category: "Nostr",
       endpoint: "NIP-68 · Kind 20",
       badge: "pill-post",
       order: 5
     },
     {
       file: "post.html",
-      title: "Kind 1 Note & Image Generator",
-      description: "Compose short Nostr text notes with IPFS image attachments and NIP-92 imeta tags. Preview live note rendering, copy JSON, or publish directly.",
-      category: "Nostr Event Generators",
+      title: "Kind 1 Note",
+      description: "Short notes with IPFS images and NIP-92 imeta. Preview, copy JSON, or publish.",
+      category: "Nostr",
       endpoint: "NIP-01 · Kind 1",
       badge: "pill-get",
       order: 6
     },
     {
       file: "article.html",
-      title: "Kind 30023 Long-Form Article Writer",
-      description: "Write NIP-23 Markdown articles, pin cover and inline images to IPFS, preview the rendered post, and publish Kind 30023 or save a Kind 30024 draft.",
-      category: "Nostr Event Generators",
+      title: "Kind 30023 Article",
+      description: "Long-form Markdown, pin images, preview, publish Kind 30023 or save a draft.",
+      category: "Nostr",
       endpoint: "NIP-23 · Kind 30023",
       badge: "pill-post",
       order: 7
@@ -173,22 +169,20 @@
       categorizedTools() {
         const groups = {};
         for (const tool of this.tools) {
-          const cat = tool.category || "General Tools";
-          if (!groups[cat]) {
-            groups[cat] = [];
-          }
+          const cat = tool.category || "General";
+          if (!groups[cat]) groups[cat] = [];
           groups[cat].push(tool);
         }
-        return Object.keys(groups).map(name => ({
-          name,
-          tools: groups[name],
-        }));
+        return Object.keys(groups).map((name) => ({ name, tools: groups[name] }));
       }
     },
     methods: {
       isPostTool(tool) {
         const endpoint = (tool.endpoint || "").toUpperCase();
         return endpoint.startsWith("POST") || tool.badge === "pill-post";
+      },
+      openTool(file) {
+        window.location.href = file;
       },
       promptChangeNode() {
         const url = prompt("Enter Originless Node URL:", this.nodeUrl);
@@ -223,7 +217,6 @@
             }
           }
         } catch (_) {
-          // Keep default fallback tools on network/CORS error
         } finally {
           this.loadingTools = false;
         }
