@@ -790,6 +790,67 @@ button {
 }
 
 /* File Identity Cell */
+.file-row-thumb {
+  width: 32px;
+  height: 32px;
+  object-fit: cover;
+  border-radius: var(--radius-xs);
+  background: #000;
+  flex-shrink: 0;
+}
+
+.library-row {
+  cursor: pointer;
+}
+
+.library-table .file-main-name {
+  max-width: 320px;
+}
+
+/* Library list: stack into labeled rows on phones */
+@media (max-width: 720px) {
+  .library-table thead {
+    display: none;
+  }
+  .library-table,
+  .library-table tbody,
+  .library-table tr,
+  .library-table td {
+    display: block;
+    width: 100%;
+  }
+  .library-table tr {
+    padding: 0.85rem 1rem 0.65rem;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  .library-table td {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.2rem 0;
+    border-bottom: none;
+    text-align: right !important;
+  }
+  .library-table td::before {
+    content: attr(data-label);
+    color: var(--text-dim);
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    flex-shrink: 0;
+  }
+  .library-table td[data-label="File"] {
+    margin-bottom: 0.35rem;
+  }
+  .library-table td[data-label="File"]::before {
+    display: none;
+  }
+  .library-table td[data-label="File"] .file-identity-block {
+    width: 100%;
+  }
+}
+
 .file-identity-block {
   display: flex;
   align-items: center;

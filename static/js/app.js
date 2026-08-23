@@ -296,7 +296,6 @@
           sortBy: "date-desc",
           
           activeTab: "pin", // pin, prompt
-          libraryView: localStorage.getItem("ol_library_view") || "grid",
           archiveView: localStorage.getItem("ol_archive_view") || "grid",
           brokenThumbs: {},
           nodeSheetOpen: false,
@@ -555,11 +554,6 @@ To confirm you have understood this skill, complete this check:
           localStorage.setItem("ol_gateway_url", this.currentGateway);
           const gwName = new URL(this.currentGateway).hostname;
           this.showToast(`Active Gateway set to ${gwName}`, "success");
-        },
-
-        setLibraryView(view) {
-          this.libraryView = view;
-          localStorage.setItem("ol_library_view", view);
         },
 
         setArchiveView(view) {
