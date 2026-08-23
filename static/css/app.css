@@ -639,7 +639,7 @@ button { cursor: pointer; }
 
 .toast.is-error { border-color: rgba(240, 113, 120, 0.4); }
 
-/* tools catalog as table uses same data-table */
+/* Examples catalog */
 .endpoint {
   font-family: var(--mono);
   font-size: 11px;
@@ -648,6 +648,61 @@ button { cursor: pointer; }
 }
 
 .endpoint.is-post { color: #fff; }
+
+/* Examples / tools catalog */
+.tool-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+  padding: 12px 14px 20px;
+}
+
+.tool-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 164px;
+  padding: 16px;
+  background: var(--bg-raised);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  transition: border-color 0.15s var(--ease), background 0.15s var(--ease);
+}
+
+.tool-card:hover {
+  border-color: var(--line-strong);
+  background: var(--bg-hover);
+}
+
+.tool-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.tool-card h2 {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: #fff;
+}
+
+.tool-card p {
+  font-size: 12.5px;
+  color: var(--ink-3);
+  line-height: 1.45;
+  flex: 1;
+}
+
+.tool-card-open {
+  font-size: 12px;
+  color: var(--ink-4);
+}
+
+.tool-card:hover .tool-card-open { color: #fff; }
+
+.section-block:last-child { border-bottom: none; }
 
 /* stacked mobile rows */
 @media (max-width: 820px) {

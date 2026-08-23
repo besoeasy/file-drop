@@ -52,28 +52,16 @@
       <div class="workspace-scroll">
         <div v-for="cat in categorizedTools" :key="cat.name" class="section-block">
           <div class="section-label">{{ cat.name }}</div>
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th style="width:28%">Tool</th>
-                <th style="width:18%">Endpoint</th>
-                <th>What it does</th>
-                <th class="col-actions"></th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="tool in cat.tools" :key="tool.file" @click="openTool(tool.file)">
-                <td data-col="Tool"><span class="file-name">{{ tool.title }}</span></td>
-                <td data-col="Endpoint"><span class="endpoint" :class="{ 'is-post': isPostTool(tool) }">{{ tool.endpoint || 'TOOL' }}</span></td>
-                <td data-col="What it does" class="cell-desc">{{ tool.description }}</td>
-                <td data-col=" " @click.stop>
-                  <div class="row-actions">
-                    <a class="btn" :href="tool.file">Open</a>
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+          <div class="tool-grid">
+            <a v-for="tool in cat.tools" :key="tool.file" class="tool-card" :href="tool.file">
+              <div class="tool-card-head">
+                <span class="endpoint" :class="{ 'is-post': isPostTool(tool) }">{{ tool.endpoint || 'TOOL' }}</span>
+                <span class="tool-card-open">Open</span>
+              </div>
+              <h2>{{ tool.title }}</h2>
+              <p>{{ tool.description }}</p>
+            </a>
+          </div>
         </div>
       </div>
     </section>
@@ -180,9 +168,6 @@
       isPostTool(tool) {
         const endpoint = (tool.endpoint || "").toUpperCase();
         return endpoint.startsWith("POST") || tool.badge === "pill-post";
-      },
-      openTool(file) {
-        window.location.href = file;
       },
       promptChangeNode() {
         const url = prompt("Enter Originless Node URL:", this.nodeUrl);
