@@ -170,10 +170,10 @@ button { cursor: pointer; }
 .select-plain {
   display: flex;
   align-items: center;
-  gap: 6px;
-  height: 30px;
-  padding: 0 8px 0 10px;
-  border: 1px solid var(--line);
+  gap: 8px;
+  height: 36px;
+  padding: 0 10px 0 12px;
+  border: 1px solid var(--line-strong);
   border-radius: 6px;
   background: var(--bg-raised);
   color: var(--ink-3);
@@ -184,14 +184,32 @@ button { cursor: pointer; }
 }
 
 .select-plain select {
-  color: var(--ink);
-  font-family: var(--mono);
-  font-size: 12px;
-  font-weight: 500;
-  letter-spacing: 0;
+  appearance: none;
+  -webkit-appearance: none;
+  height: 28px;
+  min-width: 200px;
+  max-width: 280px;
+  padding: 0 22px 0 2px;
+  color: #fff;
+  background: transparent url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23f2f2f3' stroke-width='2.5'><path d='M6 9l6 6 6-6'/></svg>") no-repeat right center;
+  font-family: var(--sans);
+  font-size: 13.5px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 28px;
   text-transform: none;
-  max-width: 180px;
   cursor: pointer;
+}
+
+.select-plain select:focus {
+  outline: none;
+  color: #fff;
+}
+
+.select-plain select option {
+  background: #111113;
+  color: #fff;
+  font-weight: 500;
 }
 
 .icon-btn {
