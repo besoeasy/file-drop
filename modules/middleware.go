@@ -14,12 +14,23 @@ func Chain(handler http.Handler, middlewares ...func(http.Handler) http.Handler)
 	return handler
 }
 
+func setCORS(w http.ResponseWriter) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "GET, HEAD, POST, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+}
+
 func CORS(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Methods", "GET, HEAD, POST, OPTIONS")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+		// Kubo already emits CORS for /ipfs and /ipns. Writing ours first
+		// makes ReverseProxy Add the same headers again; browsers treat
+		// duplicate Access-Control-Allow-Origin as a failed fetch().
+		if isGatewayRequest(r) && GatewayEnabled {
+			next.ServeHTTP(w, r)
+			return
+		}
 
+		setCORS(w)
 		if r.Method == http.MethodOptions {
 			w.WriteHeader(http.StatusNoContent)
 			return

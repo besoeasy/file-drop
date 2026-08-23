@@ -108,6 +108,58 @@ func TestGatewayProxiesIpfsAndIpns(t *testing.T) {
 	})
 }
 
+func TestGatewayDoesNotDuplicateKuboCORS(t *testing.T) {
+	backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Add("Access-Control-Allow-Origin", "*")
+		w.Header().Add("Access-Control-Allow-Methods", "GET")
+		w.Header().Add("Access-Control-Allow-Methods", "HEAD")
+		w.Header().Add("Access-Control-Allow-Methods", "OPTIONS")
+		w.Header().Add("Access-Control-Allow-Headers", "Content-Type")
+		w.Header().Add("Access-Control-Allow-Headers", "Range")
+		w.Header().Set("X-Ipfs-Path", r.URL.Path)
+		io.WriteString(w, "ok")
+	}))
+	t.Cleanup(backend.Close)
+
+	withGatewayState(t, true, backend.URL)
+	router := testRouter(true, backend.URL)
+
+	req := httptest.NewRequest(http.MethodGet, "/ipfs/QmTest", nil)
+	req.Header.Set("Origin", "https://gupt.app")
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", rec.Code)
+	}
+	origins := rec.Header().Values("Access-Control-Allow-Origin")
+	if len(origins) != 1 || origins[0] != "*" {
+		t.Fatalf("expected a single CORS origin *, got %#v", origins)
+	}
+	if got := rec.Header().Values("Access-Control-Allow-Headers"); len(got) < 2 {
+		t.Fatalf("expected Kubo's Allow-Headers to pass through, got %#v", got)
+	}
+}
+
+func TestAPIHasSingleOriginlessCORS(t *testing.T) {
+	withGatewayState(t, true, "http://127.0.0.1:9")
+	router := testRouter(true, "http://127.0.0.1:9")
+
+	req := httptest.NewRequest(http.MethodOptions, "/health", nil)
+	req.Header.Set("Origin", "https://gupt.app")
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusNoContent {
+		t.Fatalf("expected 204, got %d", rec.Code)
+	}
+
+	origins := rec.Header().Values("Access-Control-Allow-Origin")
+	if len(origins) != 1 || origins[0] != "*" {
+		t.Fatalf("expected a single CORS origin *, got %#v", origins)
+	}
+}
+
 func TestGatewayMetricPath(t *testing.T) {
 	tests := map[string]string{
 		"/ipfs/QmAbc/file.txt": "/ipfs",
@@ -182,6 +234,9 @@ func TestSubdomainGatewayDoesNotServeDashboard(t *testing.T) {
 	}
 	if rec.Body.String() != "pinned-site" {
 		t.Errorf("unexpected body %q", rec.Body.String())
+	}
+	if origins := rec.Header().Values("Access-Control-Allow-Origin"); len(origins) > 1 {
+		t.Fatalf("duplicate CORS origin on subdomain gateway: %#v", origins)
 	}
 	if !strings.Contains(sawHost, ".ipfs.localhost") {
 		t.Errorf("Kubo should see the subdomain Host, got %q", sawHost)

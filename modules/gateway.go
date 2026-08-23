@@ -24,6 +24,7 @@ func NewGatewayProxy(target string) *httputil.ReverseProxy {
 	proxy.FlushInterval = 100 * time.Millisecond
 	proxy.ErrorHandler = func(w http.ResponseWriter, r *http.Request, err error) {
 		log.Printf("[gateway] proxy error path=%s err=%v", r.URL.Path, err)
+		setCORS(w)
 		writeJSON(w, http.StatusBadGateway, map[string]any{
 			"error":   "IPFS gateway unavailable",
 			"details": err.Error(),
@@ -68,6 +69,7 @@ func gatewayStatus(r *http.Request) map[string]any {
 
 func (h *Handler) Gateway(w http.ResponseWriter, r *http.Request) {
 	if !GatewayEnabled || h.gateway == nil {
+		setCORS(w)
 		writeJSON(w, http.StatusNotFound, map[string]any{
 			"error":  "IPFS gateway is disabled",
 			"status": "disabled",
