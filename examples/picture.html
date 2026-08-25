@@ -712,8 +712,8 @@
               <div>
                 <label class="kicker">Gateway URL Format &amp; Primary Source</label>
                 <select v-model="gatewayFormat" class="field">
-                  <option value="local">Originless Local Node Gateway</option>
                   <option value="ipfs">ipfs:// (Decentralized Native)</option>
+                  <option value="local">Originless Local Node Gateway</option>
                 </select>
               </div>
             </div>
@@ -1082,7 +1082,7 @@
         aspectPreset: "1-1",
         postTitle: "Tiger Encounter",
         postContent: "Some moments are too good for just one photo dump. 📸✨ #photography #nature",
-        gatewayFormat: "local",
+        gatewayFormat: "ipfs",
         metaPreset: "full",
         includeFallbacks: true,
         includeMime: false,

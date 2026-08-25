@@ -251,8 +251,8 @@
             <div>
               <label class="kicker">Primary image URL format</label>
               <select v-model="gatewayFormat" class="field">
-                <option value="local">This Originless node /ipfs/</option>
                 <option value="ipfs">ipfs:// (native)</option>
+                <option value="local">This Originless node /ipfs/</option>
               </select>
             </div>
             <label style="display:flex;align-items:center;gap:.45rem;font-size:.82rem;cursor:pointer">
@@ -427,7 +427,7 @@
         heroOver: false,
         images: [],
         inlineOver: false,
-        gatewayFormat: "local",
+        gatewayFormat: "ipfs",
         includeImeta: true,
         copiedJson: false,
         pubkey: "",
