@@ -582,17 +582,10 @@
               <div>
                 <label class="kicker">Gateway URL Format &amp; Primary Source</label>
                 <select v-model="gatewayFormat" class="field">
-                  <option value="dweb">https://dweb.link/ipfs/ (Web Compatible with Fallbacks)</option>
-                  <option value="ipfs">ipfs:// (Decentralized Native with Web Fallbacks)</option>
                   <option value="local">Originless Local Node Gateway</option>
-                  <option value="custom">Custom Gateway Prefix</option>
+                  <option value="ipfs">ipfs:// (Decentralized Native)</option>
                 </select>
               </div>
-            </div>
-
-            <div v-if="gatewayFormat === 'custom'" style="margin-top:.85rem">
-              <label class="kicker">Custom Gateway Prefix</label>
-              <input v-model="customGatewayPrefix" class="field" type="text" placeholder="https://ipfs.io/ipfs/" />
             </div>
 
             <!-- Tag Options Checkboxes -->
@@ -905,8 +898,7 @@
         images: [],
         noteContent: "Exploring decentralized storage with Originless! 📸✨ #nostr #ipfs #freedom",
         appendUrlToContent: true,
-        gatewayFormat: "dweb",
-        customGatewayPrefix: "https://ipfs.io/ipfs/",
+        gatewayFormat: "local",
         metaPreset: "full",
         includeFallbacks: true,
         includeMime: true,
@@ -938,14 +930,8 @@
           .filter((img) => img.cid)
           .map((img) => {
             const cid = img.cid;
-            if (this.gatewayFormat === "dweb") return "https://dweb.link/ipfs/" + cid;
             if (this.gatewayFormat === "ipfs") return "ipfs://" + cid;
-            if (this.gatewayFormat === "local") return (this.nodeUrl || "http://localhost:3232") + "/ipfs/" + cid;
-            if (this.gatewayFormat === "custom") {
-              const prefix = (this.customGatewayPrefix || "https://ipfs.io/ipfs/").replace(/\/$/, "") + "/";
-              return prefix + cid;
-            }
-            return "https://dweb.link/ipfs/" + cid;
+            return (this.nodeUrl || "http://localhost:3232") + "/ipfs/" + cid;
           });
       },
       renderedFullContent() {
@@ -983,23 +969,11 @@
           let primaryUrl = "";
           const fallbacks = [];
 
-          if (this.gatewayFormat === "dweb") {
-            primaryUrl = "https://dweb.link/ipfs/" + cid;
-            fallbacks.push("https://ipfs.io/ipfs/" + cid);
-            fallbacks.push("ipfs://" + cid);
-          } else if (this.gatewayFormat === "ipfs") {
+          if (this.gatewayFormat === "ipfs") {
             primaryUrl = "ipfs://" + cid;
-            fallbacks.push("https://dweb.link/ipfs/" + cid);
-            fallbacks.push("https://ipfs.io/ipfs/" + cid);
-          } else if (this.gatewayFormat === "local") {
+            fallbacks.push((this.nodeUrl || "http://localhost:3232") + "/ipfs/" + cid);
+          } else {
             primaryUrl = (this.nodeUrl || "http://localhost:3232") + "/ipfs/" + cid;
-            fallbacks.push("https://dweb.link/ipfs/" + cid);
-            fallbacks.push("https://ipfs.io/ipfs/" + cid);
-            fallbacks.push("ipfs://" + cid);
-          } else if (this.gatewayFormat === "custom") {
-            const prefix = (this.customGatewayPrefix || "https://ipfs.io/ipfs/").replace(/\/$/, "") + "/";
-            primaryUrl = prefix + cid;
-            fallbacks.push("https://dweb.link/ipfs/" + cid);
             fallbacks.push("ipfs://" + cid);
           }
 

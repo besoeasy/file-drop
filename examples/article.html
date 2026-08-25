@@ -251,15 +251,9 @@
             <div>
               <label class="kicker">Primary image URL format</label>
               <select v-model="gatewayFormat" class="field">
-                <option value="dweb">https://dweb.link/ipfs/ (portable web)</option>
                 <option value="local">This Originless node /ipfs/</option>
                 <option value="ipfs">ipfs:// (native)</option>
-                <option value="custom">Custom prefix</option>
               </select>
-            </div>
-            <div v-if="gatewayFormat === 'custom'">
-              <label class="kicker">Custom gateway prefix</label>
-              <input v-model="customGatewayPrefix" class="field" type="text" placeholder="https://ipfs.io/ipfs/" />
             </div>
             <label style="display:flex;align-items:center;gap:.45rem;font-size:.82rem;cursor:pointer">
               <input v-model="includeImeta" type="checkbox" />
@@ -427,14 +421,13 @@
         identifier: "",
         identifierTouched: false,
         topicsText: "nostr, ipfs, writing",
-        body: "# Why long-form still belongs on Nostr\n\nKind **30023** is a replaceable Markdown article. The `d` tag is the permalink slug: publish again with the same identifier and relays replace the old version.\n\nDrop a cover image, write the piece, then insert inline photos. Originless pins the bytes; the event only stores CIDs.\n\n> Set the gateway to this node while drafting, or dweb.link when you want portable public URLs.\n",
+        body: "# Why long-form still belongs on Nostr\n\nKind **30023** is a replaceable Markdown article. The `d` tag is the permalink slug: publish again with the same identifier and relays replace the old version.\n\nDrop a cover image, write the piece, then insert inline photos. Originless pins the bytes; the event only stores CIDs.\n\n> Set the gateway to this node while drafting; the event stores portable ipfs:// URIs.\n",
         publishKind: 30023,
         hero: emptyAsset(),
         heroOver: false,
         images: [],
         inlineOver: false,
-        gatewayFormat: "dweb",
-        customGatewayPrefix: "https://ipfs.io/ipfs/",
+        gatewayFormat: "local",
         includeImeta: true,
         copiedJson: false,
         pubkey: "",
@@ -499,17 +492,13 @@
       },
       gatewayUrl(cid) {
         if (this.gatewayFormat === "ipfs") return "ipfs://" + cid;
-        if (this.gatewayFormat === "local") return (this.nodeUrl || "http://localhost:3232") + "/ipfs/" + cid;
-        if (this.gatewayFormat === "custom") {
-          return (this.customGatewayPrefix || "https://ipfs.io/ipfs/").replace(/\/$/, "") + "/" + cid;
-        }
-        return "https://dweb.link/ipfs/" + cid;
+        return (this.nodeUrl || "http://localhost:3232") + "/ipfs/" + cid;
       },
       imetaTag(img) {
         const url = this.gatewayUrl(img.cid);
         const parts = ["imeta", "url " + url];
-        if (this.gatewayFormat === "dweb") parts.push("fallback https://ipfs.io/ipfs/" + img.cid);
-        if (this.gatewayFormat === "local") parts.push("fallback https://dweb.link/ipfs/" + img.cid);
+        if (this.gatewayFormat === "ipfs") parts.push("fallback " + (this.nodeUrl || "http://localhost:3232") + "/ipfs/" + img.cid);
+        else parts.push("fallback ipfs://" + img.cid);
         if (img.mime) parts.push("m " + img.mime);
         if (img.sha256) parts.push("x " + img.sha256);
         if (img.dimensions) parts.push("dim " + img.dimensions);
