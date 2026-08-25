@@ -446,7 +446,7 @@
     computed: {
       gatewayUrl() {
         if (!this.result) return "";
-        return `https://dweb.link/ipfs/${this.result.cid}?filename=${encodeURIComponent(this.result.filename)}`;
+        return `${this.nodeUrl}/ipfs/${this.result.cid}?filename=${encodeURIComponent(this.result.filename)}`;
       },
       ipfsUri() {
         if (!this.result) return "";
@@ -477,9 +477,7 @@
         const fn = encodeURIComponent(this.result.filename);
         const tag = [
           "imeta",
-          `url https://dweb.link/ipfs/${cid}?filename=${fn}`,
-          `fallback https://ipfs.io/ipfs/${cid}?filename=${fn}`,
-          `fallback ipfs://${cid}?filename=${fn}`,
+          `url ipfs://${cid}?filename=${fn}`,
           `m ${this.result.mime || 'application/octet-stream'}`,
           `size ${this.result.size}`,
         ];
