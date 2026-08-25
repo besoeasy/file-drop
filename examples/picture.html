@@ -708,16 +708,6 @@
               </div>
             </div>
 
-            <div class="grid grid-2" style="margin-top:.85rem">
-              <div>
-                <label class="kicker">Gateway URL Format &amp; Primary Source</label>
-                <select v-model="gatewayFormat" class="field">
-                  <option value="ipfs">ipfs:// (Decentralized Native)</option>
-                  <option value="local">Originless Local Node Gateway</option>
-                </select>
-              </div>
-            </div>
-
             <!-- Tag Options Checkboxes -->
             <div style="margin-top:1.15rem;padding:1rem;background:var(--bg-2);border-radius:6px;border:1px solid var(--line)">
               <div class="kicker" style="margin-bottom:.65rem">Included imeta Tag Fields:</div>
@@ -1078,7 +1068,6 @@
         aspectPreset: "1-1",
         postTitle: "Tiger Encounter",
         postContent: "Some moments are too good for just one photo dump. 📸✨ #photography #nature",
-        gatewayFormat: "ipfs",
         metaPreset: "full",
         includeMime: false,
         includeDim: false,
@@ -1134,7 +1123,7 @@
         for (const img of this.images) {
           if (!img.cid) continue;
           const cid = img.cid;
-          const primaryUrl = this.gatewayFormat === "ipfs" ? "ipfs://" + cid : (this.nodeUrl || "http://localhost:3232") + "/ipfs/" + cid;
+          const primaryUrl = "ipfs://" + cid;
 
           const imetaParts = ["imeta", "url " + primaryUrl];
 

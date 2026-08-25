@@ -248,13 +248,6 @@
         <section class="card" style="margin-top:1.75rem">
           <div class="card-head"><h2>5. Gateway &amp; Tags</h2></div>
           <div class="space">
-            <div>
-              <label class="kicker">Primary image URL format</label>
-              <select v-model="gatewayFormat" class="field">
-                <option value="ipfs">ipfs:// (native)</option>
-                <option value="local">This Originless node /ipfs/</option>
-              </select>
-            </div>
             <label style="display:flex;align-items:center;gap:.45rem;font-size:.82rem;cursor:pointer">
               <input v-model="includeImeta" type="checkbox" />
               <span>Include NIP-92 <span class="mono">imeta</span> tags for cover + inline images</span>
@@ -427,7 +420,6 @@
         heroOver: false,
         images: [],
         inlineOver: false,
-        gatewayFormat: "ipfs",
         includeImeta: true,
         copiedJson: false,
         pubkey: "",
@@ -491,8 +483,7 @@
         return cid ? cid.slice(0, 8) + "…" + cid.slice(-6) : "";
       },
       gatewayUrl(cid) {
-        if (this.gatewayFormat === "ipfs") return "ipfs://" + cid;
-        return (this.nodeUrl || "http://localhost:3232") + "/ipfs/" + cid;
+        return "ipfs://" + cid;
       },
       imetaTag(img) {
         const url = this.gatewayUrl(img.cid);

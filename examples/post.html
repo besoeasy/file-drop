@@ -578,16 +578,6 @@
               </div>
             </div>
 
-            <div class="grid grid-2" style="margin-top:.85rem">
-              <div>
-                <label class="kicker">Gateway URL Format &amp; Primary Source</label>
-                <select v-model="gatewayFormat" class="field">
-                  <option value="ipfs">ipfs:// (Decentralized Native)</option>
-                  <option value="local">Originless Local Node Gateway</option>
-                </select>
-              </div>
-            </div>
-
             <!-- Tag Options Checkboxes -->
             <div style="margin-top:1.15rem;padding:1rem;background:var(--bg-2);border-radius:6px;border:1px solid var(--line)">
               <div class="kicker" style="margin-bottom:.65rem">Included imeta Tag Fields:</div>
@@ -894,7 +884,6 @@
         images: [],
         noteContent: "Exploring decentralized storage with Originless! 📸✨ #nostr #ipfs #freedom",
         appendUrlToContent: true,
-        gatewayFormat: "ipfs",
         metaPreset: "full",
         includeMime: true,
         includeDim: true,
@@ -925,8 +914,7 @@
           .filter((img) => img.cid)
           .map((img) => {
             const cid = img.cid;
-            if (this.gatewayFormat === "ipfs") return "ipfs://" + cid;
-            return (this.nodeUrl || "http://localhost:3232") + "/ipfs/" + cid;
+            return "ipfs://" + cid;
           });
       },
       renderedFullContent() {
@@ -961,7 +949,7 @@
           const img = this.images[i];
           if (!img.cid) continue;
           const cid = img.cid;
-          const primaryUrl = this.gatewayFormat === "ipfs" ? "ipfs://" + cid : (this.nodeUrl || "http://localhost:3232") + "/ipfs/" + cid;
+          const primaryUrl = "ipfs://" + cid;
 
           const imetaParts = ["imeta", "url " + primaryUrl];
 
