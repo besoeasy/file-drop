@@ -497,8 +497,6 @@
       imetaTag(img) {
         const url = this.gatewayUrl(img.cid);
         const parts = ["imeta", "url " + url];
-        if (this.gatewayFormat === "ipfs") parts.push("fallback " + (this.nodeUrl || "http://localhost:3232") + "/ipfs/" + img.cid);
-        else parts.push("fallback ipfs://" + img.cid);
         if (img.mime) parts.push("m " + img.mime);
         if (img.sha256) parts.push("x " + img.sha256);
         if (img.dimensions) parts.push("dim " + img.dimensions);

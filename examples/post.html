@@ -593,10 +593,6 @@
               <div class="kicker" style="margin-bottom:.65rem">Included imeta Tag Fields:</div>
               <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(160px, 1fr));gap:.6rem;font-size:.82rem">
                 <label style="display:flex;align-items:center;gap:.45rem;cursor:pointer">
-                  <input v-model="includeFallbacks" type="checkbox" @change="metaPreset = 'custom'" />
-                  <span>Fallbacks (<span class="mono">fallback</span>)</span>
-                </label>
-                <label style="display:flex;align-items:center;gap:.45rem;cursor:pointer">
                   <input v-model="includeMime" type="checkbox" @change="metaPreset = 'custom'" />
                   <span>MIME (<span class="mono">m</span>)</span>
                 </label>
@@ -900,7 +896,6 @@
         appendUrlToContent: true,
         gatewayFormat: "ipfs",
         metaPreset: "full",
-        includeFallbacks: true,
         includeMime: true,
         includeDim: true,
         includeHash: true,
@@ -966,24 +961,9 @@
           const img = this.images[i];
           if (!img.cid) continue;
           const cid = img.cid;
-          let primaryUrl = "";
-          const fallbacks = [];
-
-          if (this.gatewayFormat === "ipfs") {
-            primaryUrl = "ipfs://" + cid;
-            fallbacks.push((this.nodeUrl || "http://localhost:3232") + "/ipfs/" + cid);
-          } else {
-            primaryUrl = (this.nodeUrl || "http://localhost:3232") + "/ipfs/" + cid;
-            fallbacks.push("ipfs://" + cid);
-          }
+          const primaryUrl = this.gatewayFormat === "ipfs" ? "ipfs://" + cid : (this.nodeUrl || "http://localhost:3232") + "/ipfs/" + cid;
 
           const imetaParts = ["imeta", "url " + primaryUrl];
-
-          if (this.includeFallbacks) {
-            for (const fb of fallbacks) {
-              imetaParts.push("fallback " + fb);
-            }
-          }
 
           if (this.includeMime && img.mime) imetaParts.push("m " + img.mime);
           if (this.includeHash && img.sha256) imetaParts.push("x " + img.sha256);
@@ -1015,21 +995,18 @@
       setPreset(preset) {
         this.metaPreset = preset;
         if (preset === "simple") {
-          this.includeFallbacks = true;
           this.includeMime = false;
           this.includeDim = false;
           this.includeHash = false;
           this.includeBlurhash = false;
           this.includeAlt = false;
         } else if (preset === "standard") {
-          this.includeFallbacks = true;
           this.includeMime = true;
           this.includeDim = true;
           this.includeHash = true;
           this.includeBlurhash = false;
           this.includeAlt = false;
         } else if (preset === "full") {
-          this.includeFallbacks = true;
           this.includeMime = true;
           this.includeDim = true;
           this.includeHash = true;
