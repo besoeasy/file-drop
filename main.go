@@ -57,13 +57,8 @@ func main() {
 	}
 	defer database.Close()
 
-	storageMaxBytes, err := modules.ParseSize(modules.StorageMax)
-	if err != nil {
-		log.Fatalf("invalid STORAGE_MAX: %v", err)
-	}
-
 	ipfsClient := modules.NewClient()
-	janitorMgr := modules.NewJanitor(database, ipfsClient, storageMaxBytes)
+	janitorMgr := modules.NewJanitor(database, ipfsClient, modules.StorageMaxBytes)
 
 	log.Printf("[STARTUP] running janitor reconciliation...")
 	janitorMgr.Reconcile()

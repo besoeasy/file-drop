@@ -155,21 +155,6 @@ func (s *Store) GetUploadHistory(limit, offset int) ([]Upload, error) {
 	return scanUploads(rows)
 }
 
-func (s *Store) GetUploadByCID(cid string) (*Upload, error) {
-	var u Upload
-	err := s.db.QueryRow(
-		`SELECT id, cid, filename, size, created_at, unpinned, unpinned_at
-		 FROM uploads WHERE cid = ?`, cid,
-	).Scan(&u.ID, &u.CID, &u.Filename, &u.Size, &u.CreatedAt, &u.Unpinned, &u.UnpinnedAt)
-	if err == sql.ErrNoRows {
-		return nil, nil
-	}
-	if err != nil {
-		return nil, err
-	}
-	return &u, nil
-}
-
 func (s *Store) GetAllTrackedCIDs() (map[string]bool, error) {
 	rows, err := s.db.Query(`SELECT cid, unpinned FROM uploads`)
 	if err != nil {
