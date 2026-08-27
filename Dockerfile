@@ -35,9 +35,8 @@ USER originless
 
 EXPOSE 3232 8080 4001/tcp 4001/udp
 
-# /data = Kubo repo + SQLite pin log (persist this or pins vanish on recreate)
-# /archive = durable Nostr media copies
-VOLUME ["/data", "/archive"]
+# /data = Kubo repo + SQLite (disposable). /archive = durable Nostr media.
+VOLUME ["/archive"]
 
 STOPSIGNAL SIGTERM
 

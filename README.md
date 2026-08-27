@@ -41,7 +41,6 @@ docker run -d \
   -p 4001:4001 \
   -p 4001:4001/udp \
   -e STORAGE_MAX=100GB \
-  -v originless-data:/data \
   -v originless-archive:/archive \
   ghcr.io/besoeasy/originless:latest
 ```
@@ -53,7 +52,7 @@ docker run -d \
 
 Open **http://localhost:3232** · Tools at **/examples/** · Full API in **[api.md](api.md)**
 
-> Podman: swap `docker` → `podman`. Publish **4001** if you want peers to pull your content. Persist **`/data`** or pins vanish on recreate.
+> Podman: swap `docker` → `podman`. Publish **4001** if you want peers to pull your content. `/data` is disposable (recreate = fresh node). Durable Nostr media uses **`/archive`**.
 
 ---
 
@@ -114,7 +113,7 @@ Optional Nostr archive: set `NOSTR_NPUBS`, media lands on `/archive` and stays p
 | `IPFS_PROFILE` | `lowpower` | Umbrel/home-friendly Kubo init |
 | `SWARM_ANNOUNCE` | | Public multiaddrs if **4001** is behind NAT |
 
-**Volumes:** `/data` (repo + pin log — persist this), `/archive` (Nostr copies, never GC’d).
+**Volumes:** `/archive` only (Nostr copies, never GC’d). `/data` stays inside the container and is wiped on recreate.
 
 More env vars and every route: **[api.md](api.md)**.
 
