@@ -1,10 +1,11 @@
-# Originless — self-hosted IPFS pin + gateway node
+# Originless — all-in-one IPFS storage backend
 #
 #   docker compose up -d --build
 #   open http://localhost:3232
 #
-# Swarm port 4001 (TCP + UDP/QUIC) must be published for other Kubo peers to
-# Bitswap content from this node. Persist /data so pins survive recreates.
+# 3232 = API + dashboard + /ipfs gateway
+# 4001 = libp2p swarm (publish TCP+UDP so peers can Bitswap your pins)
+# Persist /data so pins survive recreates.
 
 services:
   originless:
@@ -13,16 +14,13 @@ services:
     container_name: originless
     restart: unless-stopped
     ports:
-      - "3232:3232" # Originless HTTP API + dashboard + /ipfs gateway
-      - "8080:8080" # Native Kubo path gateway
-      - "4001:4001" # libp2p swarm (TCP)
-      - "4001:4001/udp" # libp2p swarm (QUIC / webtransport)
+      - "3232:3232"
+      - "4001:4001"
+      - "4001:4001/udp"
     environment:
       STORAGE_MAX: ${STORAGE_MAX:-100GB}
       PIN_EXPIRY_DAYS: ${PIN_EXPIRY_DAYS:-30}
       ENABLE_GATEWAY: ${ENABLE_GATEWAY:-true}
-      # Optional: set true to serve only local pins (swarm retrieve is the default)
-      # GATEWAY_NO_FETCH: "true"
       IPFS_ROUTING: ${IPFS_ROUTING:-dhtclient}
       IPFS_PROFILE: ${IPFS_PROFILE:-lowpower}
       SWARM_ANNOUNCE: ${SWARM_ANNOUNCE:-}

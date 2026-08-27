@@ -14,7 +14,6 @@ services:
     container_name: originless-a
     ports:
       - "3232:3232"
-      - "8080:8080"
       - "4001:4001"
       - "4001:4001/udp"
     environment:
@@ -38,7 +37,6 @@ services:
         condition: service_started
     ports:
       - "3233:3232"
-      - "8081:8080"
       - "4002:4001"
       - "4002:4001/udp"
     environment:
