@@ -123,11 +123,21 @@ connect_swarm_multiaddrs() {
   done
 }
 
+# IPFS_PROFILE: lowpower (default, Umbrel/home-friendly), default, or server.
+# Connectivity still comes from bootstrap + published 4001 + GATEWAY_NO_FETCH —
+# not from raising ConnMgr via the default/server profiles.
+profile=$(printf '%s' "${IPFS_PROFILE:-lowpower}" | tr '[:upper:]' '[:lower:]')
+case "$profile" in
+  lowpower|server|default|local-discovery|test|badgerds|flatfs|randomports) ;;
+  *) profile=lowpower ;;
+esac
+
 if [ ! -f "$IPFS_PATH/config" ]; then
-  # Default profile keeps private-network dialing working (Docker Compose /
-  # LAN peers). The old lowpower profile starved connectivity; server profile
-  # filters RFC1918 and blocks compose peering.
-  ipfs init
+  if [ "$profile" = "default" ]; then
+    ipfs init
+  else
+    ipfs init --profile="$profile"
+  fi
 fi
 
 ipfs config Datastore.StorageMax "${STORAGE_MAX:-100GB}"

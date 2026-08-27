@@ -17,6 +17,7 @@ ENV NOSTR_RELAYS=""
 ENV ENABLE_GATEWAY=true
 ENV GATEWAY_NO_FETCH=false
 ENV IPFS_ROUTING=dhtclient
+ENV IPFS_PROFILE=lowpower
 ENV IPFS_GATEWAY=http://127.0.0.1:8080
 
 RUN apk add --no-cache ca-certificates gcompat kubo wget && \

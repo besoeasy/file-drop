@@ -25,6 +25,7 @@ services:
       # true  = serve only blocks already on this node
       GATEWAY_NO_FETCH: ${GATEWAY_NO_FETCH:-false}
       IPFS_ROUTING: ${IPFS_ROUTING:-dhtclient}
+      IPFS_PROFILE: ${IPFS_PROFILE:-lowpower}
       SWARM_ANNOUNCE: ${SWARM_ANNOUNCE:-}
       IPFS_PEER_NODES: ${IPFS_PEER_NODES:-}
       IPFS_SWARM_CONNECT: ${IPFS_SWARM_CONNECT:-}
