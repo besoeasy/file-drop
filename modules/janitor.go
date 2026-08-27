@@ -73,17 +73,8 @@ func (m *Manager) Reconcile() error {
 		return err
 	}
 
-	archiveCIDs, err := m.store.ListArchiveCIDs()
-	if err != nil {
-		log.Printf("[janitor] failed to list archive CIDs: %v (continuing without skip list)", err)
-		archiveCIDs = map[string]bool{}
-	}
-
 	var orphaned int
 	for cid := range ipfsPins {
-		if archiveCIDs[cid] {
-			continue
-		}
 		if _, tracked := dbCIDs[cid]; !tracked {
 			size, err := m.ipfs.ObjectStat(ctx, cid)
 			if err != nil {
@@ -100,7 +91,7 @@ func (m *Manager) Reconcile() error {
 
 	var missing []string
 	for cid, unpinned := range dbCIDs {
-		if unpinned || archiveCIDs[cid] {
+		if unpinned {
 			continue
 		}
 		if _, exists := ipfsPins[cid]; !exists {

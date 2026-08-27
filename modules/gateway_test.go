@@ -35,7 +35,7 @@ func testRouter(enabled bool, backend string) http.Handler {
 	if backend != "" {
 		IPFSGateway = strings.TrimRight(backend, "/")
 	}
-	return NewRouter(nil, nil, nil, mockUI, mockExamples)
+	return NewRouter(nil, nil, mockUI, mockExamples)
 }
 
 func TestGatewayDisabledReturns404(t *testing.T) {

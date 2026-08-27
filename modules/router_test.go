@@ -24,7 +24,7 @@ func TestRouterExamplesEndpoints(t *testing.T) {
 		},
 	}
 
-	router := NewRouter(nil, nil, nil, mockUI, mockExamples)
+	router := NewRouter(nil, nil, mockUI, mockExamples)
 
 	// 1. Test /api/examples
 	t.Run("GET /api/examples", func(t *testing.T) {

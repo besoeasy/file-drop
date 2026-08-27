@@ -106,12 +106,6 @@
     return `${value.slice(0, 4)}....${value.slice(-4)}`;
   }
 
-  function truncateNpub(npub) {
-    if (!npub) return "";
-    if (npub.length <= 22) return npub;
-    return `${npub.slice(0, 12)}…${npub.slice(-8)}`;
-  }
-
   function gatewayUrlFor(gateway, cid, filename) {
     if (!cid) return "";
     const base = `${gateway || ""}${cid}`;
@@ -146,15 +140,6 @@
       showThumb: category === "image" && !!cid && !thumbs[cid],
       isVideo: category === "video",
       isAudio: category === "audio",
-    };
-  }
-
-  function presentAccount(acc) {
-    if (!acc) return acc;
-    return {
-      ...acc,
-      npubShort: truncateNpub(acc.npub),
-      cursorLabel: acc.cursorAt ? formatUnix(acc.cursorAt) : "Pending scan",
     };
   }
 
@@ -256,23 +241,6 @@
     return { count: 0, size: 0, sizeStr: "0 B", threshold: 75 };
   }
 
-  function archiveDefaults() {
-    return {
-      enabled: false,
-      count: 0,
-      size: 0,
-      sizeStr: "0 B",
-      dir: "/archive",
-      scanMinutes: 15,
-      repinHours: 6,
-      scanning: false,
-      repinning: false,
-      lastScan: "",
-      lastRepin: "",
-      accounts: [],
-    };
-  }
-
   function createOriginlessApp(options = {}) {
     const { createApp } = Vue;
 
@@ -285,7 +253,6 @@
           formatRelative,
           shortCid,
           getFileCategory,
-          truncateNpub,
           fileKind: itemCategory,
         };
       },
@@ -304,18 +271,14 @@
 
           status: statusDefaults(),
           pinStats: pinDefaults(),
-          archive: archiveDefaults(),
-          nostrRelays: [],
           
           history: [],
-          archiveItems: [],
           searchQuery: "",
           statusFilter: "all", 
           typeFilter: "all",
           sortBy: "date-desc",
           
           activeTab: "pin", // pin, prompt
-          archiveView: "table",
           brokenThumbs: {},
           nodeSheetOpen: false,
           anonymizeMedia: localStorage.getItem("ol_anonymize_media") !== "false",
@@ -409,40 +372,9 @@
           return list.map((row) => presentItem(row, this.currentGateway, this.brokenThumbs));
         },
 
-        filteredArchiveItems() {
-          let list = [...(this.archiveItems || [])];
-          if (this.searchQuery.trim()) {
-            const q = this.searchQuery.toLowerCase().trim();
-            list = list.filter((item) =>
-              (item.filename || "").toLowerCase().includes(q) ||
-              (item.cid || "").toLowerCase().includes(q)
-            );
-          }
-          return list.map((row) => presentItem(row, this.currentGateway, this.brokenThumbs));
-        },
-
-        archiveAccounts() {
-          return (this.archive.accounts || []).map(presentAccount);
-        },
-
-        archiveScanLabel() {
-          return formatUnix(this.archive.lastScan);
-        },
-
-        archiveRepinLabel() {
-          return formatUnix(this.archive.lastRepin);
-        },
-
         lastPinKind() {
           if (!this.lastUploadResult) return "";
           return itemCategory(this.lastUploadResult);
-        },
-
-        archiveStatusLabel() {
-          if (!this.archive.enabled) return "Idle";
-          if (this.archive.scanning) return "Scanning";
-          if (this.archive.repinning) return "Re-pinning";
-          return "Watching";
         },
 
         generatedAgentPrompt() {
@@ -660,24 +592,6 @@ To confirm you have understood this skill, complete this check:
                 isHealthy: true,
               };
 
-              if (data.archive) {
-                this.archive = {
-                  enabled: !!data.archive.enabled,
-                  count: data.archive.count || 0,
-                  size: data.archive.size || 0,
-                  sizeStr: data.archive.sizeStr || "0 B",
-                  dir: data.archive.dir || "/archive",
-                  scanMinutes: data.archive.scanMinutes || 15,
-                  repinHours: data.archive.repinHours || 6,
-                  scanning: !!data.archive.scanning,
-                  repinning: !!data.archive.repinning,
-                  lastScan: data.archive.lastScan || "",
-                  lastRepin: data.archive.lastRepin || "",
-                  accounts: data.archive.accounts || (data.nostrNpubs || []).map((npub) => ({ npub })),
-                };
-              }
-              this.nostrRelays = data.nostrRelays || [];
-
               const local = localGateway();
               this.gatewayEnabled = !data.gateway || data.gateway.enabled !== false;
               if (this.gatewayEnabled) {
@@ -724,18 +638,6 @@ To confirm you have understood this skill, complete this check:
             }
           } catch (err) {
             console.error("Fetch pin stats error:", err);
-          }
-        },
-
-        async fetchArchive() {
-          try {
-            const res = await fetch("/archive?limit=100");
-            const data = await res.json();
-            if (data.status === "success" && data.items) {
-              this.archiveItems = data.items;
-            }
-          } catch (err) {
-            console.error("Fetch archive error:", err);
           }
         },
 
@@ -889,8 +791,6 @@ To confirm you have understood this skill, complete this check:
         this.fetchPinStats();
         if (this.activePage === "overview") {
           this.fetchHistory();
-        } else if (this.activePage === "archive") {
-          this.fetchArchive();
         }
 
         // Live polling
@@ -916,7 +816,6 @@ To confirm you have understood this skill, complete this check:
     getFileCategory,
     itemCategory,
     shortCid,
-    truncateNpub,
     createOriginlessApp,
   };
 })();

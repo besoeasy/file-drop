@@ -15,7 +15,7 @@ No accounts. No API keys. One Docker container.
 
 ## What it is
 
-Originless is a multipurpose storage backend for apps, agents, Nostr clients, pastebins, screenshots, and static sites.
+Originless is a multipurpose storage backend for apps, agents, pastebins, screenshots, and static sites.
 
 - **Put** a file or folder → get a CID  
 - **Get** it back at `/ipfs/{cid}` (same host as the API)  
@@ -31,17 +31,23 @@ One port for humans and machines: **`3232`**.
 docker compose up -d --build
 ```
 
-Or:
+Or with Podman:
 
 ```bash
-docker run -d \
+podman compose up -d --build
+```
+
+Or standalone:
+
+```bash
+podman run -d \
   --name originless \
   --restart unless-stopped \
   -p 3232:3232 \
   -p 4001:4001 \
   -p 4001:4001/udp \
   -e STORAGE_MAX=100GB \
-  -v originless-archive:/archive \
+  -v originless-data:/data \
   ghcr.io/besoeasy/originless:latest
 ```
 
@@ -51,8 +57,6 @@ docker run -d \
 | **4001** TCP+UDP | IPFS swarm — other nodes Bitswap your pins |
 
 Open **http://localhost:3232** · Tools at **/examples/** · Full API in **[api.md](api.md)**
-
-> Podman: swap `docker` → `podman`. Publish **4001** if you want peers to pull your content. `/data` is disposable (recreate = fresh node). Durable Nostr media uses **`/archive`**.
 
 ---
 
@@ -77,11 +81,12 @@ Same bytes as `ipfs://QmX...`. Good for:
 
 | You need… | Originless does… |
 | :-------- | :--------------- |
-| Media for Nostr / chat | `POST /media` or `/upload` |
+| Media / attachments | `POST /media` or `/upload` |
 | Static site / DApp `dist/` | `POST /uploadfolder` |
 | Agent / script output | One `curl` — no auth |
 | Paste / snippet hosting | Tools → snippet uploader |
-| Keep someone’s IPFS media | Set `NOSTR_NPUBS=npub1…` |
+
+> For dedicated Nostr media backup and mirroring, see [nostr-backup](https://github.com/besoeasy/nostr-backup).
 
 ---
 
@@ -97,8 +102,6 @@ App / Agent / Browser
    IPFS swarm (:4001)
 ```
 
-Optional Nostr archive: set `NOSTR_NPUBS`, media lands on `/archive` and stays pinned.
-
 ---
 
 ## Config (common)
@@ -106,14 +109,11 @@ Optional Nostr archive: set `NOSTR_NPUBS`, media lands on `/archive` and stays p
 | Variable | Default | Notes |
 | :------- | :------ | :---- |
 | `STORAGE_MAX` | `100GB` | Cap for IPFS data |
-| `PIN_EXPIRY_DAYS` | `30` | Janitor may evict after this (archive CIDs never) |
-| `NOSTR_NPUBS` | | Enable Nostr → `/archive` mirroring |
+| `PIN_EXPIRY_DAYS` | `30` | Janitor may evict after this threshold |
 | `ENABLE_GATEWAY` | `true` | `/ipfs` on **3232**. Set `false` to pin-only |
 | `GATEWAY_NO_FETCH` | off | Set `true` for local-pins-only (no swarm fetch) |
 | `IPFS_PROFILE` | `lowpower` | Umbrel/home-friendly Kubo init |
 | `SWARM_ANNOUNCE` | | Public multiaddrs if **4001** is behind NAT |
-
-**Volumes:** `/archive` only (Nostr copies, never GC’d). `/data` stays inside the container and is wiped on recreate.
 
 More env vars and every route: **[api.md](api.md)**.
 

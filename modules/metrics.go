@@ -25,14 +25,6 @@ type Metrics struct {
 	pinnedCount atomic.Int64
 	pinnedSize  atomic.Int64
 	storageUsed atomic.Int64
-
-	archiveSaved     atomic.Int64
-	archiveSavedSize atomic.Int64
-	archiveErrors    atomic.Int64
-	archiveCount     atomic.Int64
-	archiveSize      atomic.Int64
-	archiveRepinned  atomic.Int64
-	archiveRepinErrs atomic.Int64
 }
 
 func NewMetrics() *Metrics {
@@ -106,32 +98,21 @@ func (m *Metrics) SetPinned(count, size int64) {
 
 func (m *Metrics) SetStorageUsed(size int64) { m.storageUsed.Store(size) }
 
-func (m *Metrics) SetArchive(count, size int64) {
-	m.archiveCount.Store(count)
-	m.archiveSize.Store(size)
-}
-
 // Handler serves the /metrics endpoint in Prometheus text format. Gauges are
 // refreshed on each scrape so they always reflect current state.
-func (m *Metrics) Handler(janitor *Manager, ipfs *Client, archiver *Archiver) http.HandlerFunc {
+func (m *Metrics) Handler(janitor *Manager, ipfs *Client) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if count, size, err := janitor.GetStats(); err == nil {
-			m.SetPinned(count, size)
-		}
-		health := ipfs.CheckHealth(r.Context())
-		m.SetIPFS(health.Healthy, health.Peers)
-		if stats, err := ipfs.GetStats(r.Context()); err == nil {
-			m.SetStorageUsed(stats.Repository.Size)
-		}
-		if archiver != nil {
-			if count, size, err := archiver.GetStats(); err == nil {
-				m.SetArchive(count, size)
+		if janitor != nil {
+			if count, size, err := janitor.GetStats(); err == nil {
+				m.SetPinned(count, size)
 			}
-			m.archiveSaved.Store(archiver.saved.Load())
-			m.archiveSavedSize.Store(archiver.savedSize.Load())
-			m.archiveErrors.Store(archiver.errors.Load())
-			m.archiveRepinned.Store(archiver.repinned.Load())
-			m.archiveRepinErrs.Store(archiver.repinErrs.Load())
+		}
+		if ipfs != nil {
+			health := ipfs.CheckHealth(r.Context())
+			m.SetIPFS(health.Healthy, health.Peers)
+			if stats, err := ipfs.GetStats(r.Context()); err == nil {
+				m.SetStorageUsed(stats.Repository.Size)
+			}
 		}
 
 		w.Header().Set("Content-Type", "text/plain; version=0.0.4; charset=utf-8")
@@ -197,34 +178,6 @@ func (m *Metrics) Handler(janitor *Manager, ipfs *Client, archiver *Archiver) ht
 		sb.WriteString("# HELP originless_gateway_enabled Whether this node serves /ipfs and /ipns (1) or not (0).\n")
 		sb.WriteString("# TYPE originless_gateway_enabled gauge\n")
 		fmt.Fprintf(&sb, "originless_gateway_enabled %d\n", enabled)
-
-		sb.WriteString("# HELP originless_archive_count Number of permanently archived IPFS objects from Nostr.\n")
-		sb.WriteString("# TYPE originless_archive_count gauge\n")
-		fmt.Fprintf(&sb, "originless_archive_count %d\n", m.archiveCount.Load())
-
-		sb.WriteString("# HELP originless_archive_bytes Total bytes in the permanent Nostr media archive.\n")
-		sb.WriteString("# TYPE originless_archive_bytes gauge\n")
-		fmt.Fprintf(&sb, "originless_archive_bytes %d\n", m.archiveSize.Load())
-
-		sb.WriteString("# HELP originless_archive_saved_total IPFS objects saved to the archive this process.\n")
-		sb.WriteString("# TYPE originless_archive_saved_total counter\n")
-		fmt.Fprintf(&sb, "originless_archive_saved_total %d\n", m.archiveSaved.Load())
-
-		sb.WriteString("# HELP originless_archive_saved_bytes_total Bytes saved to the archive this process.\n")
-		sb.WriteString("# TYPE originless_archive_saved_bytes_total counter\n")
-		fmt.Fprintf(&sb, "originless_archive_saved_bytes_total %d\n", m.archiveSavedSize.Load())
-
-		sb.WriteString("# HELP originless_archive_errors_total Archive download errors this process.\n")
-		sb.WriteString("# TYPE originless_archive_errors_total counter\n")
-		fmt.Fprintf(&sb, "originless_archive_errors_total %d\n", m.archiveErrors.Load())
-
-		sb.WriteString("# HELP originless_archive_repin_total Archive objects successfully re-pinned this process.\n")
-		sb.WriteString("# TYPE originless_archive_repin_total counter\n")
-		fmt.Fprintf(&sb, "originless_archive_repin_total %d\n", m.archiveRepinned.Load())
-
-		sb.WriteString("# HELP originless_archive_repin_errors_total Archive re-pin failures this process.\n")
-		sb.WriteString("# TYPE originless_archive_repin_errors_total counter\n")
-		fmt.Fprintf(&sb, "originless_archive_repin_errors_total %d\n", m.archiveRepinErrs.Load())
 
 		w.Write([]byte(sb.String()))
 	}

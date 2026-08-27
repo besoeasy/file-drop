@@ -5,9 +5,9 @@ import (
 	"net/http"
 )
 
-func NewRouter(ipfsClient *Client, janitorManager *Manager, archiver *Archiver, uiFS fs.FS, examplesFS fs.FS) http.Handler {
+func NewRouter(ipfsClient *Client, janitorManager *Manager, uiFS fs.FS, examplesFS fs.FS) http.Handler {
 	metrics := NewMetrics()
-	handler := NewHandler(ipfsClient, janitorManager, metrics, archiver, examplesFS)
+	handler := NewHandler(ipfsClient, janitorManager, metrics, examplesFS)
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /health", handler.Health)
@@ -17,8 +17,7 @@ func NewRouter(ipfsClient *Client, janitorManager *Manager, archiver *Archiver, 
 	mux.HandleFunc("POST /uploadfolder", handler.UploadFolder)
 	mux.HandleFunc("GET /history", handler.History)
 	mux.HandleFunc("GET /pins", handler.PinStats)
-	mux.HandleFunc("GET /archive", handler.ArchiveList)
-	mux.HandleFunc("GET /metrics", metrics.Handler(janitorManager, ipfsClient, archiver))
+	mux.HandleFunc("GET /metrics", metrics.Handler(janitorManager, ipfsClient))
 
 	// Path-gateway: serve pinned files directly from this node. Disabled when
 	// ENABLE_GATEWAY=false so operators who do not want to be an HTTP origin
@@ -41,16 +40,6 @@ func NewRouter(ipfsClient *Client, janitorManager *Manager, archiver *Archiver, 
 		http.StripPrefix("/examples/", http.FileServer(http.FS(fsys))).ServeHTTP(w, r)
 	})
 
-	// The Nostr archive page is only available when at least one npub is configured.
-	// Pattern without a method so the guard covers GET, HEAD, and any other verb
-	// (otherwise non-GET requests fall through to the "/" FileServer).
-	mux.HandleFunc("/archive.html", func(w http.ResponseWriter, r *http.Request) {
-		if len(NostrNpubs) == 0 {
-			http.Redirect(w, r, "/", http.StatusFound)
-			return
-		}
-		http.ServeFileFS(w, r, uiFS, "archive.html")
-	})
 	mux.HandleFunc("GET /library.html", func(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/", http.StatusMovedPermanently)
 	})

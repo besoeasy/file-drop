@@ -115,7 +115,7 @@ func TestAnonymizeRejectsNonImage(t *testing.T) {
 }
 
 func TestMediaHandlerRejectsNonImage(t *testing.T) {
-	h := NewHandler(nil, nil, NewMetrics(), nil, nil)
+	h := NewHandler(nil, nil, NewMetrics(), nil)
 	body := &bytes.Buffer{}
 	w := multipart.NewWriter(body)
 	part, err := w.CreateFormFile("file", "note.txt")

@@ -5,7 +5,6 @@
 #
 # 3232 = API + dashboard + /ipfs gateway
 # 4001 = libp2p swarm (publish TCP+UDP so peers can Bitswap your pins)
-# /data is disposable (in-container). Only /archive is persisted.
 
 services:
   originless:
@@ -26,10 +25,8 @@ services:
       SWARM_ANNOUNCE: ${SWARM_ANNOUNCE:-}
       IPFS_PEER_NODES: ${IPFS_PEER_NODES:-}
       IPFS_SWARM_CONNECT: ${IPFS_SWARM_CONNECT:-}
-      NOSTR_NPUBS: ${NOSTR_NPUBS:-}
-      NOSTR_RELAYS: ${NOSTR_RELAYS:-}
     volumes:
-      - originless-archive:/archive
+      - originless-data:/data
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3232/status"]
       interval: 30s
@@ -38,4 +35,4 @@ services:
       start_period: 60s
 
 volumes:
-  originless-archive:
+  originless-data:

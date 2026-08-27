@@ -12,8 +12,6 @@ FROM alpine:latest
 
 ENV STORAGE_MAX=100GB
 ENV PIN_EXPIRY_DAYS=30
-ENV NOSTR_NPUBS=""
-ENV NOSTR_RELAYS=""
 ENV ENABLE_GATEWAY=true
 ENV IPFS_ROUTING=dhtclient
 ENV IPFS_PROFILE=lowpower
@@ -28,15 +26,14 @@ COPY --from=builder /originless /app/originless
 COPY docker-entrypoint.sh /app/docker-entrypoint.sh
 
 RUN chmod +x /app/docker-entrypoint.sh && \
-  mkdir -p /tmp/originless /data /archive && \
-  chown -R originless:originless /app /tmp/originless /data /archive
+  mkdir -p /tmp/originless /data && \
+  chown -R originless:originless /app /tmp/originless /data
 
 USER originless
 
 EXPOSE 3232 8080 4001/tcp 4001/udp
 
-# /data = Kubo repo + SQLite (disposable). /archive = durable Nostr media.
-VOLUME ["/archive"]
+VOLUME ["/data"]
 
 STOPSIGNAL SIGTERM
 

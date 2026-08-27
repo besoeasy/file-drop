@@ -17,20 +17,19 @@ Uploads (`POST /upload`, `/media`, `/uploadfolder`) are limited to **3 concurren
 | Method | Path | What it does |
 | :----- | :--- | :----------- |
 | `GET` | [`/health`](#get-health) | Liveness + IPFS peer count |
-| `GET` | [`/status`](#get-status) | Node, storage, gateway, and archive snapshot |
+| `GET` | [`/status`](#get-status) | Node, storage, and gateway snapshot |
 | `POST` | [`/upload`](#post-upload) | Pin a file as-is; returns a CID |
 | `POST` | [`/media`](#post-media) | Strip EXIF/GPS/XMP from an image, then pin |
 | `POST` | [`/uploadfolder`](#post-uploadfolder) | Pin a directory tree as one root CID |
 | `GET` | [`/history`](#get-history) | Paginated upload log |
 | `GET` | [`/pins`](#get-pins) | Pinned count, bytes, and janitor threshold |
-| `GET` | [`/archive`](#get-archive) | Paginated Nostr IPFS archive listing |
 | `GET` | [`/metrics`](#get-metrics) | Prometheus text metrics |
 | `GET`/`HEAD` | [`/ipfs/{cid}`](#get-ipfscid--ipnspath) | Serve bytes for a CID (local pin or swarm fetch) |
 | `GET`/`HEAD` | [`/ipns/{name}`](#get-ipfscid--ipnspath) | Resolve and serve an IPNS name |
 | `GET` | [`/api/examples`](#get-apiexamples) | JSON catalog of client tools |
 | `GET` | [`/examples/manifest.json`](#get-apiexamples) | Same catalog as `/api/examples` |
 
-Dashboard and Tools pages (`/`, `/examples/`, …) are HTML, not JSON. Archived Nostr media is listed at `GET /archive` and **fetched** at `GET /ipfs/{cid}` like any other pin.
+Dashboard and Tools pages (`/`, `/examples/`, …) are HTML, not JSON.
 
 ---
 
@@ -76,54 +75,38 @@ curl http://localhost:3232/status
 | `peers.count` | Connected swarm peers |
 | `storageLimit` | Configured `STORAGE_MAX` and current repo size |
 | `fileLimit` | Per-upload cap (`configured` string, `bytes` integer) |
-| `nostrNpubs` | Configured archive accounts |
-| `nostrRelays` | Relay URLs used by the archiver |
 | `appVersion` | Originless version string |
 | `gateway.enabled` / `gateway.serving` | Whether this node serves `/ipfs` and `/ipns` over HTTP |
 | `gateway.path` / `gateway.ipns` | `"/ipfs/"` and `"/ipns/"` |
 | `gateway.url` / `gateway.ipnsUrl` | Public fetch URLs on this node (omitted when disabled) |
 | `gateway.kubo` | Native Kubo gateway URL (omitted when disabled) |
-| `archive` | Present when the archiver is wired up (see below) |
-
-`archive` object:
-
-| Field | Meaning |
-| :---- | :------ |
-| `enabled` | `true` when `NOSTR_NPUBS` is set |
-| `count` / `size` / `sizeStr` | Archived objects and bytes |
-| `dir` | Always `/archive` |
-| `scanMinutes` | Scan interval (15) |
-| `repinHours` | Re-pin interval (6) |
-| `scanning` / `repinning` | In-progress flags |
-| `lastScan` / `lastRepin` | RFC 3339 UTC, or `""` if never |
-| `accounts[]` | Per-npub `npub`, `pubkey`, `cursor`, `cursorAt`, `objects`, `size`, `sizeStr`, `events` |
-
-`gateway` when this node is serving content (the default):
 
 ```json
 {
-  "enabled": true,
-  "serving": true,
-  "path": "/ipfs/",
-  "ipns": "/ipns/",
-  "url": "http://localhost:3232/ipfs/{cid}",
-  "ipnsUrl": "http://localhost:3232/ipns/{name}",
-  "kubo": "http://127.0.0.1:8080/ipfs/{cid}"
+  "status": "success",
+  "timestamp": "2026-08-28T12:00:00Z",
+  "bandwidth": { "totalIn": 0, "totalOut": 0, "rateIn": 0, "rateOut": 0 },
+  "repository": { "size": 1048576, "storageMax": 107374182400, "numObjects": 12 },
+  "node": { "id": "12D3KooW...", "agentVersion": "kubo/0.34.0" },
+  "peers": { "count": 140 },
+  "storageLimit": { "configured": "100GB", "current": "1.00 MB" },
+  "fileLimit": { "configured": "1.00 GB", "bytes": 1073741824 },
+  "appVersion": "1.0.2",
+  "gateway": { "enabled": true, "serving": true, "path": "/ipfs/", "ipns": "/ipns/" }
 }
 ```
-
-When `ENABLE_GATEWAY=false`, `enabled` and `serving` are `false` and the URL fields are omitted.
-
-**503** if Kubo stats cannot be read (`error`, `details`, `status: "failed"`).
 
 ---
 
 ## `POST /upload`
 
-Pin the exact bytes of a single file. Multipart field name must be **`file`**.
+Upload and pin any file.
+
+- **Content-Type:** `multipart/form-data`
+- **Field name:** `file` (only the first file part is read)
 
 ```bash
-curl -X POST -F "file=@photo.png" http://localhost:3232/upload
+curl -X POST -F "file=@document.pdf" http://localhost:3232/upload
 ```
 
 **200:**
@@ -131,23 +114,23 @@ curl -X POST -F "file=@photo.png" http://localhost:3232/upload
 ```json
 {
   "status": "success",
-  "cid": "QmX...",
-  "size": 1048576,
-  "type": "image/png",
-  "filename": "photo.png",
+  "cid": "bafybeicg2oxl5gah64cvk44phwsr33m42x3fvwg6b2kdt6v2iylndr2mqu",
+  "size": 245760,
+  "type": "application/pdf",
+  "filename": "document.pdf",
   "pinned": true
 }
 ```
-
-`pinned` is `false` if the file was added to IPFS but the janitor pin/db insert failed. Fetch the bytes at `GET /ipfs/{cid}`.
-
-**Errors:** `400` no file; `413` over the per-file cap; `503` too many concurrent uploads; `500` IPFS add failed.
 
 ---
 
 ## `POST /media`
 
-Same multipart shape as `/upload`, but only **JPEG, PNG, GIF, or WebP**. Strips EXIF, GPS, XMP, IPTC, ICC, and text comments; applies EXIF orientation so pixels are upright. WebP is transcoded to JPEG. The CID is the cleaned file, not the camera original. Use `/upload` when you need the original bytes unchanged.
+Upload an image and strip private metadata before pinning.
+
+- Supported inputs: JPEG, PNG, GIF, WebP
+- Actions: Strips EXIF, GPS, XMP, IPTC; normalizes orientation
+- **Field name:** `file`
 
 ```bash
 curl -X POST -F "file=@photo.jpg" http://localhost:3232/media
@@ -158,31 +141,27 @@ curl -X POST -F "file=@photo.jpg" http://localhost:3232/media
 ```json
 {
   "status": "success",
-  "cid": "QmX...",
-  "filename": "photo.jpg",
+  "cid": "bafybeihdwdcefgh4dqkjv67uzcmw7ojee6xedzdetojuzjevtenxquvyku",
+  "size": 1823400,
+  "originalSize": 2104500,
   "type": "image/jpeg",
-  "size": 98012,
-  "originalSize": 1048576,
+  "filename": "photo.jpg",
   "pinned": true,
   "anonymized": true,
-  "stripped": ["exif", "gps", "xmp"],
-  "orientation": 6,
-  "transcoded": false
+  "stripped": ["EXIF", "GPS", "XMP"]
 }
 ```
-
-**Errors:** same as `/upload`, plus **415** for unsupported types.
 
 ---
 
 ## `POST /uploadfolder`
 
-Pin a directory as one root CID. Repeat the **`file`** field; each part’s `filename` is the path inside the tree (relative paths stay intact — use this for `dist/` / static sites).
+Upload a directory tree under a single root CID.
 
 ```bash
 curl -X POST \
   -F "file=@dist/index.html;filename=index.html" \
-  -F "file=@dist/style.css;filename=style.css" \
+  -F "file=@dist/app.js;filename=assets/app.js" \
   http://localhost:3232/uploadfolder
 ```
 
@@ -191,20 +170,18 @@ curl -X POST \
 ```json
 {
   "status": "success",
-  "cid": "QmFolder...",
+  "cid": "bafybeihdwdcefgh4dqkjv67uzcmw7ojee6xedzdetojuzjevtenxquvyku",
   "files": 2,
-  "size": 4096,
+  "size": 40960,
   "pinned": true
 }
 ```
-
-Open the site at `http://localhost:3232/ipfs/{cid}/`. **Errors** match `/upload`.
 
 ---
 
 ## `GET /history`
 
-Paginated log of uploads this node has pinned (including later-unpinned rows).
+Paginated list of pinned uploads.
 
 | Query | Default | Range |
 | :---- | :------ | :---- |
@@ -220,29 +197,26 @@ curl "http://localhost:3232/history?limit=20&offset=0"
 ```json
 {
   "status": "success",
-  "limit": 20,
-  "offset": 0,
   "uploads": [
     {
       "id": 1,
-      "cid": "QmX...",
-      "filename": "photo.png",
-      "size": 1048576,
-      "created_at": "2026-08-23T12:00:00Z",
-      "unpinned": false,
-      "unpinned_at": null
+      "cid": "bafybei...",
+      "filename": "document.pdf",
+      "size": 245760,
+      "created_at": "2026-08-28T12:00:00Z",
+      "unpinned": false
     }
-  ]
+  ],
+  "limit": 20,
+  "offset": 0
 }
 ```
-
-Invalid `limit`/`offset` values are ignored (defaults apply). **500** if the database read fails.
 
 ---
 
 ## `GET /pins`
 
-Current pin inventory vs the janitor threshold.
+Stats on currently tracked pins and eviction threshold.
 
 ```bash
 curl http://localhost:3232/pins
@@ -253,61 +227,13 @@ curl http://localhost:3232/pins
 ```json
 {
   "status": "success",
-  "pinnedCount": 12,
-  "pinnedSize": 52428800,
-  "pinnedSizeStr": "50.00 MB",
+  "pinnedCount": 42,
+  "pinnedSize": 524288000,
+  "pinnedSizeStr": "500.00 MB",
   "storageLimit": "100GB",
   "threshold": 75
 }
 ```
-
-`threshold` is the percent of `STORAGE_MAX` at which the janitor starts evicting oldest (non-archive) pins. **500** on database error.
-
----
-
-## `GET /archive`
-
-Lists IPFS objects copied from configured Nostr accounts onto `/archive`. Does **not** stream file bytes — use `GET /ipfs/{cid}` for that.
-
-| Query | Default | Range |
-| :---- | :------ | :---- |
-| `limit` | `50` | 1–200 |
-| `offset` | `0` | ≥ 0 |
-
-```bash
-curl "http://localhost:3232/archive?limit=50&offset=0"
-```
-
-**200:**
-
-```json
-{
-  "status": "success",
-  "items": [
-    {
-      "cid": "bafybei...",
-      "filename": "photo.jpg",
-      "mime": "image/jpeg",
-      "size": 2097152,
-      "sha256": "abc...",
-      "source_event_id": "…",
-      "source_pubkey": "…",
-      "source_url": "ipfs://bafybei...",
-      "verified": true,
-      "is_dir": false,
-      "created_at": "2026-08-23T12:00:00Z"
-    }
-  ],
-  "count": 8,
-  "size": 2097152,
-  "sizeStr": "2.00 MB",
-  "limit": 50,
-  "offset": 0,
-  "npubs": ["npub1..."]
-}
-```
-
-If no archiver is running, the response is `{ "status": "success", "items": [] }`. **500** on database error.
 
 ---
 
@@ -315,31 +241,11 @@ If no archiver is running, the response is `{ "status": "success", "items": [] }
 
 Path-style HTTP gateway. Reverse-proxies Kubo (`IPFS_GATEWAY`, default `http://127.0.0.1:8080`).
 
-Missing blocks are retrieved from the IPFS swarm and then served. Set `GATEWAY_NO_FETCH=true` to serve **only** blocks already on this node (uploads, pins, archive).
-
 ```bash
 curl -O "http://localhost:3232/ipfs/$CID"
 curl "http://localhost:3232/ipfs/$CID?filename=photo.png"
 curl -O "http://localhost:3232/ipfs/$CID/index.html"
 ```
-
-Same bytes on Kubo’s native port: `http://localhost:8080/ipfs/{cid}` when `ENABLE_GATEWAY` is on.
-
-Kubo may redirect HTML/directory CIDs to `{cid}.ipfs.localhost:3232` (origin isolation). Originless proxies that host to Kubo so you get the pinned site, not the dashboard.
-
-**Headers** come from Kubo, not Originless. Expect a single `Access-Control-Allow-Origin: *`, `Access-Control-Allow-Methods: GET, HEAD, OPTIONS`, `Allow-Headers` including `Range`, and `Access-Control-Expose-Headers` for `Content-Range`, `X-Ipfs-Path`, `X-Ipfs-Roots`, and stream flags. `OPTIONS` preflight is answered by Kubo.
-
-**404 JSON** when `ENABLE_GATEWAY=false` (Originless CORS, not Kubo’s):
-
-```json
-{
-  "error": "IPFS gateway is disabled",
-  "status": "disabled",
-  "hint": "Set ENABLE_GATEWAY=true (the default) to serve /ipfs and /ipns from this node"
-}
-```
-
-**502** if the Kubo gateway process is unreachable (Originless JSON + CORS). Subresource `Content-Type` is more reliable with `?filename=`.
 
 ---
 
@@ -353,8 +259,8 @@ curl http://localhost:3232/metrics
 
 | Metric | Type | Meaning |
 | :----- | :--- | :------ |
-| `originless_build_info{version=…}` | gauge | Build version (`1`) |
-| `originless_http_requests_total{path=…}` | counter | Requests by path (`/ipfs` and `/ipns` are collapsed) |
+| `originless_build_info{version=…}` | gauge | Build version (`1.0.2`) |
+| `originless_http_requests_total{path=…}` | counter | Requests by path |
 | `originless_http_errors_total` | counter | Responses with status ≥ 400 |
 | `originless_uploads_total` | counter | Successful upload operations |
 | `originless_upload_bytes_total` | counter | Bytes added via upload endpoints |
@@ -364,10 +270,6 @@ curl http://localhost:3232/metrics
 | `originless_ipfs_healthy` | gauge | `1` / `0` |
 | `originless_ipfs_peers` | gauge | Swarm peer count |
 | `originless_gateway_enabled` | gauge | `1` if `/ipfs` is served |
-| `originless_archive_count` / `_bytes` | gauge | Permanent Nostr archive |
-| `originless_archive_saved_total` / `_bytes_total` | counter | Saved this process |
-| `originless_archive_errors_total` | counter | Archive download failures this process |
-| `originless_archive_repin_total` / `_errors_total` | counter | Re-pin results this process |
 
 ---
 
@@ -378,28 +280,6 @@ JSON catalog of HTML client tools under [`examples/`](examples/). `GET /examples
 ```bash
 curl http://localhost:3232/api/examples
 ```
-
-**200:**
-
-```json
-{
-  "status": "success",
-  "count": 7,
-  "tools": [
-    {
-      "file": "upload-file.html",
-      "title": "Single File Uploader",
-      "description": "…",
-      "category": "Storage & Publishing Tools",
-      "endpoint": "POST /upload",
-      "badge": "pill-post",
-      "order": 1
-    }
-  ]
-}
-```
-
-Metadata is read from each page’s `<title>` and `<meta name="description|category|endpoint|order">`. **500** if the examples directory cannot be scanned.
 
 ---
 
@@ -412,7 +292,6 @@ Metadata is read from each page’s `<title>` and `<meta name="description|categ
 | `GET /examples/{file}` | Individual tool HTML |
 | `GET /examples` | `301` → `/examples/` |
 | `GET /library.html` | `301` → `/` |
-| `GET /archive.html` | Archive UI; `302` → `/` when `NOSTR_NPUBS` is empty |
 
 ---
 
@@ -425,11 +304,3 @@ Metadata is read from each page’s `<title>` and `<meta name="description|categ
 | `415` | `/media` only: not JPEG/PNG/GIF/WebP |
 | `503` | 3 uploads already in flight (`"Server busy"`) |
 | `500` | Kubo add/pin failed |
-
-```json
-{
-  "error": "File too large",
-  "message": "file too large: exceeds the maximum allowed size of 1.00 GB",
-  "maxSize": "1.00 GB"
-}
-```

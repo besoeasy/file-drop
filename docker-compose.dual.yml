@@ -17,8 +17,6 @@ services:
     environment:
       STORAGE_MAX: 10GB
       ENABLE_GATEWAY: "true"
-    volumes:
-      - originless-a-archive:/archive
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3232/status"]
       interval: 15s
@@ -40,15 +38,9 @@ services:
       STORAGE_MAX: 10GB
       ENABLE_GATEWAY: "true"
       IPFS_PEER_NODES: http://node-a:3232
-    volumes:
-      - originless-b-archive:/archive
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3232/status"]
       interval: 15s
       timeout: 5s
       retries: 12
       start_period: 120s
-
-volumes:
-  originless-a-archive:
-  originless-b-archive:

@@ -21,7 +21,6 @@
       </a>
       <nav class="app-nav">
         <a :href="nodeUrl">Library</a>
-        <a v-if="archiveEnabled" :href="nodeUrl + '/archive.html'">Archive</a>
         <a href="/examples/" class="is-current">Tools</a>
       </nav>
     </div>
@@ -149,7 +148,6 @@
         nodeUrl: initialNode,
         nodeOnline: false,
         peerCount: 0,
-        archiveEnabled: false,
         tools: defaultTools,
         loadingTools: false,
       };
@@ -186,12 +184,10 @@
           if (data.status === "success") {
             this.nodeOnline = true;
             this.peerCount = data.peers?.count || 0;
-            this.archiveEnabled = !!(data.archive && data.archive.enabled);
             return;
           }
         } catch (_) {}
         this.nodeOnline = false;
-        this.archiveEnabled = false;
       },
       async fetchTools() {
         try {

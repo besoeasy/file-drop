@@ -65,28 +65,11 @@ func main() {
 	ipfsClient := modules.NewClient()
 	janitorMgr := modules.NewJanitor(database, ipfsClient, storageMaxBytes)
 
-	if err := os.MkdirAll(modules.ArchiveDir, 0o755); err != nil {
-		log.Fatalf("failed to create archive directory: %v", err)
-	}
-	archiver := modules.NewArchiver(database, ipfsClient, modules.ArchiveDir)
-
 	log.Printf("[STARTUP] running janitor reconciliation...")
 	janitorMgr.Reconcile()
-	archiver.Reconcile()
 
 	workerCtx, workerCancel := context.WithCancel(context.Background())
 	go janitorMgr.Run(workerCtx, time.Duration(modules.JanitorInterval)*time.Minute)
-	go archiver.Run(workerCtx, time.Duration(modules.ArchiveInterval)*time.Minute, time.Duration(modules.ArchiveRepinHours)*time.Hour)
-
-	if len(modules.NostrNpubs) > 0 {
-		log.Printf("[STARTUP] NOSTR_NPUBS configured count=%d keys=%v", len(modules.NostrNpubs), modules.NostrNpubs)
-		for _, npub := range modules.NostrNpubs {
-			if !modules.IsValidNpub(npub) {
-				log.Printf("[STARTUP] WARNING: invalid Nostr npub key format: %q", npub)
-			}
-		}
-		log.Printf("[STARTUP] NOSTR_RELAYS configured count=%d relays=%v", len(modules.NostrRelays), modules.NostrRelays)
-	}
 
 	if modules.GatewayEnabled {
 		log.Printf("[STARTUP] IPFS gateway enabled path=/ipfs/ backend=%s (set ENABLE_GATEWAY=false to disable)", modules.IPFSGateway)
@@ -94,7 +77,7 @@ func main() {
 		log.Printf("[STARTUP] IPFS gateway disabled (ENABLE_GATEWAY=false)")
 	}
 
-	router := modules.NewRouter(ipfsClient, janitorMgr, archiver, uiFS(), exFS())
+	router := modules.NewRouter(ipfsClient, janitorMgr, uiFS(), exFS())
 
 	server := &http.Server{
 		Addr:              fmt.Sprintf("%s:%d", modules.Host, modules.Port),

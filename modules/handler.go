@@ -15,18 +15,16 @@ type Handler struct {
 	ipfs       *Client
 	janitor    *Manager
 	metrics    *Metrics
-	archive    *Archiver
 	examplesFS fs.FS
 	semaphore  chan struct{}
 	gateway    *httputil.ReverseProxy
 }
 
-func NewHandler(ipfsClient *Client, janitorManager *Manager, metrics *Metrics, archiver *Archiver, examplesFS fs.FS) *Handler {
+func NewHandler(ipfsClient *Client, janitorManager *Manager, metrics *Metrics, examplesFS fs.FS) *Handler {
 	h := &Handler{
 		ipfs:       ipfsClient,
 		janitor:    janitorManager,
 		metrics:    metrics,
-		archive:    archiver,
 		examplesFS: examplesFS,
 		semaphore:  make(chan struct{}, MaxConcurrentOps),
 	}
@@ -87,13 +85,8 @@ func (h *Handler) Status(w http.ResponseWriter, r *http.Request) {
 			"configured": FormatBytes(FileLimit),
 			"bytes":      FileLimit,
 		},
-		"nostrNpubs":  NostrNpubs,
-		"nostrRelays": NostrRelays,
-		"appVersion":  AppVersion,
-		"gateway":     gatewayStatus(r),
-	}
-	if h.archive != nil {
-		payload["archive"] = h.archive.StatusMap()
+		"appVersion": AppVersion,
+		"gateway":    gatewayStatus(r),
 	}
 	writeJSON(w, http.StatusOK, payload)
 }
@@ -373,54 +366,6 @@ func (h *Handler) PinStats(w http.ResponseWriter, r *http.Request) {
 		"pinnedSizeStr": FormatBytes(size),
 		"storageLimit":  StorageMax,
 		"threshold":     PinThreshold,
-	})
-}
-
-func (h *Handler) ArchiveList(w http.ResponseWriter, r *http.Request) {
-	if h.archive == nil {
-		writeJSON(w, http.StatusOK, map[string]any{
-			"status": "success",
-			"items":  []ArchiveItem{},
-		})
-		return
-	}
-
-	limit := 50
-	offset := 0
-	if v := r.URL.Query().Get("limit"); v != "" {
-		if parsed, err := strconv.Atoi(v); err == nil && parsed > 0 && parsed <= 200 {
-			limit = parsed
-		}
-	}
-	if v := r.URL.Query().Get("offset"); v != "" {
-		if parsed, err := strconv.Atoi(v); err == nil && parsed >= 0 {
-			offset = parsed
-		}
-	}
-
-	items, err := h.archive.List(limit, offset)
-	if err != nil {
-		log.Printf("Archive list error: %v", err)
-		writeJSON(w, http.StatusInternalServerError, map[string]any{
-			"error":   "Failed to list archive",
-			"details": err.Error(),
-		})
-		return
-	}
-	if items == nil {
-		items = []ArchiveItem{}
-	}
-
-	count, size, _ := h.archive.GetStats()
-	writeJSON(w, http.StatusOK, map[string]any{
-		"status":  "success",
-		"items":   items,
-		"count":   count,
-		"size":    size,
-		"sizeStr": FormatBytes(size),
-		"limit":   limit,
-		"offset":  offset,
-		"npubs":   NostrNpubs,
 	})
 }
 

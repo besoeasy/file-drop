@@ -9,7 +9,7 @@
   <link rel="stylesheet" href="/css/app.css" />
   <script>
     (function () {
-      var map = { stats: "/", files: "/", archive: "/archive.html" };
+      var map = { stats: "/", files: "/" };
       var key = location.hash.replace(/^#\/?/, "");
       if (map[key]) location.replace(map[key]);
     })();
@@ -26,7 +26,6 @@
       </a>
       <nav class="app-nav">
         <a href="/" class="is-current">Library</a>
-        <a v-if="archive.enabled" href="/archive.html">Archive</a>
         <a href="/examples/">Tools</a>
       </nav>
     </div>
