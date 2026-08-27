@@ -34,11 +34,11 @@ services:
       - originless-data:/data
       - originless-archive:/archive
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3232/health"]
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3232/status"]
       interval: 30s
       timeout: 5s
-      retries: 3
-      start_period: 45s
+      retries: 5
+      start_period: 60s
 
 volumes:
   originless-data:

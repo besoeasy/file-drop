@@ -25,18 +25,18 @@ services:
       - originless-a-data:/data
       - originless-a-archive:/archive
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3232/health"]
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3232/status"]
       interval: 15s
       timeout: 5s
-      retries: 8
-      start_period: 90s
+      retries: 12
+      start_period: 120s
 
   node-b:
     image: originless:local
     container_name: originless-b
     depends_on:
       node-a:
-        condition: service_healthy
+        condition: service_started
     ports:
       - "3233:3232"
       - "8081:8080"
@@ -52,11 +52,11 @@ services:
       - originless-b-data:/data
       - originless-b-archive:/archive
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3232/health"]
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3232/status"]
       interval: 15s
       timeout: 5s
-      retries: 8
-      start_period: 90s
+      retries: 12
+      start_period: 120s
 
 volumes:
   originless-a-data:

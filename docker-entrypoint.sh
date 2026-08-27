@@ -43,9 +43,14 @@ host_from_url() {
 }
 
 wait_ipfs_api() {
+  # Must hit the HTTP API — `ipfs id` works offline and races the daemon for repo.lock.
   i=0
   while [ "$i" -lt 90 ]; do
-    if ipfs id >/dev/null 2>&1; then
+    if ! kill -0 "$IPFS_PID" 2>/dev/null; then
+      echo "[entrypoint] IPFS daemon exited before API became ready"
+      return 1
+    fi
+    if wget -qO- --post-data='' "http://127.0.0.1:5001/api/v0/version" >/dev/null 2>&1; then
       return 0
     fi
     i=$((i + 1))
@@ -67,7 +72,10 @@ connect_peer_nodes() {
     j=0
     while [ "$j" -lt 30 ]; do
       body=$(wget -qO- "$base/status" 2>/dev/null || true)
-      peer=$(printf '%s' "$body" | sed -n 's/.*"id":"\([^"]*\)".*/\1/p' | head -1)
+      peer=$(printf '%s' "$body" | sed -n 's/.*"node":{"id":"\([^"]*\)".*/\1/p' | head -1)
+      if [ -z "$peer" ]; then
+        peer=$(printf '%s' "$body" | sed -n 's/.*"id":"\([^"]*\)".*/\1/p' | head -1)
+      fi
       if [ -n "$peer" ]; then
         break
       fi
@@ -77,16 +85,33 @@ connect_peer_nodes() {
     [ -n "$peer" ] || continue
 
     echo "[entrypoint] swarm connect → $host ($peer)"
-    ipfs swarm connect "/dns4/${host}/tcp/4001/p2p/${peer}" >/dev/null 2>&1 || true
-    ipfs swarm connect "/dns4/${host}/udp/4001/quic-v1/p2p/${peer}" >/dev/null 2>&1 || true
-    # Literal IP hosts: also try /ip4 when host looks like an IPv4 address.
-    case "$host" in
-      *[!0-9.]* ) ;;
-      *)
-        ipfs swarm connect "/ip4/${host}/tcp/4001/p2p/${peer}" >/dev/null 2>&1 || true
-        ipfs swarm connect "/ip4/${host}/udp/4001/quic-v1/p2p/${peer}" >/dev/null 2>&1 || true
-        ;;
-    esac
+    # Daemon is up: CLI talks to the API (no repo.lock contention).
+    connected=0
+    k=0
+    while [ "$k" -lt 20 ]; do
+      if ipfs swarm connect "/dns4/${host}/tcp/4001/p2p/${peer}" >/dev/null 2>&1 \
+        || ipfs swarm connect "/dns4/${host}/udp/4001/quic-v1/p2p/${peer}" >/dev/null 2>&1; then
+        connected=1
+        break
+      fi
+      case "$host" in
+        *[!0-9.]* ) ;;
+        *)
+          if ipfs swarm connect "/ip4/${host}/tcp/4001/p2p/${peer}" >/dev/null 2>&1 \
+            || ipfs swarm connect "/ip4/${host}/udp/4001/quic-v1/p2p/${peer}" >/dev/null 2>&1; then
+            connected=1
+            break
+          fi
+          ;;
+      esac
+      k=$((k + 1))
+      sleep 3
+    done
+    if [ "$connected" -eq 1 ]; then
+      echo "[entrypoint] connected to $host"
+    else
+      echo "[entrypoint] warning: could not dial $host (will rely on DHT/bootstrap)"
+    fi
   done
 }
 
@@ -99,11 +124,28 @@ connect_swarm_multiaddrs() {
 }
 
 if [ ! -f "$IPFS_PATH/config" ]; then
-  # server profile: suitable for a pin/host node (not the lowpower laptop profile).
-  ipfs init --profile=server
+  # Default profile keeps private-network dialing working (Docker Compose /
+  # LAN peers). The old lowpower profile starved connectivity; server profile
+  # filters RFC1918 and blocks compose peering.
+  ipfs init
 fi
 
 ipfs config Datastore.StorageMax "${STORAGE_MAX:-100GB}"
+
+# Allow dialing Docker/LAN peers (Compose IPFS_PEER_NODES). Still avoid
+# announcing private addrs to the public DHT.
+ipfs config --json Swarm.AddrFilters '[]'
+ipfs config --json Addresses.NoAnnounce '[
+  "/ip4/10.0.0.0/ipcidr/8",
+  "/ip4/100.64.0.0/ipcidr/10",
+  "/ip4/169.254.0.0/ipcidr/16",
+  "/ip4/172.16.0.0/ipcidr/12",
+  "/ip4/192.168.0.0/ipcidr/16",
+  "/ip6/100::/ipcidr/64",
+  "/ip6/2001:2::/ipcidr/48",
+  "/ip6/fc00::/ipcidr/7",
+  "/ip6/fe80::/ipcidr/10"
+]'
 
 # Re-apply swarm listen on every boot so Docker-published 4001 is actually bound.
 ipfs config --json Addresses.Swarm '[
@@ -127,6 +169,21 @@ case "$routing" in
   *) routing=dhtclient ;;
 esac
 ipfs config --json Routing.Type "\"$routing\""
+
+# Kubo 0.41 defaults Bootstrap to ["auto"] (remote autoconf). If that fetch times
+# out at first boot, the node stays at 0 peers forever. Seed explicit defaults.
+ipfs bootstrap rm --all >/dev/null 2>&1 || true
+ipfs bootstrap add \
+  /dnsaddr/bootstrap.libp2p.io/p2p/QmNnooDu7bfjPFoTZYxMNLWUQJyrVwtbZg5gBMjTezGAJN \
+  /dnsaddr/bootstrap.libp2p.io/p2p/QmQCU2EcMqAqQPR2i9bChDtGNJchTbq5TbXJJ16u19uLTa \
+  /dnsaddr/bootstrap.libp2p.io/p2p/QmbLHAnMoJPWSCR5Zhtx6BHJX9KiKNN6tpvbUcqanj75Nb \
+  /dnsaddr/bootstrap.libp2p.io/p2p/QmcZf59bWwK5XFi76CZX8cbJ4BhTzzA3gU1ZjYZcYW3dwt \
+  /dnsaddr/va1.bootstrap.libp2p.io/p2p/12D3KooWKnDdG3iXw9eTFijk3YXExTvCzARjC9QzmkJBua8FLjtC \
+  /dnsaddr/amigarage.bootstrap.libp2p.io/p2p/12D3KooWNMmZbdj45v8Nn8cwuptwANMNHYMxEBG1FfKE31sNaceS \
+  >/dev/null 2>&1 || true
+
+# Quiet Kubo telemetry nag in container logs (operators can re-enable).
+export IPFS_TELEMETRY="${IPFS_TELEMETRY:-off}"
 
 # Gateway.NoFetch=false (default) lets this node retrieve CIDs from the swarm
 # when a client hits /ipfs/{cid} — the Kubo “retrieve and publish” path.
@@ -159,10 +216,17 @@ else
   ipfs config Addresses.Gateway /ip4/0.0.0.0/tcp/8080
 fi
 
+# Drop a stale lock from a previous crashed container (single-process image).
+rm -f "$IPFS_PATH/repo.lock" "$IPFS_PATH/api"
+
 ipfs daemon --enable-gc --routing="$routing" &
 export IPFS_PID=$!
 
-wait_ipfs_api || echo "[entrypoint] warning: IPFS API not ready after wait"
+if ! wait_ipfs_api; then
+  echo "[entrypoint] fatal: IPFS API did not become ready"
+  kill "$IPFS_PID" 2>/dev/null || true
+  exit 1
+fi
 
 connect_swarm_multiaddrs
 connect_peer_nodes
