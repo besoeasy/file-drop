@@ -19,7 +19,6 @@ services:
       - "4001:4001/udp"
     environment:
       STORAGE_MAX: 10GB
-      GATEWAY_NO_FETCH: "false"
       ENABLE_GATEWAY: "true"
     volumes:
       - originless-a-data:/data
@@ -44,7 +43,6 @@ services:
       - "4002:4001/udp"
     environment:
       STORAGE_MAX: 10GB
-      GATEWAY_NO_FETCH: "false"
       ENABLE_GATEWAY: "true"
       # Resolve node-a's peer id from /status and dial swarm over compose DNS.
       IPFS_PEER_NODES: http://node-a:3232

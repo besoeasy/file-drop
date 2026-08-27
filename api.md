@@ -25,7 +25,7 @@ Uploads (`POST /upload`, `/media`, `/uploadfolder`) are limited to **3 concurren
 | `GET` | [`/pins`](#get-pins) | Pinned count, bytes, and janitor threshold |
 | `GET` | [`/archive`](#get-archive) | Paginated Nostr IPFS archive listing |
 | `GET` | [`/metrics`](#get-metrics) | Prometheus text metrics |
-| `GET`/`HEAD` | [`/ipfs/{cid}`](#get-ipfscid--ipnspath) | Serve bytes for a CID (local pin or swarm fetch when `GATEWAY_NO_FETCH=false`) |
+| `GET`/`HEAD` | [`/ipfs/{cid}`](#get-ipfscid--ipnspath) | Serve bytes for a CID (local pin or swarm fetch) |
 | `GET`/`HEAD` | [`/ipns/{name}`](#get-ipfscid--ipnspath) | Resolve and serve an IPNS name |
 | `GET` | [`/api/examples`](#get-apiexamples) | JSON catalog of client tools |
 | `GET` | [`/examples/manifest.json`](#get-apiexamples) | Same catalog as `/api/examples` |
@@ -315,7 +315,7 @@ If no archiver is running, the response is `{ "status": "success", "items": [] }
 
 Path-style HTTP gateway. Reverse-proxies Kubo (`IPFS_GATEWAY`, default `http://127.0.0.1:8080`).
 
-With the default `GATEWAY_NO_FETCH=false`, missing blocks are retrieved from the IPFS swarm and then served. Set `GATEWAY_NO_FETCH=true` to serve **only** blocks already on this node (uploads, pins, archive).
+Missing blocks are retrieved from the IPFS swarm and then served. Set `GATEWAY_NO_FETCH=true` to serve **only** blocks already on this node (uploads, pins, archive).
 
 ```bash
 curl -O "http://localhost:3232/ipfs/$CID"

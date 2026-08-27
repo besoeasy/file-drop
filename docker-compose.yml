@@ -21,9 +21,8 @@ services:
       STORAGE_MAX: ${STORAGE_MAX:-100GB}
       PIN_EXPIRY_DAYS: ${PIN_EXPIRY_DAYS:-30}
       ENABLE_GATEWAY: ${ENABLE_GATEWAY:-true}
-      # false = retrieve CIDs from the swarm via /ipfs/{cid} (default)
-      # true  = serve only blocks already on this node
-      GATEWAY_NO_FETCH: ${GATEWAY_NO_FETCH:-false}
+      # Optional: set true to serve only local pins (swarm retrieve is the default)
+      # GATEWAY_NO_FETCH: "true"
       IPFS_ROUTING: ${IPFS_ROUTING:-dhtclient}
       IPFS_PROFILE: ${IPFS_PROFILE:-lowpower}
       SWARM_ANNOUNCE: ${SWARM_ANNOUNCE:-}

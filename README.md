@@ -40,7 +40,6 @@ docker run -d \
   -p 4001:4001 \
   -p 4001:4001/udp \
   -e STORAGE_MAX=100GB \
-  -e GATEWAY_NO_FETCH=false \
   -v originless-data:/data \
   -v originless-archive:/archive \
   ghcr.io/besoeasy/originless:latest
@@ -50,7 +49,7 @@ docker run -d \
 
 - Open the **node dashboard** at **[http://localhost:3232](http://localhost:3232)** (library, archive, status)
 - Pin files from **[Client Tools](http://localhost:3232/examples/)** (`/upload`, `/media`, `/uploadfolder`) or the **[HTTP API](api.md)**
-- Fetch by CID at `http://localhost:3232/ipfs/<cid>` — by default this node **retrieves from the IPFS swarm** when the blocks are not local yet (`GATEWAY_NO_FETCH=false`)
+- Fetch by CID at `http://localhost:3232/ipfs/<cid>` — this node **retrieves from the IPFS swarm** when the blocks are not local yet
 - Publish **port 4001** (TCP + UDP) so other Kubo peers can Bitswap **your** pins; without it, only this node's HTTP gateway can serve what you uploaded
 - Disable the HTTP gateway with `-e ENABLE_GATEWAY=false` if you do not want this node to serve bytes over HTTP
 - On a public shared host that should only serve its own pins, set `-e GATEWAY_NO_FETCH=true`
@@ -258,9 +257,9 @@ http://localhost:8080/ipfs/QmX...
 
 Kubo may redirect directory and HTML CIDs to `{cid}.ipfs.localhost:3232` (origin isolation). Originless proxies that host to Kubo so you get the pinned site, not the dashboard. `*.localhost` resolves to loopback in the browser; no extra DNS is required.
 
-By default `GATEWAY_NO_FETCH=false`, so `GET /ipfs/{cid}` retrieves missing blocks from the IPFS swarm (Bitswap/DHT) and then serves them — the same “retrieve and publish” path as Kubo. That is how a self-hosted node can open media pinned on another Originless/Kubo peer.
+The gateway retrieves missing blocks from the IPFS swarm (Bitswap/DHT) and then serves them — the Kubo “retrieve and publish” path. That is how a self-hosted node can open media pinned on another Originless/Kubo peer.
 
-Set `GATEWAY_NO_FETCH=true` if this host must **only** serve blocks it already holds (uploads, pins, archive) and must not act as a recursive public gateway.
+Set `GATEWAY_NO_FETCH=true` only if this host must **only** serve blocks it already holds (uploads, pins, archive) and must not act as a recursive public gateway.
 
 Swarm reachability is separate from the HTTP gateway: other Kubo nodes pull your pins over **libp2p port 4001**. Publish TCP+UDP `4001` in Docker, and set `SWARM_ANNOUNCE` to your public multiaddrs when you are behind NAT. Optional sticky dials: `IPFS_PEER_NODES=http://other-node:3232` (reads `/status` for the peer id) or `IPFS_SWARM_CONNECT=/ip4/…/tcp/4001/p2p/…`.
 
@@ -379,7 +378,7 @@ After each save, Originless pins the CID via the Kubo HTTP API (and re-adds from
 | `NOSTR_NPUBS`         | `""`          | Comma-separated list or JSON array of Nostr `npub` public keys. Enables the IPFS media archiver.                                                                                                                                                  |
 | `NOSTR_RELAYS`        | famous relays | WebSocket relay URLs (comma-separated or JSON). Defaults: `wss://relay.damus.io`, `wss://nos.lol`, `wss://relay.nostr.band`, `wss://relay.primal.net`, `wss://nostr.mom`, `wss://purplerelay.com`, `wss://offchain.pub`, `wss://eden.nostr.land`. |
 | `ENABLE_GATEWAY`      | `true`        | Serve content at `/ipfs/<cid>` and `/ipns/<name>` on port `3232`, and bind Kubo’s gateway on `8080`. Set `false` / `0` / `off` to disable HTTP content serving.                                                                              |
-| `GATEWAY_NO_FETCH`    | `false`       | When `false`, `/ipfs/{cid}` may retrieve blocks from the swarm. When `true`, only local pins/uploads/archive are served (no recursive fetch).                                                                                              |
+| `GATEWAY_NO_FETCH`    | *(off)*       | Optional. Set `true` to serve only local pins/uploads/archive (no swarm fetch). Swarm retrieve is the built-in default.                                                                                                                    |
 | `IPFS_PROFILE`        | `lowpower`    | Kubo init profile for new `/data` repos. Default is Umbrel/home-friendly (`lowpower`). Also accepts `default`, `server`, etc. Does not rewrite an existing repo.                                                                           |
 | `IPFS_ROUTING`        | `dhtclient`   | Kubo routing mode: `dhtclient`, `dht`, `dhtserver`, `auto`, or `none`.                                                                                                                                                                      |
 | `IPFS_GATEWAY`        | `http://127.0.0.1:8080` | Backend URL of the Kubo HTTP gateway that Originless reverse-proxies.                                                                                                                                                                       |

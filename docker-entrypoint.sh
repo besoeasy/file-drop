@@ -124,7 +124,7 @@ connect_swarm_multiaddrs() {
 }
 
 # IPFS_PROFILE: lowpower (default, Umbrel/home-friendly), default, or server.
-# Connectivity still comes from bootstrap + published 4001 + GATEWAY_NO_FETCH —
+# Connectivity still comes from bootstrap + published 4001 + swarm gateway fetch —
 # not from raising ConnMgr via the default/server profiles.
 profile=$(printf '%s' "${IPFS_PROFILE:-lowpower}" | tr '[:upper:]' '[:lower:]')
 case "$profile" in
@@ -195,10 +195,10 @@ ipfs bootstrap add \
 # Quiet Kubo telemetry nag in container logs (operators can re-enable).
 export IPFS_TELEMETRY="${IPFS_TELEMETRY:-off}"
 
-# Gateway.NoFetch=false (default) lets this node retrieve CIDs from the swarm
-# when a client hits /ipfs/{cid} — the Kubo “retrieve and publish” path.
-# Set GATEWAY_NO_FETCH=true on public hosts that should only serve local pins.
-if truthy "${GATEWAY_NO_FETCH:-false}"; then
+# Gateway.NoFetch is off by default so /ipfs/{cid} retrieves from the swarm
+# (Kubo “retrieve and publish”). Set GATEWAY_NO_FETCH=true only on public hosts
+# that should serve local pins exclusively.
+if truthy "${GATEWAY_NO_FETCH:-}"; then
   ipfs config --json Gateway.NoFetch true
 else
   ipfs config --json Gateway.NoFetch false
