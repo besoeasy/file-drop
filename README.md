@@ -17,9 +17,19 @@
 
 ---
 
-## ⚡ Quick Start (Run in 5 Seconds)
+## ⚡ Quick Start (Docker Compose)
 
-Run a complete Originless node with IPFS integrated using a single command:
+Run a complete Originless node with IPFS integrated:
+
+```bash
+docker compose up -d --build
+# or pull a published image:
+# IMAGE=ghcr.io/besoeasy/originless:latest docker compose up -d
+```
+
+`docker-compose.yml` publishes **3232** (API/UI), **8080** (Kubo gateway), and **4001** TCP+UDP (libp2p swarm), and persists **`/data`** (pins + SQLite) plus **`/archive`**.
+
+Equivalent one-liner:
 
 ```bash
 docker run -d \
@@ -27,39 +37,46 @@ docker run -d \
   --restart unless-stopped \
   -p 3232:3232 \
   -p 8080:8080 \
+  -p 4001:4001 \
+  -p 4001:4001/udp \
   -e STORAGE_MAX=100GB \
+  -e GATEWAY_NO_FETCH=false \
+  -v originless-data:/data \
   -v originless-archive:/archive \
   ghcr.io/besoeasy/originless:latest
 ```
 
-> **Podman User?** Simply replace `docker` with `podman` in the command above!
+> **Podman User?** Replace `docker` with `podman` / `podman compose`.
 
 - Open the **node dashboard** at **[http://localhost:3232](http://localhost:3232)** (library, archive, status)
 - Pin files from **[Client Tools](http://localhost:3232/examples/)** (`/upload`, `/media`, `/uploadfolder`) or the **[HTTP API](api.md)**
-- Fetch pinned files from **this node** at `http://localhost:3232/ipfs/<cid>` (also on port `8080`)
+- Fetch by CID at `http://localhost:3232/ipfs/<cid>` — by default this node **retrieves from the IPFS swarm** when the blocks are not local yet (`GATEWAY_NO_FETCH=false`)
+- Publish **port 4001** (TCP + UDP) so other Kubo peers can Bitswap **your** pins; without it, only this node's HTTP gateway can serve what you uploaded
 - Disable the HTTP gateway with `-e ENABLE_GATEWAY=false` if you do not want this node to serve bytes over HTTP
+- On a public shared host that should only serve its own pins, set `-e GATEWAY_NO_FETCH=true`
 
 To also archive IPFS media from Nostr accounts onto `/archive`, pass `NOSTR_NPUBS`:
 
 ```bash
-docker run -d \
-  --name originless \
-  --restart unless-stopped \
-  -p 3232:3232 \
-  -p 8080:8080 \
-  -e STORAGE_MAX=100GB \
-  -e NOSTR_NPUBS=npub1...,npub1... \
-  -v originless-archive:/archive \
-  ghcr.io/besoeasy/originless:latest
+NOSTR_NPUBS=npub1...,npub1... docker compose up -d
+```
+
+### Cross-node check (two containers)
+
+```bash
+docker compose -f docker-compose.dual.yml up -d --build
+CID=$(curl -s -X POST -F "file=@README.md" http://localhost:3232/upload | jq -r .cid)
+# node-b dials node-a over the compose network, then serves the same CID:
+curl -fsS "http://localhost:3233/ipfs/$CID" -o /tmp/from-b.bin
 ```
 
 ## Testing
 
 ```bash
-docker build -t originless:local . && docker run --name originless -p 3232:3232 -p 8080:8080 originless:local
+docker compose up -d --build
 ```
 
-The local gateway is **on by default**. After an upload you can fetch the bytes from this node:
+The local gateway is **on by default** and **fetches from the swarm** when needed. After an upload:
 
 ```bash
 CID=$(curl -s -X POST -F "file=@README.md" http://localhost:3232/upload | jq -r .cid)
@@ -71,7 +88,7 @@ curl -O http://localhost:8080/ipfs/$CID
 To run upload-and-pin-only (no HTTP content serving):
 
 ```bash
-docker run --name originless -p 3232:3232 -e ENABLE_GATEWAY=false originless:local
+ENABLE_GATEWAY=false docker compose up -d
 ```
 
 ## ⚡ Quick Showcase — Upload in One Command
@@ -241,7 +258,11 @@ http://localhost:8080/ipfs/QmX...
 
 Kubo may redirect directory and HTML CIDs to `{cid}.ipfs.localhost:3232` (origin isolation). Originless proxies that host to Kubo so you get the pinned site, not the dashboard. `*.localhost` resolves to loopback in the browser; no extra DNS is required.
 
-`Gateway.NoFetch` is enabled in Docker, so this gateway only serves blocks already on this node (uploads, pins, archive). It will not fetch arbitrary CIDs from the swarm for anonymous HTTP clients — it is a host for what you published, not a stand-in recursive proxy for all of IPFS.
+By default `GATEWAY_NO_FETCH=false`, so `GET /ipfs/{cid}` retrieves missing blocks from the IPFS swarm (Bitswap/DHT) and then serves them — the same “retrieve and publish” path as Kubo. That is how a self-hosted node can open media pinned on another Originless/Kubo peer.
+
+Set `GATEWAY_NO_FETCH=true` if this host must **only** serve blocks it already holds (uploads, pins, archive) and must not act as a recursive public gateway.
+
+Swarm reachability is separate from the HTTP gateway: other Kubo nodes pull your pins over **libp2p port 4001**. Publish TCP+UDP `4001` in Docker, and set `SWARM_ANNOUNCE` to your public multiaddrs when you are behind NAT. Optional sticky dials: `IPFS_PEER_NODES=http://other-node:3232` (reads `/status` for the peer id) or `IPFS_SWARM_CONNECT=/ip4/…/tcp/4001/p2p/…`.
 
 Set `ENABLE_GATEWAY=false` to return `404` on `/ipfs` and `/ipns` and bind Kubo’s gateway to localhost only.
 
@@ -357,16 +378,23 @@ After each save, Originless pins the CID via the Kubo HTTP API (and re-adds from
 | `PIN_EXPIRY_DAYS`     | `30`          | Days a file stays pinned before the janitor may evict it.                                                                                                                                                                                         |
 | `NOSTR_NPUBS`         | `""`          | Comma-separated list or JSON array of Nostr `npub` public keys. Enables the IPFS media archiver.                                                                                                                                                  |
 | `NOSTR_RELAYS`        | famous relays | WebSocket relay URLs (comma-separated or JSON). Defaults: `wss://relay.damus.io`, `wss://nos.lol`, `wss://relay.nostr.band`, `wss://relay.primal.net`, `wss://nostr.mom`, `wss://purplerelay.com`, `wss://offchain.pub`, `wss://eden.nostr.land`. |
-| `ENABLE_GATEWAY`      | `true`        | Serve pinned content at `/ipfs/<cid>` and `/ipns/<name>` on port `3232`, and bind Kubo’s gateway on `8080`. Set `false` / `0` / `off` to disable HTTP content serving.                                                                              |
+| `ENABLE_GATEWAY`      | `true`        | Serve content at `/ipfs/<cid>` and `/ipns/<name>` on port `3232`, and bind Kubo’s gateway on `8080`. Set `false` / `0` / `off` to disable HTTP content serving.                                                                              |
+| `GATEWAY_NO_FETCH`    | `false`       | When `false`, `/ipfs/{cid}` may retrieve blocks from the swarm. When `true`, only local pins/uploads/archive are served (no recursive fetch).                                                                                              |
+| `IPFS_ROUTING`        | `dhtclient`   | Kubo routing mode: `dhtclient`, `dht`, `dhtserver`, `auto`, or `none`.                                                                                                                                                                      |
 | `IPFS_GATEWAY`        | `http://127.0.0.1:8080` | Backend URL of the Kubo HTTP gateway that Originless reverse-proxies.                                                                                                                                                                       |
+| `SWARM_ANNOUNCE`      | `""`          | Comma-separated public multiaddrs announced to the DHT (use when Docker publishes `4001` behind NAT), e.g. `/ip4/203.0.113.10/tcp/4001,/ip4/203.0.113.10/udp/4001/quic-v1`.                                                                   |
+| `IPFS_PEER_NODES`     | `""`          | Comma-separated Originless base URLs. On boot, read each `/status` peer id and `ipfs swarm connect` over DNS/TCP/QUIC `4001` (Compose-friendly).                                                                                            |
+| `IPFS_SWARM_CONNECT`  | `""`          | Comma-separated multiaddrs to dial once at startup.                                                                                                                                                                                         |
+| `IPFS_PEERING`        | `""`          | Raw Kubo `Peering.Peers` JSON array for sticky peers.                                                                                                                                                                                       |
 
 **Volumes**
 
 | Path       | Role                                                                                |
 | :--------- | :---------------------------------------------------------------------------------- |
+| `/data`    | Kubo IPFS repository + SQLite pin/upload log. **Persist this** or pins vanish when the container is recreated. |
 | `/archive` | Permanent copies of IPFS media discovered on configured Nostr accounts. Never GC'd. |
 
-`/data` is the Kubo IPFS repository (and a small SQLite pin log). It is **not** a volume — recreate the container and it is gone. Durable media lives on `/archive` and is re-pinned on startup.
+**Ports:** `3232` (Originless), `8080` (Kubo gateway), `4001/tcp` + `4001/udp` (libp2p swarm).
 
 ---
 

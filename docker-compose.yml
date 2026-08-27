@@ -1,0 +1,45 @@
+# Originless — self-hosted IPFS pin + gateway node
+#
+#   docker compose up -d --build
+#   open http://localhost:3232
+#
+# Swarm port 4001 (TCP + UDP/QUIC) must be published for other Kubo peers to
+# Bitswap content from this node. Persist /data so pins survive recreates.
+
+services:
+  originless:
+    build: .
+    image: ${IMAGE:-originless:local}
+    container_name: originless
+    restart: unless-stopped
+    ports:
+      - "3232:3232" # Originless HTTP API + dashboard + /ipfs gateway
+      - "8080:8080" # Native Kubo path gateway
+      - "4001:4001" # libp2p swarm (TCP)
+      - "4001:4001/udp" # libp2p swarm (QUIC / webtransport)
+    environment:
+      STORAGE_MAX: ${STORAGE_MAX:-100GB}
+      PIN_EXPIRY_DAYS: ${PIN_EXPIRY_DAYS:-30}
+      ENABLE_GATEWAY: ${ENABLE_GATEWAY:-true}
+      # false = retrieve CIDs from the swarm via /ipfs/{cid} (default)
+      # true  = serve only blocks already on this node
+      GATEWAY_NO_FETCH: ${GATEWAY_NO_FETCH:-false}
+      IPFS_ROUTING: ${IPFS_ROUTING:-dhtclient}
+      SWARM_ANNOUNCE: ${SWARM_ANNOUNCE:-}
+      IPFS_PEER_NODES: ${IPFS_PEER_NODES:-}
+      IPFS_SWARM_CONNECT: ${IPFS_SWARM_CONNECT:-}
+      NOSTR_NPUBS: ${NOSTR_NPUBS:-}
+      NOSTR_RELAYS: ${NOSTR_RELAYS:-}
+    volumes:
+      - originless-data:/data
+      - originless-archive:/archive
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3232/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 45s
+
+volumes:
+  originless-data:
+  originless-archive:

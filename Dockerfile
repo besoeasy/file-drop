@@ -15,9 +15,11 @@ ENV PIN_EXPIRY_DAYS=30
 ENV NOSTR_NPUBS=""
 ENV NOSTR_RELAYS=""
 ENV ENABLE_GATEWAY=true
+ENV GATEWAY_NO_FETCH=false
+ENV IPFS_ROUTING=dhtclient
 ENV IPFS_GATEWAY=http://127.0.0.1:8080
 
-RUN apk add --no-cache ca-certificates gcompat kubo && \
+RUN apk add --no-cache ca-certificates gcompat kubo wget && \
   adduser -D -h /app originless
 
 WORKDIR /app
@@ -33,7 +35,9 @@ USER originless
 
 EXPOSE 3232 8080 4001/tcp 4001/udp
 
-VOLUME ["/archive"]
+# /data = Kubo repo + SQLite pin log (persist this or pins vanish on recreate)
+# /archive = durable Nostr media copies
+VOLUME ["/data", "/archive"]
 
 STOPSIGNAL SIGTERM
 

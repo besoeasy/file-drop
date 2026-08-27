@@ -1,0 +1,65 @@
+# Two Originless nodes on one Docker network — verifies cross-node CID fetch.
+#
+#   docker compose -f docker-compose.dual.yml up -d --build
+#   CID=$(curl -s -X POST -F "file=@README.md" http://localhost:3232/upload | jq -r .cid)
+#   sleep 3
+#   curl -fsS "http://localhost:3233/ipfs/$CID" -o /tmp/from-b.bin
+#   curl -fsS "http://localhost:3232/ipfs/$CID" | sha256sum
+#   sha256sum /tmp/from-b.bin
+
+services:
+  node-a:
+    build: .
+    image: originless:local
+    container_name: originless-a
+    ports:
+      - "3232:3232"
+      - "8080:8080"
+      - "4001:4001"
+      - "4001:4001/udp"
+    environment:
+      STORAGE_MAX: 10GB
+      GATEWAY_NO_FETCH: "false"
+      ENABLE_GATEWAY: "true"
+    volumes:
+      - originless-a-data:/data
+      - originless-a-archive:/archive
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3232/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 8
+      start_period: 90s
+
+  node-b:
+    image: originless:local
+    container_name: originless-b
+    depends_on:
+      node-a:
+        condition: service_healthy
+    ports:
+      - "3233:3232"
+      - "8081:8080"
+      - "4002:4001"
+      - "4002:4001/udp"
+    environment:
+      STORAGE_MAX: 10GB
+      GATEWAY_NO_FETCH: "false"
+      ENABLE_GATEWAY: "true"
+      # Resolve node-a's peer id from /status and dial swarm over compose DNS.
+      IPFS_PEER_NODES: http://node-a:3232
+    volumes:
+      - originless-b-data:/data
+      - originless-b-archive:/archive
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3232/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 8
+      start_period: 90s
+
+volumes:
+  originless-a-data:
+  originless-a-archive:
+  originless-b-data:
+  originless-b-archive:
